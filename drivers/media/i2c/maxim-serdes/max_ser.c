@@ -1992,6 +1992,11 @@ static int max_ser_v4l2_register(struct max_ser_priv *priv)
 	}
 
 	v4l2_set_subdevdata(sd, priv);
+	/*
+	 * subdevdata no longer points to the i2c_client, so drop IS_I2C to stop
+	 * v4l2_device_unregister() from passing it to i2c_unregister_device().
+	 */
+	sd->flags &= ~V4L2_SUBDEV_FL_IS_I2C;
 
 	if (ser->ops->tpg_patterns) {
 		v4l2_ctrl_handler_init(&priv->ctrl_handler, 1);
