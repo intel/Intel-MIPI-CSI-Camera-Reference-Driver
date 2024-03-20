@@ -2990,8 +2990,10 @@ static int ds5_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 				ret = 0;
 				break;
 			}
-			if (ret)
+			if (ret) {
+				ret = 0; // LRS doesn't expect to get errors with HWMC
 				break;
+			}
 			/* This is needed for librealsense, to align there code with UVC,
 		 	 * last word is length - 4 bytes header length */
 			dataLen -= 4;
