@@ -23,6 +23,7 @@
 #include <linux/media.h>
 #include <linux/module.h>
 #include <linux/regmap.h>
+#include <linux/version.h>
 #include <media/max9295.h>
 
 /* register specifics */
@@ -719,7 +720,11 @@ static int max9295_probe(struct i2c_client *client)
 	return err;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 static int max9295_remove(struct i2c_client *client)
+#else
+static void max9295_remove(struct i2c_client *client)
+#endif
 {
 	struct max9295 *priv;
 
@@ -733,7 +738,9 @@ static int max9295_remove(struct i2c_client *client)
 #endif
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 	return 0;
+#endif
 }
 
 static const struct i2c_device_id max9295_id[] = {
