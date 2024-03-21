@@ -660,8 +660,12 @@ int max9295_set_pipe(struct device *dev, int pipe_id,
 }
 EXPORT_SYMBOL(max9295_set_pipe);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 static int max9295_probe(struct i2c_client *client,
 				const struct i2c_device_id *id)
+#else
+static int max9295_probe(struct i2c_client *client)
+#endif
 {
 	struct max9295 *priv;
 	struct max9295_pdata *pdata = client->dev.platform_data;
@@ -749,7 +753,13 @@ static struct i2c_driver max9295_i2c_driver = {
 		.name = "max9295",
 		.owner = THIS_MODULE,
 	},
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 	.probe = max9295_probe,
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
+	.probe_new = max9295_probe,
+#else
+	.probe = max9295_probe,
+#endif
 	.remove = max9295_remove,
 	.id_table = max9295_id,
 };
