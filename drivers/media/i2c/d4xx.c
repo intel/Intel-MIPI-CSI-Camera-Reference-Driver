@@ -2188,6 +2188,8 @@ enum DS5_HWMC_ERR {
 	DS5_HWMC_ERR_CMD     = -1,
 	DS5_HWMC_ERR_PARAM   = -6,
 	DS5_HWMC_ERR_NODATA  = -21,
+	DS5_HWMC_ERR_UNKNOWN = -64,
+	DS5_HWMC_ERR_LAST,
 };
 
 static int ds5_get_hwmc_status(struct ds5 *state)
@@ -2207,26 +2209,11 @@ static int ds5_get_hwmc_status(struct ds5 *state)
 	if (ret || status != DS5_HWMC_STATUS_OK) {
 		if (status == DS5_HWMC_STATUS_ERR) {
 			ds5_raw_read(state, DS5_HWMC_DATA, &errorCode, sizeof(errorCode));
-			switch(errorCode) {
-			case (DS5_HWMC_ERR_CMD):
-			case (DS5_HWMC_ERR_PARAM):
-				ret = -EBADMSG;
-			break;
-			case (DS5_HWMC_ERR_NODATA):
-				ret = -ENODATA;
-			break;
-
-			default:
-				dev_dbg(&state->client->dev,
-					"%s(): HWMC failed, ret: %d, status: %x, error code: %d\n",
-					__func__, ret, status, errorCode);
-				ret = -EBADMSG;
-				break;
-			}
+			return errorCode;
 		}
 	}
 	if (!ret && (status != DS5_HWMC_STATUS_OK))
-		ret = -EBUSY;
+		ret = DS5_HWMC_ERR_LAST;
 
 	return ret;
 }
@@ -2246,7 +2233,13 @@ static int ds5_get_hwmc(struct ds5 *state, unsigned char *data,
 		dev_dbg(&state->client->dev,
 			"%s(): HWMC status not clear, ret: %d\n",
 			__func__, ret);
+		if (ret != DS5_HWMC_ERR_LAST) {
+			int *p = (int *)data;
+			*p = ret;
+			return 0;
+		} else {
 			return ret;
+		}
 	}
 
 	ret = regmap_raw_read(state->regmap, DS5_HWMC_RESP_LEN,
