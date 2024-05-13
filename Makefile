@@ -24,6 +24,9 @@ export CONFIG_VIDEO_AR0820=m
 export CONFIG_VIDEO_AR0234=m
 export CONFIG_VIDEO_ISX031=m
 export CONFIG_VIDEO_MAX9X=m
+export CONFIG_I2C_IOEXPANDER_SER_MAX9295 = m
+export CONFIG_I2C_IOEXPANDER_DESER_MAX9296 = m
+export CONFIG_VIDEO_D4XX=m
 
 # Path to v4l2-core module symbols
 KBUILD_EXTRA_SYMBOLS = $(M)/$(KERNEL_VERSION)/drivers/media/v4l2-core/Module.symvers
