@@ -5846,6 +5846,7 @@ static void ds5_remove(struct i2c_client *c)
 
 #ifdef CONFIG_VIDEO_D4XX_SERDES
 	int i, ret;
+	int c_bus = c->adapter->nr;
 	for (i = 0; i < MAX_DEV_NUM; i++) {
 		if (serdes_inited[i] && serdes_inited[i] == state) {
 			serdes_inited[i] = NULL;
@@ -5855,22 +5856,31 @@ static void ds5_remove(struct i2c_client *c)
 			if (ret)
 				dev_warn(&c->dev,
 				  "failed in 9295 reset control\n");
-			ret = max9296_reset_control(state->dser_dev,
-				state->g_ctx.s_dev);
-			if (ret)
-				dev_warn(&c->dev,
-				  "failed in 9296 reset control\n");
-
+			if (state->dser_i2c) {
+				dev_info(&c->dev, "ignore 9296 reset control, already remove for bus %d\n", c_bus);
+			} else {
+				ret = max9296_reset_control(state->dser_dev,
+							    state->g_ctx.s_dev);
+				if (ret)
+				  dev_warn(&c->dev,
+					   "failed in 9296 reset control\n");
+			}
 			ret = max9295_sdev_unpair(state->ser_dev,
 				state->g_ctx.s_dev);
 			if (ret)
 				dev_warn(&c->dev, "failed to unpair sdev\n");
-			ret = max9296_sdev_unregister(state->dser_dev,
-				state->g_ctx.s_dev);
-			if (ret)
-				dev_warn(&c->dev,
-				  "failed to sdev unregister sdev\n");
-			max9296_power_off(state->dser_dev);
+
+			if (state->dser_i2c) {
+				dev_info(&c->dev, "ignore 9296 unregister sdev, already remove for bus %d\n", c_bus);
+			} else {
+				ret = max9296_sdev_unregister(state->dser_dev,
+							      state->g_ctx.s_dev);
+				if (ret)
+				  dev_warn(&c->dev,
+					   "failed to sdev unregister sdev\n");
+
+				max9296_power_off(state->dser_dev);
+			}
 
 			mutex_unlock(&serdes_lock__);
 			break;
@@ -5878,7 +5888,7 @@ static void ds5_remove(struct i2c_client *c)
 	}
 	if (state->ser_i2c)
 		i2c_unregister_device(state->ser_i2c);
-	if (state->dser_i2c)
+	if (state->dser_i2c && !state->aggregated)
 		i2c_unregister_device(state->dser_i2c);
 #endif
 #ifndef CONFIG_TEGRA_CAMERA_PLATFORM
