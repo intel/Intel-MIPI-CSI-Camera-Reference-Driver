@@ -109,4 +109,6 @@ int max9295_setup_streaming(struct device *dev);
 int max9295_init_settings(struct device *dev);
 /** @} */
 
+int max9295_set_mfp(struct device *dev, int pin, int val);
+
 #endif  /* __MAX9295_H__ */

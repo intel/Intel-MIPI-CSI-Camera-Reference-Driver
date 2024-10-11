@@ -699,6 +699,28 @@ int max9295_init_settings(struct device *dev)
 }
 EXPORT_SYMBOL(max9295_init_settings);
 
+int max9295_set_mfp(struct device *dev, int pin, int val)
+{
+	struct max9295 *priv = dev_get_drvdata(dev);
+	struct regmap *map = priv->regmap;
+	int err;
+
+	if (pin > 10)
+		return -EINVAL;
+
+	err = regmap_update_bits(map, 0x2BE + (pin * 3),
+		(1<<4 | 1<<2 | 1<<0),
+		((val ? 1<<4 : 0) | 0<<2 | 0<<0) );
+
+	err |= regmap_update_bits(map, 0x2BF + (pin * 3),
+		3<<6|1<<5,
+		1<<6|1<<5);
+
+	return err;
+
+}
+EXPORT_SYMBOL(max9295_set_mfp);
+
 int max9295_set_pipe(struct device *dev, int pipe_id,
 		     u8 data_type1, u8 data_type2, u32 vc_id)
 {
