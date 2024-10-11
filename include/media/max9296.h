@@ -39,6 +39,7 @@ struct max9296_pdata {
 	bool splitter_enabled;
 	__u32 max_src;
 	__u32 csi_mode;
+	__u32 d4xx_hacks;
 };
 
 int max9296_get_available_pipe_id(struct device *dev, int vc_id);

@@ -130,6 +130,7 @@ struct max9296 {
 	int reset_gpio;
 	int pw_ref;
 	struct regulator *vdd_cam_1v2;
+	__u32 d4xx_hacks;
 };
 
 static int max9296_write_reg(struct device *dev,
@@ -438,16 +439,19 @@ int max9296_sdev_register(struct device *dev, struct gmsl_link_ctx *g_ctx)
 		goto error;
 	}
 
-	/* Check csi mode compatibility */
-	if (!((priv->csi_mode == MAX9296_CSI_MODE_2X4) ?
-			((g_ctx->csi_mode == GMSL_CSI_1X4_MODE) ||
-				(g_ctx->csi_mode == GMSL_CSI_2X4_MODE)) :
-			((g_ctx->csi_mode == GMSL_CSI_2X2_MODE) ||
-				(g_ctx->csi_mode == GMSL_CSI_4X2_MODE)))) {
-		dev_err(dev,
-			"%s: csi mode not supported\n", __func__);
-		err = -EINVAL;
-		goto error;
+	if (priv->d4xx_hacks) {
+		/* Check csi mode compatibility */
+		if (!((priv->csi_mode == MAX9296_CSI_MODE_2X4) ?
+				((g_ctx->csi_mode == GMSL_CSI_1X4_MODE) ||
+					(g_ctx->csi_mode == GMSL_CSI_2X4_MODE)) :
+				((g_ctx->csi_mode == GMSL_CSI_2X2_MODE) ||
+					(g_ctx->csi_mode == GMSL_CSI_4X2_MODE)))) {
+			dev_err(dev,
+				"%s: csi mode not supported\n", __func__);
+			err = -EINVAL;
+			goto error;
+		}
+		dev_dbg(dev, "%s: d4xx specfic csi-mode set\n", __func__);
 	}
 
 	for (i = 0; i < priv->num_src; i++) {
@@ -857,13 +861,15 @@ void max9296_reset_oneshot(struct device *dev)
 }
 EXPORT_SYMBOL(max9296_reset_oneshot);
 
-static int __max9296_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
+static int __max9296_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_type1,
 			      u8 data_type2, u32 vc_id)
 {
+	struct max9296 *priv = dev_get_drvdata(dev);
 	int err = 0;
 	int i = 0;
 	u8 en_mapping_num = 0x0F;
 	u8 all_mapping_phy = 0x55;
+
 	struct reg_pair map_pipe_opt[] = {
 		{0x1458, 0x28}, // PHY A Optimization
 		{0x1459, 0x68}, // PHY A Optimization
@@ -880,6 +886,7 @@ static int __max9296_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
 		// 0x02: ALT_MEM_MAP8, 0x10: ALT2_MEM_MAP8
 		{0x0473, 0x10},
 	};
+
 	struct reg_pair map_pipe_control[] = {
 		// Enable 4 mappings for Pipe X
 		{MAX9296_TX11_PIPE_X_EN_ADDR, 0x0F},
@@ -900,6 +907,8 @@ static int __max9296_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
 		// SEQ_MISS_EN: Disabled / DIS_PKT_DET: Disabled
 		{0x0100, 0x23}, // pipe X
 	};
+
+	dev_dbg(dev, "%s: d4xx specfic pipe set\n", __func__);
 
 	for (i = 0; i < 10; i++) {
 		map_pipe_control[i].addr += 0x40 * pipe_id;
@@ -927,7 +936,59 @@ static int __max9296_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
 
 	err |= max9296_set_registers(dev, map_pipe_opt,
 				     ARRAY_SIZE(map_pipe_opt));
+	return err;
+}
 
+static int __max9296_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
+			      u8 data_type2, u32 vc_id)
+{
+	struct max9296 *priv = dev_get_drvdata(dev);
+	int err = 0;
+	int i = 0;
+	u8 en_mapping_num = 0x0F;
+	u8 all_mapping_phy = 0x55;
+
+	struct reg_pair map_pipe_control[] = {
+		// Enable 4 mappings for Pipe X
+		{MAX9296_TX11_PIPE_X_EN_ADDR, 0x0F},
+		// Map data_type1 on vc_id
+		{MAX9296_PIPE_X_SRC_0_MAP_ADDR, 0x1E},
+		{MAX9296_PIPE_X_DST_0_MAP_ADDR, 0x1E},
+		// Map frame_start on vc_id
+		{MAX9296_PIPE_X_SRC_1_MAP_ADDR, 0x00},
+		{MAX9296_PIPE_X_DST_1_MAP_ADDR, 0x00},
+		// Map frame end on vc_id
+		{MAX9296_PIPE_X_SRC_2_MAP_ADDR, 0x01},
+		{MAX9296_PIPE_X_DST_2_MAP_ADDR, 0x01},
+		// Map data_type2 on vc_id
+		{MAX9296_PIPE_X_SRC_3_MAP_ADDR, 0x12},
+		{MAX9296_PIPE_X_DST_3_MAP_ADDR, 0x12},
+		// All mappings to PHY1 (master for port A)
+		{MAX9296_TX45_PIPE_X_DST_CTRL_ADDR, 0x55},
+		// SEQ_MISS_EN: Disabled / DIS_PKT_DET: Disabled
+	};
+
+	for (i = 0; i < ARRAY_SIZE(map_pipe_control); i++) {
+		map_pipe_control[i].addr += 0x40 * pipe_id;
+	}
+
+	if (data_type2 == 0x0) {
+		en_mapping_num = 0x07;
+		all_mapping_phy = 0x15;
+	}
+	map_pipe_control[0].val = en_mapping_num;
+	map_pipe_control[1].val = (vc_id << 6) | data_type1;
+	map_pipe_control[2].val = (vc_id << 6) | data_type1;
+	map_pipe_control[3].val = (vc_id << 6) | 0x00;
+	map_pipe_control[4].val = (vc_id << 6) | 0x00;
+	map_pipe_control[5].val = (vc_id << 6) | 0x01;
+	map_pipe_control[6].val = (vc_id << 6) | 0x01;
+	map_pipe_control[7].val = (vc_id << 6) | data_type2;
+	map_pipe_control[8].val = (vc_id << 6) | data_type2;
+	map_pipe_control[9].val = all_mapping_phy;
+
+	err |= max9296_set_registers(dev, map_pipe_control,
+				     ARRAY_SIZE(map_pipe_control));
 	return err;
 }
 int max9296_init_settings(struct device *dev)
@@ -938,9 +999,15 @@ int max9296_init_settings(struct device *dev)
 
 	mutex_lock(&priv->lock);
 
-	for (i = 0; i < MAX9296_MAX_PIPES; i++)
-		err |= __max9296_set_pipe(dev, i, GMSL_CSI_DT_YUV422_8,
-					  GMSL_CSI_DT_EMBED, i);
+	if (priv->d4xx_hacks) {
+		for (i = 0; i < MAX9296_MAX_PIPES; i++)
+			err |= __max9296_set_pipe_d4xx(dev, i, GMSL_CSI_DT_YUV422_8,
+						  GMSL_CSI_DT_EMBED, i);
+	} else {
+		for (i = 0; i < MAX9296_MAX_PIPES; i++)
+			err |= __max9296_set_pipe(dev, i, GMSL_CSI_DT_YUV422_8,
+						  GMSL_CSI_DT_EMBED, i);
+	}
 
 	mutex_unlock(&priv->lock);
 
@@ -965,7 +1032,11 @@ int max9296_set_pipe(struct device *dev, int pipe_id,
 
 	mutex_lock(&priv->lock);
 
-	err = __max9296_set_pipe(dev, pipe_id, data_type1, data_type2, vc_id);
+	if (priv->d4xx_hacks) {
+		err = __max9296_set_pipe_d4xx(dev, pipe_id, data_type1, data_type2, vc_id);
+	} else {
+		err = __max9296_set_pipe(dev, pipe_id, data_type1, data_type2, vc_id);
+	}
 
 	mutex_unlock(&priv->lock);
 
@@ -1065,6 +1136,12 @@ static int max9296_parse_pdata(struct max9296 *priv,
 			return -EINVAL;
 		}
 		priv->max_src = pdata->max_src;
+		if (pdata->d4xx_hacks) {
+			dev_info(&client->dev, "%s: set for d4xx\n", __func__);
+			priv->d4xx_hacks = pdata->d4xx_hacks;
+		} else {
+			priv->d4xx_hacks = 0;
+		}
 	} else {
 		priv->csi_mode = MAX9296_CSI_MODE_2X4;
 		priv->lane_mp1 = MAX9296_LANE_MAP1_2X4;
@@ -1072,6 +1149,7 @@ static int max9296_parse_pdata(struct max9296 *priv,
 		priv->max_src = 1;
 		priv->reset_gpio = 0;
 		priv->vdd_cam_1v2 = NULL;
+		priv->d4xx_hacks = 0;
 	}
 	return 0;
 }
