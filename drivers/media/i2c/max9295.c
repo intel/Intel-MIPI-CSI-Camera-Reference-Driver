@@ -252,6 +252,9 @@ int max9295_setup_streaming(struct device *dev)
 			}
 		}
 		dev_dbg(dev, "%s: d4xx specfic setup done\n", __func__);
+	} else {
+	  //HACK: JNW 2024-10-10  Until we actually setup num_streams for proper mapping
+	  port_sel |= 0x61; // Just pipe X & port B
 	}
 
 	for (i = 0; i < g_ctx->num_streams; i++)
