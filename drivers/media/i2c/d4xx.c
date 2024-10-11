@@ -3230,10 +3230,12 @@ static int ds5_board_setup(struct ds5 *state)
 	static struct max9295_pdata max9295_pdata = {
 		.is_prim_ser = 1, // todo: configurable
 		.def_addr = 0x40, // todo: configurable
+		.d4xx_hacks = 1,
 	};
 	static struct max9296_pdata max9296_pdata = {
 		.max_src = 2,
 		.csi_mode = GMSL_CSI_2X4_MODE,
+		.d4xx_hacks = 1,
 	};
 	static struct i2c_board_info i2c_info_des = {
 		I2C_BOARD_INFO("max9296", 0x48),
