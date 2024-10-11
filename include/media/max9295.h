@@ -32,6 +32,7 @@ struct max9295_pdata {
 	/* primary serializer properties */
 	__u32 is_prim_ser;
 	__u32 def_addr;
+	__u32 d4xx_hacks;
 };
 
 /**

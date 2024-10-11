@@ -117,6 +117,7 @@ struct max9295 {
 	/* primary serializer properties */
 	__u32 def_addr;
 	__u32 pst2_ref;
+	__u32 d4xx_hacks;
 };
 
 static struct max9295 *prim_priv__;
@@ -160,15 +161,6 @@ int max9295_setup_streaming(struct device *dev)
 	u32 i;
 	u32 j;
 	u32 st_en;
-
-	struct map_ctx map_pipe_dtype[] = {
-		{GMSL_CSI_DT_RAW_12, MAX9295_PIPE_Z_DT_ADDR, 0x2C,
-			MAX9295_ST_ID_2},
-		{GMSL_CSI_DT_UED_U1, MAX9295_PIPE_X_DT_ADDR, 0x30,
-			MAX9295_ST_ID_0},
-		{GMSL_CSI_DT_EMBED, MAX9295_PIPE_Y_DT_ADDR, 0x12,
-			MAX9295_ST_ID_1},
-	};
 
 	mutex_lock(&priv->lock);
 
@@ -219,35 +211,47 @@ int max9295_setup_streaming(struct device *dev)
 	max9295_write_reg(dev, MAX9295_MIPI_RX2_ADDR, lane_map1);
 	max9295_write_reg(dev, MAX9295_MIPI_RX3_ADDR, lane_map2);
 
-	for (i = 0; i < g_ctx->num_streams; i++) {
-		struct gmsl_stream *g_stream = &g_ctx->streams[i];
+	if (priv->d4xx_hacks) {
+		struct map_ctx map_pipe_dtype[] = {
+			{GMSL_CSI_DT_RAW_12, MAX9295_PIPE_Z_DT_ADDR, 0x2C,
+				MAX9295_ST_ID_2},
+			{GMSL_CSI_DT_UED_U1, MAX9295_PIPE_X_DT_ADDR, 0x30,
+				MAX9295_ST_ID_0},
+			{GMSL_CSI_DT_EMBED, MAX9295_PIPE_Y_DT_ADDR, 0x12,
+				MAX9295_ST_ID_1},
+		};
 
-		g_stream->st_id_sel = GMSL_ST_ID_UNUSED;
-		for (j = 0; j < ARRAY_SIZE(map_pipe_dtype); j++) {
-			if (map_pipe_dtype[j].dt == g_stream->st_data_type) {
-				/*
-				 * TODO:
-				 * 1) Remove link specific overrides, depends
-				 * on #2.
-				 * 2) Add support for vc id based stream sel
-				 * overrides TX_SRC_SEL. would be useful in
-				 * using same mappings in all ser devs.
-				 */
-				if (g_ctx->serdes_csi_link ==
-					GMSL_SERDES_CSI_LINK_B) {
-					map_pipe_dtype[j].addr += 2;
-					map_pipe_dtype[j].st_id += 1;
+		for (i = 0; i < g_ctx->num_streams; i++) {
+			struct gmsl_stream *g_stream = &g_ctx->streams[i];
+
+			g_stream->st_id_sel = GMSL_ST_ID_UNUSED;
+			for (j = 0; j < ARRAY_SIZE(map_pipe_dtype); j++) {
+				if (map_pipe_dtype[j].dt == g_stream->st_data_type) {
+					/*
+					 * TODO:
+					 * 1) Remove link specific overrides, depends
+					 * on #2.
+					 * 2) Add support for vc id based stream sel
+					 * overrides TX_SRC_SEL. would be useful in
+					 * using same mappings in all ser devs.
+					 */
+					if (g_ctx->serdes_csi_link ==
+						GMSL_SERDES_CSI_LINK_B) {
+						map_pipe_dtype[j].addr += 2;
+						map_pipe_dtype[j].st_id += 1;
+					}
+
+					g_stream->st_id_sel = map_pipe_dtype[j].st_id;
+					st_en = (map_pipe_dtype[j].addr ==
+							MAX9295_PIPE_X_DT_ADDR) ?
+								0xC0 : 0x40;
+
+					max9295_write_reg(dev, map_pipe_dtype[j].addr,
+						(st_en | map_pipe_dtype[j].val));
 				}
-
-				g_stream->st_id_sel = map_pipe_dtype[j].st_id;
-				st_en = (map_pipe_dtype[j].addr ==
-						MAX9295_PIPE_X_DT_ADDR) ?
-							0xC0 : 0x40;
-
-				max9295_write_reg(dev, map_pipe_dtype[j].addr,
-					(st_en | map_pipe_dtype[j].val));
 			}
 		}
+		dev_dbg(dev, "%s: d4xx specfic setup done\n", __func__);
 	}
 
 	for (i = 0; i < g_ctx->num_streams; i++)
@@ -561,9 +565,62 @@ static int __max9295_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
 		{0x0315, 0x52}, // Pipe X pulls data_type2
 		{0x0309, 0x01}, // # Pipe X pulls vc_id
 		{0x030A, 0x00},
+	};
+
+	if (data_type1 == GMSL_CSI_DT_RAW_8 || data_type1 == GMSL_CSI_DT_EMBED
+	    || data_type2 == GMSL_CSI_DT_RAW_8 || data_type2 == GMSL_CSI_DT_EMBED) {
+		map_bpp8dbl[0].val |= (1 << pipe_id);
+	} else {
+		map_bpp8dbl[0].val &= ~(1 << pipe_id);
+	}
+	err |= max9295_set_registers(dev, map_bpp8dbl, ARRAY_SIZE(map_bpp8dbl));
+
+	map_pipe_control[0].addr += 0x2 * pipe_id;
+	map_pipe_control[1].addr += 0x2 * pipe_id;
+	map_pipe_control[2].addr += 0x2 * pipe_id;
+	map_pipe_control[3].addr += 0x2 * pipe_id;
+
+	map_pipe_control[0].val = 0x40 | data_type1;
+	map_pipe_control[1].val = 0x40 | data_type2;
+	map_pipe_control[2].val = 1 << vc_id;
+	map_pipe_control[3].val = 0x00;
+
+	if (pipe_id == 0)
+		pipe_x_val = map_pipe_control[1].val;
+
+	err |= max9295_set_registers(dev, map_pipe_control,
+				     ARRAY_SIZE(map_pipe_control));
+
+	map_multi_pipe_en[0].val = 0x80 | pipe_x_val;
+	err |= max9295_set_registers(dev, map_multi_pipe_en,
+				     ARRAY_SIZE(map_multi_pipe_en));
+
+	return err;
+}
+
+static int __max9295_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_type1,
+			      u8 data_type2, u32 vc_id)
+{
+	int err = 0;
+	u8 bpp = 0x30;
+	static u8 pipe_x_val = 0x0;
+	struct reg_pair map_multi_pipe_en[] = {
+		{0x0315, 0x80},
+	};
+	struct reg_pair map_bpp8dbl[] = {
+		{0x0312, 0x0F},
+	};
+	struct reg_pair map_pipe_control[] = {
+		/* addr, val */
+		{MAX9295_PIPE_X_DT_ADDR, 0x5E}, // Pipe X pulls data_type1
+		{0x0315, 0x52}, // Pipe X pulls data_type2
+		{0x0309, 0x01}, // # Pipe X pulls vc_id
+		{0x030A, 0x00},
 		{0x031C, 0x30}, // BPP in pipe X
 		{0x0102, 0x0E}, // LIM_HEART Pipe X: Disabled
 	};
+
+	dev_dbg(dev, "%s: d4xx specfic pipe set\n", __func__);
 
 	if (data_type1 == GMSL_CSI_DT_RAW_8 || data_type1 == GMSL_CSI_DT_EMBED
 	    || data_type2 == GMSL_CSI_DT_RAW_8 || data_type2 == GMSL_CSI_DT_EMBED) {
@@ -626,9 +683,15 @@ int max9295_init_settings(struct device *dev)
 	err |= max9295_set_registers(dev, map_pipe_opt,
 				     ARRAY_SIZE(map_pipe_opt));
 
-	for (i = 0; i < MAX9295_MAX_PIPES; i++)
-		err |= __max9295_set_pipe(dev, i, GMSL_CSI_DT_YUV422_8,
-					  GMSL_CSI_DT_EMBED, i);
+	if (priv->d4xx_hacks) {
+		for (i = 0; i < MAX9295_MAX_PIPES; i++)
+			err |= __max9295_set_pipe_d4xx(dev, i, GMSL_CSI_DT_YUV422_8,
+						  GMSL_CSI_DT_EMBED, i);
+	} else {
+		for (i = 0; i < MAX9295_MAX_PIPES; i++)
+			err |= __max9295_set_pipe(dev, i, GMSL_CSI_DT_YUV422_8,
+						  GMSL_CSI_DT_EMBED, i);
+	}
 
 	mutex_unlock(&priv->lock);
 
@@ -653,7 +716,12 @@ int max9295_set_pipe(struct device *dev, int pipe_id,
 
 	mutex_lock(&priv->lock);
 
-	err = __max9295_set_pipe(dev, pipe_id, data_type1, data_type2, vc_id);
+
+	if (priv->d4xx_hacks) {
+		err = __max9295_set_pipe_d4xx(dev, pipe_id, data_type1, data_type2, vc_id);
+	} else {
+		err = __max9295_set_pipe(dev, pipe_id, data_type1, data_type2, vc_id);
+	}
 
 	mutex_unlock(&priv->lock);
 
@@ -712,6 +780,12 @@ static int max9295_probe(struct i2c_client *client)
 		priv->def_addr = 0;
 	}
 #endif
+	if (pdata->d4xx_hacks) {
+		dev_info(&client->dev, "%s: set for d4xx\n", __func__);
+		priv->d4xx_hacks = pdata->d4xx_hacks;
+	} else {
+		priv->d4xx_hacks = 0;
+	}
 	dev_set_drvdata(&client->dev, priv);
 
 	/* dev communication gets validated when GMSL link setup is done */
