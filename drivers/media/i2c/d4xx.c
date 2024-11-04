@@ -6467,10 +6467,8 @@ static int ds5_dfu_device_open(struct inode *inode, struct file *file)
 	struct ds5 *state = container_of(inode->i_cdev, struct ds5,
 			dfu_dev.ds5_cdev);
 #ifdef CONFIG_TEGRA_CAMERA_PLATFORM
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 10)
 	struct i2c_adapter *parent = i2c_parent_is_i2c_adapter(
 			state->client->adapter);
-#endif
 #endif
 	mutex_lock(&state->lock);
 	if (state->dfu_dev.device_open_count) {
@@ -6488,7 +6486,6 @@ static int ds5_dfu_device_open(struct inode *inode, struct file *file)
 	}
 	file->private_data = state;
 #ifdef CONFIG_TEGRA_CAMERA_PLATFORM
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 10)
 	/* get i2c controller and set dfu bus clock rate */
 	while (parent && i2c_parent_is_i2c_adapter(parent))
 		parent = i2c_parent_is_i2c_adapter(state->client->adapter);
@@ -6505,7 +6502,6 @@ static int ds5_dfu_device_open(struct inode *inode, struct file *file)
 
 	state->dfu_dev.bus_clk_rate = i2c_get_adapter_bus_clk_rate(parent);
 	i2c_set_adapter_bus_clk_rate(parent, DFU_I2C_BUS_CLK_RATE);
-#endif
 #endif
 	mutex_unlock(&state->lock);
 	return 0;
@@ -6565,10 +6561,8 @@ static int ds5_dfu_device_release(struct inode *inode, struct file *file)
 {
 	struct ds5 *state = container_of(inode->i_cdev, struct ds5, dfu_dev.ds5_cdev);
 #ifdef CONFIG_TEGRA_CAMERA_PLATFORM
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 10)
 	struct i2c_adapter *parent = i2c_parent_is_i2c_adapter(
 			state->client->adapter);
-#endif
 #endif
 	int ret = 0, retry = 10;
 	mutex_lock(&state->lock);
@@ -6585,7 +6579,6 @@ static int ds5_dfu_device_release(struct inode *inode, struct file *file)
 		devm_kfree(&state->client->dev, state->dfu_dev.dfu_msg);
 	state->dfu_dev.dfu_msg = NULL;
 #ifdef CONFIG_TEGRA_CAMERA_PLATFORM
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 10)
 	/* get i2c controller and restore bus clock rate */
 	while (parent && i2c_parent_is_i2c_adapter(parent))
 		parent = i2c_parent_is_i2c_adapter(state->client->adapter);
@@ -6599,7 +6592,6 @@ static int ds5_dfu_device_release(struct inode *inode, struct file *file)
 			state->dfu_dev.bus_clk_rate);
 
 	i2c_set_adapter_bus_clk_rate(parent, state->dfu_dev.bus_clk_rate);
-#endif
 #endif
 	/* Verify communication */
 	do {
