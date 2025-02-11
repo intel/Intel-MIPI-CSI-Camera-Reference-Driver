@@ -2,6 +2,7 @@
  * max9296.c - max9296 GMSL Deserializer driver
  *
  * Copyright (c) 2018-2022, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2024-2025, INTEL CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -358,6 +359,8 @@ int max9296_setup_control(struct device *dev, struct device *s_dev)
 	if ((priv->max_src > 1U) &&
 		(priv->num_src_found > 0U) &&
 		(priv->splitter_enabled == false)) {
+		dev_info(dev, "%s: set SerDes GMSL A & B dual-link)\n",
+			 __func__);
 		max9296_write_reg(dev, MAX9296_CTRL0_ADDR, 0x03);
 		max9296_write_reg(dev, MAX9296_CTRL0_ADDR, 0x23);
 
@@ -372,17 +375,44 @@ int max9296_setup_control(struct device *dev, struct device *s_dev)
 
 	priv->sdev_ref++;
 
+	dev_info(dev, "%s:  checking serializer sources (count/ref=%d/%d -> src[%d]=%s)\n",
+		 __func__,
+		 priv->num_src_found,
+		 priv->sdev_ref, i,
+		 priv->sources[i].g_ctx->serdes_csi_link == GMSL_SERDES_CSI_LINK_A? "GMSL A": "GMSL B");
+
 	/* Reset splitter mode if all devices are not found */
 	if ((priv->sdev_ref != priv->max_src) &&
 		(priv->splitter_enabled == true) &&
 		(priv->num_src_found > 0U) &&
 		(priv->num_src_found < priv->max_src)) {
+		dev_info(dev, "%s: restore SerDes %s single-link\n",
+			 __func__,
+			 priv->src_link == GMSL_SERDES_CSI_LINK_A? "GMSL A": "GMSL B");
 		err = max9296_write_link(dev, priv->src_link);
-		if (err)
+		if (err) {
+			dev_info(dev, "%s: fail to write source link\n",
+				 __func__);
 			goto error;
+		}
 
 		priv->splitter_enabled = false;
+
+	} else if (priv->num_src_found < priv->sdev_ref) {
+
+		dev_info(dev, "%s: restore SerDes %s single-link\n",
+			 __func__,
+			 priv->src_link == GMSL_SERDES_CSI_LINK_A ? "GMSL A": "GMSL B");
+
+		err = max9296_write_link(dev, priv->src_link);
+		if (err) {
+			dev_info(dev, "%s: fail to write source link\n",
+				 __func__);
+			goto error;
+		}
+		priv->splitter_enabled = false;
 	}
+
 
 error:
 	mutex_unlock(&priv->lock);
