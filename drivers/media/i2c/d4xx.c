@@ -3245,6 +3245,7 @@ static int ds5_board_setup(struct ds5 *state)
 	int err = 0;
 	int i;
 	char suffix = pdata->suffix;
+	char serdes_suffix[5]; /* suffix string for subdevs */
 
 	static struct max9295_pdata max9295_pdata = {
 		.is_prim_ser = 1, // todo: configurable
@@ -3291,10 +3292,22 @@ static int ds5_board_setup(struct ds5 *state)
 				state->dser_i2c = serdes_inited[i]->dser_i2c;
 				state->aggregated = 1;
 				break;
+			} else if ( pdata->subdev_info[0].aggregated_link ) {
+				dev_info(dev, "PDATA sensor/serializer AGGREGATED on MAX9296 device 0x%x GMSL port %s\n",
+					 i2c_info_des.addr,
+					 pdata->subdev_info[0].suffix);
+				state->aggregated = 1;
+				break;
 			}
 		}
 	}
-	if (state->aggregated)
+	if ( pdata->subdev_info[0].aggregated_link ) {
+	  snprintf(serdes_suffix, sizeof(serdes_suffix), "%s", pdata->subdev_info[0].suffix);
+	  dev_info(dev, "PDATA GMSL port suffix %s\n",
+		   i2c_info_des.addr,
+		   serdes_suffix);
+	  suffix = (const char) serdes_suffix[0]; /* d4xx suffix only uses subdevs first char */
+	} else if (state->aggregated)
 		suffix += 6;
 	dev_info(dev, "Init SerDes %c on %d@0x%x<->%d@0x%x\n",
 		suffix,
