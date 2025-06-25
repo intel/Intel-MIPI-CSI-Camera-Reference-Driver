@@ -3297,7 +3297,6 @@ static int ds5_board_setup(struct ds5 *state)
 					 i2c_info_des.addr,
 					 pdata->subdev_info[0].suffix);
 				state->aggregated = 1;
-				break;
 			}
 		}
 	}

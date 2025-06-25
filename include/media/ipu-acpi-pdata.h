@@ -91,4 +91,14 @@ struct serdes_local {
 
 	/* counter for total deser connected */
 	unsigned int deser_num;
+
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+	/* last deserializer mapped addr */
+	unsigned short des_map_addr;
+	unsigned short des_map_addr_2;
+
+	/* last mapped i2c_adapter */
+	char i2c_adapter_bdf[32];
+	char i2c_adapter_bdf_2[32];
+#endif
 };
