@@ -13,6 +13,7 @@ subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
 # Define config macros for conditional compilation in ipu6-acpi.c
 # IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE
 subdir-ccflags-y += -DCONFIG_VIDEO_MAX9X_MODULE=1
+subdir-ccflags-y += -DCONFIG_VIDEO_D4XX_MODULE=1
 subdir-ccflags-y += -DCONFIG_VIDEO_ISX031_MODULE=1
 subdir-ccflags-y += -DCONFIG_VIDEO_AR0820_MODULE=1
 subdir-ccflags-y += -DCONFIG_VIDEO_AR0234_MODULE=1

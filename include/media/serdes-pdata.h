@@ -7,6 +7,10 @@
 #if IS_ENABLED(CONFIG_VIDEO_ISX031)
 #include <media/i2c/isx031.h>
 #endif
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+#include <media/i2c/d4xx_pdata.h>
+#include <media/i2c/d4xx-max929x_pdata.h>
+#endif
 
 struct serdes_subdev_info {
 	struct i2c_board_info board_info;
@@ -17,6 +21,9 @@ struct serdes_subdev_info {
 	char suffix[5]; /* suffix for subdevs */
 	unsigned short ser_phys_addr;
 	unsigned int sensor_dt;
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+	unsigned short aggregated_link;
+#endif
 };
 
 struct serdes_platform_data {
