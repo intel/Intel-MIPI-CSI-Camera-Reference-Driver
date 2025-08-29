@@ -41,8 +41,8 @@
 #include <media/v4l2-mediabus.h>
 
 #ifdef CONFIG_VIDEO_D4XX_SERDES
-#include <media/max9295.h>
-#include <media/max9296.h>
+#include <media/i2c/d4xx-max9295.h>
+#include <media/i2c/d4xx-max9296.h>
 #else
 #include <media/gmsl-link.h>
 #define GMSL_CSI_DT_YUV422_8 0x1E
@@ -3258,11 +3258,11 @@ static int ds5_board_setup(struct ds5 *state)
 		.d4xx_hacks = 1,
 	};
 	static struct i2c_board_info i2c_info_des = {
-		I2C_BOARD_INFO("max9296", 0x48),
+		I2C_BOARD_INFO("d4xx-max9296", 0x48),
 		.platform_data = &max9296_pdata,
 	};
 	static struct i2c_board_info i2c_info_ser = {
-		I2C_BOARD_INFO("max9295", 0x42),
+		I2C_BOARD_INFO("d4xx-max9295", 0x42),
 		.platform_data = &max9295_pdata,
 	};
 
