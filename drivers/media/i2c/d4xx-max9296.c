@@ -28,7 +28,7 @@
 #include <linux/version.h>
 // #include <media/camera_common.h>
 #include <linux/regmap.h>
-#include <media/max9296.h>
+#include <media/i2c/d4xx-max9296.h>
 
 /* register specifics */
 #define MAX9296_DST_CSI_MODE_ADDR 0x330
@@ -1266,7 +1266,7 @@ static void max9296_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id max9296_id[] = {
-	{ "max9296", 0 },
+	{ "d4xx-max9296", 0 },
 	{ },
 };
 
@@ -1274,7 +1274,7 @@ MODULE_DEVICE_TABLE(i2c, max9296_id);
 
 static struct i2c_driver max9296_i2c_driver = {
 	.driver = {
-		.name = "max9296",
+		.name = "d4xx-max9296",
 		.owner = THIS_MODULE,
 		.of_match_table = of_match_ptr(max9296_of_match),
 	},

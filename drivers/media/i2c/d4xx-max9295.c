@@ -24,7 +24,7 @@
 #include <linux/module.h>
 #include <linux/regmap.h>
 #include <linux/version.h>
-#include <media/max9295.h>
+#include <media/i2c/d4xx-max9295.h>
 
 /* register specifics */
 #define MAX9295_MIPI_RX0_ADDR 0x330
@@ -843,12 +843,12 @@ static void max9295_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id max9295_id[] = {
-	{ "max9295", 0 },
+	{ "d4xx-max9295", 0 },
 	{ },
 };
 
 static const struct of_device_id max9295_of_match[] = {
-	{ .compatible = "maxim,max9295", },
+	{ .compatible = "maxim,d4xx-max9295", },
 	{ },
 };
 MODULE_DEVICE_TABLE(of, max9295_of_match);
@@ -856,7 +856,7 @@ MODULE_DEVICE_TABLE(i2c, max9295_id);
 
 static struct i2c_driver max9295_i2c_driver = {
 	.driver = {
-		.name = "max9295",
+		.name = "d4xx-max9295",
 		.owner = THIS_MODULE,
 	},
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
