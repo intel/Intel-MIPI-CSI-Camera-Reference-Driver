@@ -19,6 +19,7 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2025 Intel Corporation.
 
+#include <linux/version.h>
 #include <linux/delay.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -74,7 +75,11 @@ static int max9295_gpio_get_direction(struct gpio_chip *chip, unsigned int offse
 static int max9295_gpio_direction_input(struct gpio_chip *chip, unsigned int offset);
 static int max9295_gpio_direction_output(struct gpio_chip *chip, unsigned int offset, int value);
 static int max9295_gpio_get(struct gpio_chip *chip, unsigned int offset);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 17, 0)
 static void max9295_gpio_set(struct gpio_chip *chip, unsigned int offset, int value);
+#else
+static int max9295_gpio_set(struct gpio_chip *chip, unsigned int offset, int value);
+#endif
 static int max9295_setup_gpio(struct max9x_common *common);
 /* max9295 gpio */
 
@@ -160,14 +165,24 @@ static int max9295_gpio_get(struct gpio_chip *chip, unsigned int offset)
 	return FIELD_GET(MAX9295_GPIO_A_IN_FIELD, val);
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 17, 0)
 static void max9295_gpio_set(struct gpio_chip *chip, unsigned int offset, int value)
+#else
+static int max9295_gpio_set(struct gpio_chip *chip, unsigned int offset, int value)
+#endif
 {
 	struct max9x_common *common = from_gpio_chip(chip);
 	struct regmap *map = common->map;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 17, 0)
 	regmap_update_bits(map, MAX9295_GPIO_A(offset),
 		MAX9295_GPIO_A_OUT_FIELD,
 		MAX9X_FIELD_PREP(MAX9295_GPIO_A_OUT_FIELD, (value == 0 ? 0U : 1U)));
+#else
+	return regmap_update_bits(map, MAX9295_GPIO_A(offset),
+		MAX9295_GPIO_A_OUT_FIELD,
+		MAX9X_FIELD_PREP(MAX9295_GPIO_A_OUT_FIELD, (value == 0 ? 0U : 1U)));
+#endif
 }
 
 static int max9295_setup_gpio(struct max9x_common *common)
