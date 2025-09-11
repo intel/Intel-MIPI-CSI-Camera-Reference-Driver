@@ -292,7 +292,7 @@ static void parse_sensor_pdata(struct device *dev, const char *sensor_name, char
 	snprintf(dev_name, I2C_NAME_SIZE, "%s %s", sensor_name, suffix);
 	ser_pdata->subdevs[0].board_info.dev_name = dev_name;
 
-	struct isx031_platform_data *sen_pdata = devm_kzalloc(dev, sizeof(*sen_pdata), GFP_KERNEL);
+	struct sensor_platform_data *sen_pdata = devm_kzalloc(dev, sizeof(*sen_pdata), GFP_KERNEL);
 
 	if (!sen_pdata)
 		return;
@@ -2698,3 +2698,4 @@ MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Josh Watts <jwatts@d3embedded.com>");
 MODULE_AUTHOR("Yan, Dongcheng <dongcheng.yan@intel.com>");
 MODULE_DESCRIPTION("Common logic for Maxim GMSL serializers & deserializers");
+MODULE_VERSION(DRIVER_VERSION_SUFFIX);
