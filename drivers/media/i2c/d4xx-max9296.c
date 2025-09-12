@@ -1305,3 +1305,4 @@ module_exit(max9296_exit);
 MODULE_DESCRIPTION("Dual GMSL Deserializer driver max9296");
 MODULE_AUTHOR("Sudhir Vyas <svyas@nvidia.com");
 MODULE_LICENSE("GPL v2");
+MODULE_VERSION(DRIVER_VERSION_SUFFIX);
