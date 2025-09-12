@@ -887,3 +887,4 @@ MODULE_DESCRIPTION("GMSL Serializer driver max9295");
 MODULE_AUTHOR("Sudhir Vyas <svyas@nvidia.com>");
 MODULE_AUTHOR("Dmitry Perchanov <dmitry.perchanov@intel.com>");
 MODULE_LICENSE("GPL v2");
+MODULE_VERSION(DRIVER_VERSION_SUFFIX);
