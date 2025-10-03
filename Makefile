@@ -27,7 +27,8 @@ export CONFIG_VIDEO_ISX031=m
 export CONFIG_VIDEO_MAX9X=m
 export CONFIG_VIDEO_D4XX_MAX9295 = m
 export CONFIG_VIDEO_D4XX_MAX9296 = m
-export CONFIG_VIDEO_D4XX=m
+export CONFIG_VIDEO_D4XX_MAX96724 = m
+export CONFIG_VIDEO_D4XX = m
 
 # Path to v4l2-core module symbols
 KBUILD_EXTRA_SYMBOLS = $(M)/$(KERNEL_VERSION)/drivers/media/v4l2-core/Module.symvers
