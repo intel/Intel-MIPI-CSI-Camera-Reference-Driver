@@ -33,7 +33,8 @@ export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
 export CONFIG_INTEL_IPU_ACPI=m
 export CONFIG_VIDEO_D4XX_MAX9295 = m
 export CONFIG_VIDEO_D4XX_MAX9296 = m
-export CONFIG_VIDEO_D4XX=m
+export CONFIG_VIDEO_D4XX_MAX96724 = m
+export CONFIG_VIDEO_D4XX = m
 
 # Define config macros for conditional compilation in ipu-acpi.c
 # IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE

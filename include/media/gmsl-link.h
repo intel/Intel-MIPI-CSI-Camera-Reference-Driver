@@ -46,8 +46,14 @@
 #define GMSL_CSI_PORT_E 0x4
 #define GMSL_CSI_PORT_F 0x5
 
+#define GMSL_CSI_CPHY 0x0
+#define GMSL_CSI_DPHY 0x1
+
+#define GMSL_SERDES_CSI_LINK_UNKNOWN 0x0
 #define GMSL_SERDES_CSI_LINK_A 0x1
 #define GMSL_SERDES_CSI_LINK_B 0x2
+#define GMSL_SERDES_CSI_LINK_C 0x4
+#define GMSL_SERDES_CSI_LINK_D 0x8
 
 /* Didn't find kernel defintions, for now adding here */
 #define GMSL_CSI_DT_RAW_12 0x2C
