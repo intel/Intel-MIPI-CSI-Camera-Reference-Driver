@@ -7723,7 +7723,7 @@ static struct i2c_driver ds5_i2c_driver = {
 
 module_i2c_driver(ds5_i2c_driver);
 
-MODULE_DESCRIPTION("Intel RealSense D4XX Camera Driver");
+MODULE_DESCRIPTION("RealSense D4XX Camera Driver");
 MODULE_AUTHOR("Guennadi Liakhovetski <guennadi.liakhovetski@intel.com>,\n\
 				Nael Masalha <nael.masalha@intel.com>,\n\
 				Alexander Gantman <alexander.gantman@intel.com>,\n\
@@ -7732,7 +7732,7 @@ MODULE_AUTHOR("Guennadi Liakhovetski <guennadi.liakhovetski@intel.com>,\n\
 				Qingwu Zhang <qingwu.zhang@intel.com>,\n\
 				Evgeni Raikhel <evgeni.raikhel@intel.com>,\n\
 				Shikun Ding <shikun.ding@intel.com>,\n\
-				Florent Pirou <florent.pirou@intel.com>");
-MODULE_AUTHOR("Dmitry Perchanov <dmitry.perchanov@intel.com>");
+				Florent Pirou <florent.pirou@intel.com>,\n\
+				Dmitry Perchanov <dmitry.perchanov@intel.com>");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION(DRIVER_VERSION_SUFFIX);
