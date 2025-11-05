@@ -10,8 +10,8 @@ endif
 
 ccflags-y += -I$(src)/../../../../ipu7-drivers/drivers/media/pci/intel/ipu7
 
-ifneq ($(filter y m, $(CONFIG_INTEL_IPU7_ACPI)),)
-obj-$(CONFIG_INTEL_IPU7_ACPI) += ipu-acpi.o \
+ifneq ($(filter y m, $(CONFIG_INTEL_IPU_ACPI)),)
+obj-$(CONFIG_INTEL_IPU_ACPI) += ipu-acpi.o \
                                  ipu-acpi-pdata.o \
                                  ipu-acpi-common.o
 endif
