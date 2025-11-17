@@ -1,0 +1,45 @@
+From 1f1be31e07f67b8c4a3432d86961b848463f7aca Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Sun, 18 Jan 2026 13:46:44 -0700
+Subject: [PATCH 3/8] media: v4l2-core : set v4l2-cci i2c support
+
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ 6.12.0/drivers/media/v4l2-core/Makefile   | 4 +++-
+ 6.12.0/drivers/media/v4l2-core/v4l2-cci.c | 1 +
+ 2 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/6.12.0/drivers/media/v4l2-core/Makefile b/6.12.0/drivers/media/v4l2-core/Makefile
+index 82c235f..9128583 100644
+--- a/6.12.0/drivers/media/v4l2-core/Makefile
++++ b/6.12.0/drivers/media/v4l2-core/Makefile
+@@ -5,6 +5,7 @@
+ # ipu7-dkms appendix
+ CC := ${CC} -I ${M}/../../../include-overrides -I ${M}/../tuners -I ${M}/../dvb-core -I ${M}/../dvb-frontends
+ ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
++ccflags-y += -DCONFIG_V4L2_CCI_I2C
+ 
+ ccflags-y += -I$(srctree)/drivers/media/dvb-frontends
+ ccflags-y += -I$(srctree)/drivers/media/tuners
+@@ -14,7 +15,8 @@ tuner-objs	:=	tuner-core.o
+ videodev-objs	:=	v4l2-dev.o v4l2-ioctl.o v4l2-device.o v4l2-fh.o \
+ 			v4l2-event.o v4l2-subdev.o v4l2-common.o \
+ 			v4l2-ctrls-core.o v4l2-ctrls-api.o \
+-			v4l2-ctrls-request.o v4l2-ctrls-defs.o
++			v4l2-ctrls-request.o v4l2-ctrls-defs.o \
++			v4l2-cci.o
+ 
+ # Please keep it alphabetically sorted by Kconfig name
+ # (e. g. LC_ALL=C sort Makefile)
+diff --git a/6.12.0/drivers/media/v4l2-core/v4l2-cci.c b/6.12.0/drivers/media/v4l2-core/v4l2-cci.c
+index e9ecf47..65e138a 100644
+--- a/6.12.0/drivers/media/v4l2-core/v4l2-cci.c
++++ b/6.12.0/drivers/media/v4l2-core/v4l2-cci.c
+@@ -201,3 +201,4 @@ EXPORT_SYMBOL_GPL(devm_cci_regmap_init_i2c);
+ MODULE_LICENSE("GPL");
+ MODULE_AUTHOR("Hans de Goede <hansg@kernel.org>");
+ MODULE_DESCRIPTION("MIPI Camera Control Interface (CCI) support");
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+-- 
+2.43.0
+
