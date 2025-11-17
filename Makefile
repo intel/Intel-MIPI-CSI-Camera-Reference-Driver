@@ -3,7 +3,7 @@
 
 KERNELRELEASE ?= $(shell uname -r)
 KERNEL_SRC ?= /lib/modules/$(KERNELRELEASE)/build
-KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
+KERNEL_SUBVERSION := $(shell echo $(KERNELRELEASE) | cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
 BUILD_EXCLUSIVE_KERNEL="^(6\.(1[278])\.)"
 
 MODSRC := $(shell pwd)
@@ -37,7 +37,7 @@ export CONFIG_INTEL_IPU_ACPI=m
 subdir-ccflags-$(CONFIG_VIDEO_MAX9X) += -DCONFIG_VIDEO_MAX9X
 subdir-ccflags-$(CONFIG_VIDEO_ISX031) += -DCONFIG_VIDEO_ISX031
 subdir-ccflags-$(CONFIG_VIDEO_AR0820) += -DCONFIG_VIDEO_AR0820
-subdir-ccflags-$(CONFIG_VIDEO_AR0234) += -DCONFIG_VIDEO_AR0234
+subdir-ccflags-$(CONFIG_VIDEO_AR0234) += -DCONFIG_VIDEO_AR0234 -DCONFIG_V4L2_CCI_I2C
 subdir-ccflags-$(CONFIG_IPU_BRIDGE) += -DCONFIG_IPU_BRIDGE
 subdir-ccflags-$(CONFIG_INTEL_IPU_ACPI) += -DCONFIG_INTEL_IPU_ACPI
 subdir-ccflags-$(CONFIG_VIDEO_LT6911UXE) += -DCONFIG_VIDEO_LT6911UXE
@@ -45,6 +45,10 @@ subdir-ccflags-$(CONFIG_VIDEO_LT6911UXC) += -DCONFIG_VIDEO_LT6911UXC
 subdir-ccflags-$(CONFIG_VIDEO_LT6911GXD) += -DCONFIG_VIDEO_LT6911GXD
 subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6) += -DCONFIG_VIDEO_INTEL_IPU6
 subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
+
+# Path to v4l2-core module symbols
+KBUILD_EXTRA_SYMBOLS = $(M)/$(KERNEL_SUBVERSION)/drivers/media/v4l2-core/Module.symvers
+
 # Override LINUXINCLUDE to put our include path first
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 

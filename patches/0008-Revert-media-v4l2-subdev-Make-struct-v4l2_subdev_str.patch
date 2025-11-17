@@ -1,0 +1,95 @@
+From 235d0d27af9e511637a2a6ee681533594164f8a7 Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Fri, 16 Jan 2026 10:10:16 -0700
+Subject: [PATCH 8/8] Revert "media: v4l2-subdev: Make struct
+ v4l2_subdev_stream_config private"
+
+This reverts commit 5195b777552d2e2fa735c6cad75797efa132bd60.
+
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ 6.18.0/drivers/media/v4l2-core/v4l2-subdev.c | 24 -------------------
+ 6.18.0/include-overrides/media/v4l2-subdev.h | 25 +++++++++++++++++++-
+ 2 files changed, 24 insertions(+), 25 deletions(-)
+
+diff --git a/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c b/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c
+index cf6ac8a..b2b7125 100644
+--- a/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c
++++ b/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c
+@@ -26,30 +26,6 @@
+ #include <media/v4l2-fh.h>
+ #include <media/v4l2-ioctl.h>
+ 
+-/**
+- * struct v4l2_subdev_stream_config - Used for storing stream configuration.
+- *
+- * @pad: pad number
+- * @stream: stream number
+- * @enabled: has the stream been enabled with v4l2_subdev_enable_streams()
+- * @fmt: &struct v4l2_mbus_framefmt
+- * @crop: &struct v4l2_rect to be used for crop
+- * @compose: &struct v4l2_rect to be used for compose
+- * @interval: frame interval
+- *
+- * This structure stores configuration for a stream.
+- */
+-struct v4l2_subdev_stream_config {
+-	u32 pad;
+-	u32 stream;
+-	bool enabled;
+-
+-	struct v4l2_mbus_framefmt fmt;
+-	struct v4l2_rect crop;
+-	struct v4l2_rect compose;
+-	struct v4l2_fract interval;
+-};
+-
+ #if defined(CONFIG_VIDEO_V4L2_SUBDEV_API)
+ /*
+  * The Streams API is an experimental feature. To use the Streams API, set
+diff --git a/6.18.0/include-overrides/media/v4l2-subdev.h b/6.18.0/include-overrides/media/v4l2-subdev.h
+index e0bb58c..ad37aaf 100644
+--- a/6.18.0/include-overrides/media/v4l2-subdev.h
++++ b/6.18.0/include-overrides/media/v4l2-subdev.h
+@@ -36,7 +36,6 @@ struct v4l2_event_subscription;
+ struct v4l2_fh;
+ struct v4l2_subdev;
+ struct v4l2_subdev_fh;
+-struct v4l2_subdev_stream_config;
+ struct tuner_setup;
+ struct v4l2_mbus_frame_desc;
+ struct led_classdev;
+@@ -684,6 +683,30 @@ struct v4l2_subdev_pad_config {
+ 	struct v4l2_fract interval;
+ };
+ 
++/**
++ * struct v4l2_subdev_stream_config - Used for storing stream configuration.
++ *
++ * @pad: pad number
++ * @stream: stream number
++ * @enabled: has the stream been enabled with v4l2_subdev_enable_streams()
++ * @fmt: &struct v4l2_mbus_framefmt
++ * @crop: &struct v4l2_rect to be used for crop
++ * @compose: &struct v4l2_rect to be used for compose
++ * @interval: frame interval
++ *
++ * This structure stores configuration for a stream.
++ */
++struct v4l2_subdev_stream_config {
++	u32 pad;
++	u32 stream;
++	bool enabled;
++
++	struct v4l2_mbus_framefmt fmt;
++	struct v4l2_rect crop;
++	struct v4l2_rect compose;
++	struct v4l2_fract interval;
++};
++
+ /**
+  * struct v4l2_subdev_stream_configs - A collection of stream configs.
+  *
+-- 
+2.43.0
+
