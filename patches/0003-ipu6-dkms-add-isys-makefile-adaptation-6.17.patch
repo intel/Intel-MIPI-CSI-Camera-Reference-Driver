@@ -1,0 +1,48 @@
+From 11adf12607a6dab13805325def41b6c87184bb31 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Thu, 4 Dec 2025 00:50:25 -0700
+Subject: [PATCH 3/3] ipu6-dkms: add isys makefile adaptation 6.17
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ 6.17.0/drivers/media/pci/intel/ipu6/Makefile    | 5 +++++
+ 6.17.0/drivers/media/pci/intel/ipu6/ipu6-isys.c | 1 +
+ 6.17.0/drivers/media/pci/intel/ipu6/ipu6.c      | 1 +
+ 3 files changed, 7 insertions(+)
+
+diff --git a/6.17.0/drivers/media/pci/intel/ipu6/Makefile b/6.17.0/drivers/media/pci/intel/ipu6/Makefile
+index a821b0a..f15fd92 100644
+--- a/6.17.0/drivers/media/pci/intel/ipu6/Makefile
++++ b/6.17.0/drivers/media/pci/intel/ipu6/Makefile
+@@ -1,5 +1,10 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
++CC := ${CC} -I ${M}/../../../include-overrides
++ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
++
++export CONFIG_VIDEO_INTEL_IPU6 = m
++
+ intel-ipu6-y			:= ipu6.o \
+ 				ipu6-bus.o \
+ 				ipu6-dma.o \
+diff --git a/6.17.0/drivers/media/pci/intel/ipu6/ipu6-isys.c b/6.17.0/drivers/media/pci/intel/ipu6/ipu6-isys.c
+index fc0ec0a..f048f05 100644
+--- a/6.17.0/drivers/media/pci/intel/ipu6/ipu6-isys.c
++++ b/6.17.0/drivers/media/pci/intel/ipu6/ipu6-isys.c
+@@ -1378,3 +1378,4 @@ MODULE_LICENSE("GPL");
+ MODULE_DESCRIPTION("Intel IPU6 input system driver");
+ MODULE_IMPORT_NS("INTEL_IPU6");
+ MODULE_IMPORT_NS("INTEL_IPU_BRIDGE");
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+diff --git a/6.17.0/drivers/media/pci/intel/ipu6/ipu6.c b/6.17.0/drivers/media/pci/intel/ipu6/ipu6.c
+index 1f4f20b..abada2f 100644
+--- a/6.17.0/drivers/media/pci/intel/ipu6/ipu6.c
++++ b/6.17.0/drivers/media/pci/intel/ipu6/ipu6.c
+@@ -844,3 +844,4 @@ MODULE_AUTHOR("Yunliang Ding <yunliang.ding@intel.com>");
+ MODULE_AUTHOR("Hongju Wang <hongju.wang@intel.com>");
+ MODULE_LICENSE("GPL");
+ MODULE_DESCRIPTION("Intel IPU6 PCI driver");
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+-- 
+2.43.0
+
