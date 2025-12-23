@@ -50,6 +50,14 @@
 
 #define MAX9295_DEV_ADDR 0x00
 
+#define MAX9295_LINK_STATUS_ADDR 0x13
+#define MAX9295_LINK_LOCK_BIT 0x08
+
+#define MAX9295_PIPE_X_STATUS_ADDR 0x102
+#define MAX9295_PIPE_Y_STATUS_ADDR 0x10A
+#define MAX9295_PIPE_Z_STATUS_ADDR 0x112
+#define MAX9295_PIPE_U_STATUS_ADDR 0x11A
+
 #define MAX9295_STREAM_PIPE_UNUSED 0x22
 #define MAX9295_CSI_MODE_1X4 0x00
 #define MAX9295_CSI_MODE_2X2 0x03
@@ -104,6 +112,41 @@
 
 #define MAX9295_MAX_PIPES 0x4
 
+/* Log all register writes */
+#define  MAX9295_WRITE_REG(map, reg, val) \
+({ \
+        int __ret; \
+        struct regmap *__map = (map); \
+        unsigned int __reg = (reg); \
+        unsigned int __val = (val); \
+        dev_dbg(regmap_get_device(__map), "REG_WRITE: [0x%04X] = 0x%02X", __reg, __val); \
+        __ret = regmap_write(__map, __reg, __val); \
+        if (__ret) \
+                dev_err(regmap_get_device(__map), "REG_WRITE FAILED: [0x%04X] = 0x%02X, ret=%d", __reg, __val, __ret); \
+        __ret; \
+})
+
+/* Log register update_bits (read-modify-write) */
+#define  MAX9295_UPDATE_BITS(map, reg, mask, val) \
+({ \
+        int __ret; \
+        struct regmap *__map = (map); \
+        unsigned int __reg = (reg); \
+        unsigned int __mask = (mask); \
+        unsigned int __val = (val); \
+        unsigned int __old_val = 0; \
+        unsigned int __new_val = 0; \
+        regmap_read(__map, __reg, &__old_val); \
+        __new_val = (__old_val & ~__mask) | (__val & __mask); \
+        dev_dbg(regmap_get_device(__map), "REG_UPDATE_BITS: [0x%04X] mask=0x%02X, old=0x%02X, new=0x%02X (val=0x%02X)", \
+                __reg, __mask, __old_val, __new_val, __val); \
+        __ret = regmap_update_bits(__map, __reg, __mask, __val); \
+        if (__ret) \
+                dev_err(regmap_get_device(__map), "REG_UPDATE_BITS FAILED: [0x%04X] mask=0x%02X val=0x%02X, ret=%d", \
+                        __reg, __mask, __val, __ret); \
+        __ret; \
+})
+
 struct max9295_client_ctx {
 	struct gmsl_link_ctx *g_ctx;
 	bool st_done;
@@ -129,12 +172,27 @@ struct map_ctx {
 	u8 st_id;
 };
 
+static int max9295_read_reg(struct device *dev,
+	u16 addr, unsigned int *val)
+{
+	struct max9295 *priv = dev_get_drvdata(dev);
+	int err;
+
+	err = regmap_read(priv->regmap, addr, val);
+	if (err)
+		dev_err(dev,
+		"%s:i2c read failed, 0x%x\n",
+		__func__, addr);
+
+	return err;
+}
+
 static int max9295_write_reg(struct device *dev, u16 addr, u8 val)
 {
 	struct max9295 *priv = dev_get_drvdata(dev);
 	int err;
 
-	err = regmap_write(priv->regmap, addr, val);
+	err = MAX9295_WRITE_REG(priv->regmap, addr, val);
 	if (err)
 		dev_err(dev, "%s:i2c write failed, 0x%x = %x\n",
 			__func__, addr, val);
@@ -144,6 +202,62 @@ static int max9295_write_reg(struct device *dev, u16 addr, u8 val)
 
 	return err;
 }
+
+int max9295_check_status(struct device *dev)
+{
+	struct max9295 *priv = dev_get_drvdata(dev);
+
+	mutex_lock(&priv->lock);
+
+	/* Double-Check GMSL link status after stream start configuration */
+	{
+		unsigned int link_status = 0;
+		max9295_read_reg(dev, MAX9295_LINK_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Link status: 0x%02x (LOCK=%d, bit0-5: %s%s%s%s)\n",
+			__func__, link_status, !!(link_status & MAX9295_LINK_LOCK_BIT),
+			(link_status & 0x02) ? "CMU_LOCKED " : "",
+			(link_status & 0x04) ? "ERROR " : "",
+			(link_status & MAX9295_LINK_LOCK_BIT) ? "LOCKED " : "",
+			(link_status & 0x30) == 0x01? "LINKA " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_X_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe X Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_Y_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe Y Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_Z_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe Z Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_U_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe U Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+	}
+
+	mutex_unlock(&priv->lock);
+
+	return 0;
+}
+EXPORT_SYMBOL(max9295_check_status);
 
 int max9295_setup_streaming(struct device *dev)
 {
@@ -320,6 +434,7 @@ int max9295_setup_control(struct device *dev)
 		0xC8, 0x02, 0x09,
 		0xCA, 0x02, 0x0a,
 		0xCC, 0x02, 0x0b,
+		//0xD6, 0x00, 0x0c, /* 0x6b << 1 = 0xd6 */
 	};
 
 	mutex_lock(&priv->lock);
@@ -344,9 +459,10 @@ int max9295_setup_control(struct device *dev)
 		struct i2c_client *c = to_i2c_client(dev);
 		int addr = c->addr;
 		dev_info(dev, "%s: update address reassignment 0x%x->0x%x\n", __func__,priv->def_addr, g_ctx->ser_reg);
+
 		c->addr = priv->def_addr;
 		max9295_write_reg(dev,
-				MAX9295_DEV_ADDR, (g_ctx->ser_reg << 1));
+				  MAX9295_DEV_ADDR, (g_ctx->ser_reg << 1));
 		c->addr = addr;
 		prim_priv__ = priv;
 	} else {
@@ -365,7 +481,7 @@ int max9295_setup_control(struct device *dev)
 	}
 
 	/* delay to settle link */
-	msleep(100);
+	msleep(150);
 
 	for (i = 0; i < ARRAY_SIZE(addr_offset); i += 3) {
 		if ((g_ctx->ser_reg << 1) == addr_offset[i]) {
@@ -397,12 +513,43 @@ int max9295_setup_control(struct device *dev)
 	if (prim_priv__)
 		prim_priv__->pst2_ref++;
 
-	max9295_write_reg(dev, MAX9295_I2C4_ADDR, (g_ctx->sdev_reg << 1));
-	max9295_write_reg(dev, MAX9295_I2C5_ADDR, (g_ctx->sdev_def << 1));
-	msleep(100);
-	max9295_write_reg(dev, MAX9295_SRC_PWDN_ADDR, MAX9295_PWDN_GPIO);
-	max9295_write_reg(dev, MAX9295_SRC_CTRL_ADDR, MAX9295_RESET_SRC);
-	max9295_write_reg(dev, MAX9295_SRC_OUT_RCLK_ADDR, MAX9295_SRC_RCLK);
+	dev_dbg(dev, "%s: configuring I2C4=0x%02x (sdev_reg=0x%02x), I2C5=0x%02x (sdev_def=0x%02x)\n",
+		 __func__, (g_ctx->sdev_reg << 1), g_ctx->sdev_reg,
+		 (g_ctx->sdev_def << 1), g_ctx->sdev_def);
+	err = max9295_write_reg(dev, MAX9295_I2C4_ADDR, (g_ctx->sdev_reg << 1));
+	if (err)
+		dev_err(dev, "%s: ERROR: failed to write I2C4_ADDR, err=%d\n", __func__, err);
+	err = max9295_write_reg(dev, MAX9295_I2C5_ADDR, (g_ctx->sdev_def << 1));
+	if (err)
+		dev_err(dev, "%s: ERROR: failed to write I2C5_ADDR, err=%d\n", __func__, err);
+	msleep(150);
+
+	dev_dbg(dev, "%s: configuring sensor power and reset\n", __func__);
+	err = max9295_write_reg(dev, MAX9295_SRC_PWDN_ADDR, MAX9295_PWDN_GPIO);
+	if (err)
+		dev_err(dev, "%s: ERROR: failed to write SRC_PWDN, err=%d\n", __func__, err);
+	err = max9295_write_reg(dev, MAX9295_SRC_CTRL_ADDR, MAX9295_RESET_SRC);
+	if (err)
+		dev_err(dev, "%s: ERROR: failed to write SRC_CTRL, err=%d\n", __func__, err);
+	err = max9295_write_reg(dev, MAX9295_SRC_OUT_RCLK_ADDR, MAX9295_SRC_RCLK);
+	if (err)
+		dev_err(dev, "%s: ERROR: failed to write SRC_OUT_RCLK, err=%d\n", __func__, err);
+
+	/* Wait for sensor to power up and stabilize */
+	msleep(200);
+	dev_dbg(dev, "%s: sensor power/reset configuration complete\n", __func__);
+
+	/* Double-Check GMSL link status after stream start configuration */
+	{
+		unsigned int link_status = 0;
+		max9295_read_reg(dev, MAX9295_LINK_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Link status: 0x%02x (LOCK=%d, bit0-5: %s%s%s%s)\n",
+			__func__, link_status, !!(link_status & MAX9295_LINK_LOCK_BIT),
+			(link_status & 0x02) ? "CMU_LOCKED " : "",
+			(link_status & 0x04) ? "ERROR " : "",
+			(link_status & MAX9295_LINK_LOCK_BIT) ? "LOCKED " : "",
+			(link_status & 0x30) == 0x01? "LINKA " : "");
+	}
 
 	g_ctx->serdev_found = true;
 
@@ -696,6 +843,50 @@ int max9295_init_settings(struct device *dev)
 						  GMSL_CSI_DT_EMBED, i);
 	}
 
+	/* Double-Check GMSL link status after stream start configuration */
+	{
+		unsigned int link_status = 0;
+		max9295_read_reg(dev, MAX9295_LINK_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Link status: 0x%02x (LOCK=%d, bit0-5: %s%s%s%s)\n",
+			__func__, link_status, !!(link_status & MAX9295_LINK_LOCK_BIT),
+			(link_status & 0x02) ? "CMU_LOCKED " : "",
+			(link_status & 0x04) ? "ERROR " : "",
+			(link_status & MAX9295_LINK_LOCK_BIT) ? "LOCKED " : "",
+			(link_status & 0x30) == 0x01? "LINKA " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_X_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe X Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_Y_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe Y Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_Z_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe Z Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_U_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe U Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+	}
+
 	mutex_unlock(&priv->lock);
 
 	return err;
@@ -711,11 +902,11 @@ int max9295_set_mfp(struct device *dev, int pin, int val)
 	if (pin > 10)
 		return -EINVAL;
 
-	err = regmap_update_bits(map, 0x2BE + (pin * 3),
+	err = MAX9295_UPDATE_BITS(map, 0x2BE + (pin * 3),
 		(1<<4 | 1<<2 | 1<<0),
 		((val ? 1<<4 : 0) | 0<<2 | 0<<0) );
 
-	err |= regmap_update_bits(map, 0x2BF + (pin * 3),
+	err |= MAX9295_UPDATE_BITS(map, 0x2BF + (pin * 3),
 		3<<6|1<<5,
 		1<<6|1<<5);
 
@@ -748,6 +939,50 @@ int max9295_set_pipe(struct device *dev, int pipe_id,
 		err = __max9295_set_pipe(dev, pipe_id, data_type1, data_type2, vc_id);
 	}
 
+
+	/* Double-Check GMSL link status after stream start configuration */
+	{
+		unsigned int link_status = 0;
+		max9295_read_reg(dev, MAX9295_LINK_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Link status: 0x%02x (LOCK=%d, bit0-5: %s%s%s%s)\n",
+			__func__, link_status, !!(link_status & MAX9295_LINK_LOCK_BIT),
+			(link_status & 0x02) ? "CMU_LOCKED " : "",
+			(link_status & 0x04) ? "ERROR " : "",
+			(link_status & MAX9295_LINK_LOCK_BIT) ? "LOCKED " : "",
+			(link_status & 0x30) == 0x01? "LINKA " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_X_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe X Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_Y_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe Y Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_Z_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe Z Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+		max9295_read_reg(dev, MAX9295_PIPE_U_STATUS_ADDR, &link_status);
+		dev_dbg(dev, "%s: Pipe U Link status: 0x%02x (bit3-7: %s%s%s%s%s)\n",
+			__func__, link_status,
+			(link_status & 0x04) ? "LIM_HEART " : "",
+			(link_status & 0x10) ? "FIFO_WARN " : "",
+			(link_status & 0x20) ? "OVERFLOW " : "",
+			(link_status & 0x40) ? "DRIFT_ERR " : "",
+			(link_status & 0x80) ? "PCLKDET " : "");
+	}
 	mutex_unlock(&priv->lock);
 
 	return err;
@@ -755,8 +990,7 @@ int max9295_set_pipe(struct device *dev, int pipe_id,
 EXPORT_SYMBOL(max9295_set_pipe);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
-static int max9295_probe(struct i2c_client *client,
-				const struct i2c_device_id *id)
+static int max9295_probe(struct i2c_client *client, const struct i2c_device_id *id)
 #else
 static int max9295_probe(struct i2c_client *client)
 #endif
@@ -887,4 +1121,6 @@ MODULE_DESCRIPTION("GMSL Serializer driver max9295");
 MODULE_AUTHOR("Sudhir Vyas <svyas@nvidia.com>");
 MODULE_AUTHOR("Dmitry Perchanov <dmitry.perchanov@intel.com>");
 MODULE_LICENSE("GPL v2");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
 MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+#endif

@@ -110,5 +110,6 @@ int max9295_init_settings(struct device *dev);
 /** @} */
 
 int max9295_set_mfp(struct device *dev, int pin, int val);
+int max9295_check_status(struct device *dev);
 
 #endif  /* __MAX9295_H__ */
