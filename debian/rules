@@ -1,0 +1,66 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+include /usr/share/dpkg/pkg-info.mk
+
+# Deserializer arch
+deserlist := "max9296 max96724 mipi"
+defaultdeser := max9296
+
+# special characters
+empty :=
+space := $(empty) $(empty)
+comma := ,
+semicol := ;
+
+# helper to create comma separated list from space separated list
+commasep = $(subst $(space),$(comma)$(space),$1)
+semicolsep = $(subst $(space),$(comma),$1)
+
+# remove double quotes
+unquote = $(subst $\",,$1)
+
+# recursive wildcard
+rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+
+DKMS_PACKAGE_NAME = $(shell grep '^PACKAGE_NAME=' dkms.conf | cut -d\" -f2)
+DKMS_PACKAGE_VERSION = $(DEB_VERSION_UPSTREAM)
+DKMS_PACKAGE_REVISION = $(DEB_VERSION_UPSTREAM_REVISION)
+
+generated_dkms_files = \
+  debian/intel-mipi-gmsl-dkms.install \
+  debian/intel-mipi-gmsl-dkms.config \
+  debian/intel-mipi-gmsl-dkms.templates \
+  debian/intel-mipi-gmsl-dkms.postinst \
+  $(empty)
+
+%:
+	dh $@ --with modaliases
+
+override_dh_auto_configure:
+override_dh_auto_build:
+override_dh_auto_test:
+override_dh_auto_install:
+override_dh_auto_clean:
+
+override_dh_dkms: dkms.conf #debian/intel-mipi-gmsl-dkms.postinst
+	dh_dkms -V $(DEB_VERSION_UPSTREAM_REVISION) -- dkms.conf
+#	cp -a debian/intel-mipi-gmsl-dkms.postinst debian/intel-mipi-gmsl-dkms.postinst.debhelper
+
+#override_dh_installdebconf-arch: debian/intel-mipi-gmsl-dkms.config debian/intel-mipi-gmsl-dkms.templates
+#	dh_installdebconf -a
+
+override_dh_install: debian/intel-mipi-gmsl-dkms.install
+	dh_install --exclude=.gitignore
+
+override_dh_clean:
+	-rm -f $(generated_dkms_files)
+	dh_clean
+
+$(generated_dkms_files) : $(generated_dkms_files:=.in) debian/rules
+	sed -e 's,@DKMS_PACKAGE_NAME@,$(DKMS_PACKAGE_NAME),g' \
+	    -e 's,@DKMS_PACKAGE_VERSION@,$(DEB_VERSION_UPSTREAM_REVISION),g' \
+	    -e 's/@deserlist@/$(call unquote,$(deserlist))/g' \
+	    -e 's/@marchdefault@/$(defaultdeser)/g' \
+	    -e 's/@marchlist@/$(call commasep,$(call unquote,$(deserlist)))/g' \
+	    <$(@:=.in) >$@

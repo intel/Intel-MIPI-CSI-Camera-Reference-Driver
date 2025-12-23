@@ -1,0 +1,5 @@
+intel-mipi-gmsl-drivers (20260112-0eci1) UNRELEASED; urgency=low
+
+  * initial debian package
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Thu, 10 Jul 2025 14:46:17 +0000

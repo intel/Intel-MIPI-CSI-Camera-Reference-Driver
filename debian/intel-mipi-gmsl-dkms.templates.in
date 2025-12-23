@@ -1,0 +1,7 @@
+Template: intel-mipi-gmsl-dkms/max9x
+Type: select
+Choices: @marchlist@
+Default: @marchdefault@
+Description: Select MIPI-Direct or GMSL2 Deserializer [defaut:max9296]
+ build certain driver in compile options either for max9296 or max9672x.
+ 
