@@ -1,0 +1,29 @@
+Source: intel-mipi-gmsl-drivers
+Section: kernel
+Priority: optional
+Maintainer: ECI Maintainer <eci.maintainer@intel.com>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-modaliases,
+ dkms,
+ dh-sequence-dkms,
+ quilt,
+Standards-Version: 4.7.0
+Homepage: https://github.com/intel/Intel-MIPI-CSI-Camera-Reference-Driver
+
+Package: intel-mipi-gmsl-dkms
+Architecture: amd64
+Depends:
+ dkms,
+ pahole,
+ v4l-utils,
+ ${misc:Depends},
+Provides: ipu7-modules
+Conflicts: ipu7-modules, intel-ipu6-dkms
+Replaces: ipu7-modules, intel-ipu6-dkms
+XB-Modaliases: ${modaliases}
+Description: Intel Integrated Image Processing Unit 6/7 (IPU6/IPU7) drivers
+ This package provides kernel drivers for GMSL2 cameras through the Intel IPU7
+ on Intel Panther Lake and the Intel IPU6
+ on Intel Alder Lake, Raptor Lake, Meteor Lake and Arrow lake platforms.

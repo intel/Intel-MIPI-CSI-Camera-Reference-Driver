@@ -1,0 +1,12 @@
+tar-ignore=.git
+tar-ignore=.gitignore
+tar-ignore=.ci
+tar-ignore=ci
+tar-ignore=patch/*
+tar-ignore=ipu6-drivers/patch/*
+tar-ignore=ipu7-drivers/patch/*
+tar-ignore=debian/*.tmpl
+tar-ignore=.pc
+tar-ignore=*.deb
+tar-ignore=*.changes
+tar-ignore=*.buildinfo

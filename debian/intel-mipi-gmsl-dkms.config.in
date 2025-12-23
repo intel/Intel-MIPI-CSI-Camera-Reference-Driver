@@ -1,0 +1,28 @@
+#!/bin/bash
+# inspired by http://www.fifi.org/doc/debconf-doc/tutorial.html
+
+# Exit on error
+set -e
+# Source debconf library.
+. /usr/share/debconf/confmodule
+db_version 2.0
+
+# This conf script is capable of backing up
+#db_capb backup
+
+declare -A FEATURES=@deserlist@
+STATE="max9x"
+
+while [ "$STATE" != "quit" -a "$STATE" != "done" ]; do
+    case "$STATE" in
+            max9x)
+		# query max9x
+		db_input critical intel-mipi-gmsl-dkms/max9x || true
+	        if db_go; then
+		    STATE="quit"
+		else
+		    STATE="done"
+		fi
+		;;
+    esac
+done
