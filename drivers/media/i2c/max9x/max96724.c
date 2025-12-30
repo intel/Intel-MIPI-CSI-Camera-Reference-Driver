@@ -610,7 +610,7 @@ static int max96724_set_csi_link_enabled(struct max9x_common *common,
 {
 	struct device *dev = common->dev;
 	struct max9x_serdes_csi_link *csi_link;
-	int ret;
+	int ret = 0;
 
 	if (csi_id >= common->num_csi_links)
 		return -EINVAL;
@@ -635,14 +635,14 @@ static int max96724_set_csi_link_enabled(struct max9x_common *common,
 
 		ret = max96724_set_phy_enabled(common, csi_id, true);
 		if (ret)
-			return ret;
+			goto err_unlock;
 
 	} else if (!enable && csi_link->usecount == 1) {
 		// Disable && no more users
 
 		ret = max96724_set_phy_enabled(common, csi_id, false);
 		if (ret)
-			return ret;
+			goto err_unlock;
 
 	}
 
@@ -652,9 +652,10 @@ static int max96724_set_csi_link_enabled(struct max9x_common *common,
 	else if (csi_link->usecount > 0)
 		csi_link->usecount--;
 
+err_unlock:
 	mutex_unlock(&csi_link->csi_mutex);
 
-	return 0;
+	return ret;
 }
 
 static int max96724_csi_double_pixel(struct max9x_common *common,

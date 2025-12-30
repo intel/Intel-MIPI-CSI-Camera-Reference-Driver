@@ -500,7 +500,7 @@ static int max9296_set_csi_link_enabled(struct max9x_common *common, unsigned in
 {
 	struct device *dev = common->dev;
 	struct max9x_serdes_csi_link *csi_link;
-	int ret;
+	int ret = 0;
 
 	if (csi_id >= common->num_csi_links)
 		return -EINVAL;
@@ -522,30 +522,29 @@ static int max9296_set_csi_link_enabled(struct max9x_common *common, unsigned in
 		ret = max9296_set_initial_deskew(common, csi_id, csi_link->config.auto_init_deskew_enabled,
 						 csi_link->config.initial_deskew_width);
 		if (ret)
-			return ret;
+			goto err_unlock;
 
 		ret = max9296_set_phy_dpll_freq(common, csi_id, csi_link->config.freq_mhz);
 		if (ret)
-			return ret;
+			goto err_unlock;
 
 		ret = max9296_set_phy_dpll_enabled(common, csi_id, true);
 		if (ret)
-			return ret;
+			goto err_unlock;
 
 		ret = max9296_set_phy_enabled(common, csi_id, true);
 		if (ret)
-			return ret;
+			goto err_unlock;
 
 	} else if (!enable && csi_link->usecount == 1) {
 		// Disable && no more users
 		ret = max9296_set_phy_enabled(common, csi_id, false);
 		if (ret)
-			return ret;
+			goto err_unlock;
 
 		ret = max9296_set_phy_dpll_enabled(common, csi_id, false);
 		if (ret)
-			return ret;
-
+			goto err_unlock;
 	}
 
 	if (enable)
@@ -553,9 +552,10 @@ static int max9296_set_csi_link_enabled(struct max9x_common *common, unsigned in
 	else if (csi_link->usecount > 0)
 		csi_link->usecount--;
 
+err_unlock:
 	mutex_unlock(&csi_link->csi_mutex);
 
-	return 0;
+	return ret;
 }
 
 static int max9296_set_video_pipe_enabled(struct max9x_common *common, unsigned int pipe_id, bool enable)
