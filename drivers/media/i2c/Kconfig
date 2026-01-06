@@ -110,4 +110,15 @@ config VIDEO_IMX586
 	  To compile this driver as a module, choose M here: the
 	  module will be called imx586.
 
+config VIDEO_D4XX
+	tristate "D4XX sensor support"
+	depends on VIDEO_DEV && I2C
+	select VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CAMERA_SUPPORT
+	help
+		This is a Video4Linux2 sensor-level driver for D4XX camera.
+
+		To compile this driver as a module, choose M here: the
+		module will be called d4xx
+
 source "drivers/media/i2c/maxim-serdes/Kconfig"
