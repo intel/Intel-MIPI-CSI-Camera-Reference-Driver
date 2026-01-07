@@ -1,0 +1,35 @@
+From 6a6e71ed818a051a3605e40be2b1bbc697348a0d Mon Sep 17 00:00:00 2001
+From: Izzul Irfan <muhammadx.izzul.irfan.bin.che.iswanizam@intel.com>
+Date: Fri, 9 Jan 2026 11:16:22 +0800
+Subject: [PATCH] media: platform: intel: ipu_acpi: Update MAX9295 I2C address
+ for LI ISX031 sensor support
+
+Change the default I2C physical address for the MAX9295 serializer
+from 0x40 to 0x62 to support the LI ISX031 sensor.
+
+The generic ISX031 model works with address 0x40,
+but the LI ISX031 sensor requires address 0x62 for proper communication.
+This update ensures correct initialization and operation
+of the LI ISX031 sensor in supported platforms.
+
+Signed-off-by: Izzul Irfan <muhammadx.izzul.irfan.bin.che.iswanizam@intel.com>
+---
+ drivers/media/platform/intel/ipu-acpi-pdata.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/media/platform/intel/ipu-acpi-pdata.c b/drivers/media/platform/intel/ipu-acpi-pdata.c
+index 8488693f0..e7bbefdf8 100644
+--- a/drivers/media/platform/intel/ipu-acpi-pdata.c
++++ b/drivers/media/platform/intel/ipu-acpi-pdata.c
+@@ -638,7 +638,7 @@ static int set_serdes_subdev(struct ipu_isys_subdev_info **serdes_sd,
+ 		snprintf(serdes_sdinfo[i].suffix, sizeof(serdes_sdinfo[i].suffix), "%c-%d",
+ 			 SUFFIX_BASE + i, port);
+ #if IS_ENABLED(CONFIG_VIDEO_ISX031)
+-		serdes_sdinfo[i].ser_phys_addr = 0x40;
++		serdes_sdinfo[i].ser_phys_addr = 0x62;
+ 		serdes_sdinfo[i].sensor_dt = 0x1e;
+ #endif
+ 	}
+-- 
+2.43.0
+
