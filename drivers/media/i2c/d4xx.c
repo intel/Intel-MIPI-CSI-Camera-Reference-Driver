@@ -6414,7 +6414,7 @@ static int ds5_chrdev_init(struct i2c_client *c, struct ds5 *state)
 	char suffix = pdata->suffix;
 #endif
 	struct device *chr_dev;
-	char dev_name[sizeof(DS5_DRIVER_NAME_DFU) + 8];
+	char dev_name[sizeof(DS5_DRIVER_NAME_DFU) + 10];
 	dev_t *dev_num = &c->dev.devt;
 	int ret;
 
@@ -6452,8 +6452,8 @@ static int ds5_chrdev_init(struct i2c_client *c, struct ds5 *state)
 	struct d4xx_subdev_info *spdata = &pdata->subdev_info[0];
 	/*
 	 * suffix syntaxe for multiple D457 connected to 1 Deser :
-	 * - IPU7 both standalone or aggregated links <a|b|c|d>-<mipi port index>
-	 * - IPU6 when standalone <a|b|c|d|e|f> when aggregated <g|h|i|j|k|l|m>
+	 * - IPU7/IPU6 upstream both standalone or aggregated links <a|b|c|d>-<mipi port index>
+	 * - IPU6 legacy when standalone <a|b|c|d|e|f> when aggregated <g|h|i|j|k|l|m>
 	 */
 	if (strnlen(spdata->suffix, sizeof(spdata->suffix)) > 1) {
 		snprintf(dev_name, sizeof(dev_name), "D4XX %s %s",
