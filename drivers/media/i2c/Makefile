@@ -10,6 +10,9 @@ ccflags-y += -I$(src)/../../../$(KERNEL_VERSION)/include-overrides
 obj-$(CONFIG_VIDEO_AR0234) += ar0234.o
 obj-$(CONFIG_VIDEO_AR0820) += ar0820.o
 obj-$(CONFIG_VIDEO_ISX031) += isx031.o
+obj-$(CONFIG_VIDEO_LT6911UXC) += lt6911uxc.o
+obj-$(CONFIG_VIDEO_LT6911UXE) += lt6911uxe.o
+obj-$(CONFIG_VIDEO_LT6911GXD) += lt6911gxd.o
 
 subdir-ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
 obj-$(CONFIG_VIDEO_MAX9X) += max9x/
