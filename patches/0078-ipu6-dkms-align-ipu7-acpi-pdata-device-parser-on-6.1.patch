@@ -1,0 +1,89 @@
+From 8bb193b2ad17562e020f2096b7e70c82e96a94aa Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Fri, 16 Jan 2026 03:34:49 -0700
+Subject: [PATCH 78/78] ipu6-dkms: align ipu7 acpi pdata device parser on 6.18
+
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ 6.18.0/drivers/media/pci/intel/ipu6/Makefile    | 9 ++++++++-
+ 6.18.0/drivers/media/pci/intel/ipu6/ipu6-isys.h | 1 +
+ 6.18.0/drivers/media/pci/intel/ipu6/ipu6.c      | 8 ++++----
+ 3 files changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/6.18.0/drivers/media/pci/intel/ipu6/Makefile b/6.18.0/drivers/media/pci/intel/ipu6/Makefile
+index 3e2ce53..d33bfa0 100644
+--- a/6.18.0/drivers/media/pci/intel/ipu6/Makefile
++++ b/6.18.0/drivers/media/pci/intel/ipu6/Makefile
+@@ -1,8 +1,13 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
+-CC := ${CC} -I ${M}/../../../include-overrides
++KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
++
++CC := ${CC} -I ${M}/../../../../../../include -I ${M}/../../../../../../$(KERNEL_VERSION)/include-overrides -DCONFIG_INTEL_IPU_ACPI -DCONFIG_INTEL_IPU6_ACPI -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
+ ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+ 
++# Path to ipu_acpi module build directory
++KBUILD_EXTRA_SYMBOLS += ${M}/../../../../../../Module.symvers
++
+ export CONFIG_VIDEO_INTEL_IPU6 = m
+ 
+ intel-ipu6-y			:= ipu6.o \
+@@ -27,4 +32,6 @@ intel-ipu6-isys-y		:= ipu6-isys.o \
+ 				ipu6-isys-dwc-phy.o
+ 
+ obj-$(CONFIG_VIDEO_INTEL_IPU6)	+= intel-ipu6-isys.o
++
++subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+ obj-$(CONFIG_VIDEO_INTEL_IPU6)  += psys/
+diff --git a/6.18.0/drivers/media/pci/intel/ipu6/ipu6-isys.h b/6.18.0/drivers/media/pci/intel/ipu6/ipu6-isys.h
+index 3768c48..d5435c8 100644
+--- a/6.18.0/drivers/media/pci/intel/ipu6/ipu6-isys.h
++++ b/6.18.0/drivers/media/pci/intel/ipu6/ipu6-isys.h
+@@ -102,6 +102,7 @@ struct isys_iwake_watermark {
+ struct ipu6_isys_csi2_config {
+ 	u32 nlanes;
+ 	u32 port;
++	enum v4l2_mbus_type bus_type;
+ };
+ 
+ struct sensor_async_sd {
+diff --git a/6.18.0/drivers/media/pci/intel/ipu6/ipu6.c b/6.18.0/drivers/media/pci/intel/ipu6/ipu6.c
+index 56be152..618bc49 100644
+--- a/6.18.0/drivers/media/pci/intel/ipu6/ipu6.c
++++ b/6.18.0/drivers/media/pci/intel/ipu6/ipu6.c
+@@ -35,12 +35,12 @@
+ #include "ipu6-trace.h"
+ 
+ #if IS_ENABLED(CONFIG_INTEL_IPU6_ACPI)
+-#include <media/ipu-acpi.h>
++#include <media/ipu-get-acpi.h>
+ #endif
+ 
+ #if IS_ENABLED(CONFIG_INTEL_IPU6_ACPI)
+ static int isys_init_acpi_add_device(struct device *dev, void *priv,
+-				     struct ipu6_isys_csi2_config *csi2,
++				     void *csi2,
+ 				     bool reprobe)
+ {
+        return 0;
+@@ -438,14 +438,14 @@ ipu6_isys_init(struct pci_dev *pdev, struct device *parent,
+ #if IS_ENABLED(CONFIG_INTEL_IPU6_ACPI)
+ 	if (!spdata) {
+ 		dev_dbg(&pdev->dev, "No subdevice info provided");
+-		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, &acpi_pdata, NULL,
++		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, (void **)&acpi_pdata, NULL,
+ 				     isys_init_acpi_add_device);
+ 		if (acpi_pdata && (*acpi_pdata->subdevs)) {
+ 			pdata->spdata = acpi_pdata;
+ 		}
+ 	} else {
+ 		dev_dbg(&pdev->dev, "Subdevice info found");
+-		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, &acpi_pdata, &spdata,
++		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, (void **)&acpi_pdata, (void **)&spdata,
+ 				     isys_init_acpi_add_device);
+ 	}
+ 	if (ret)
+-- 
+2.43.0
+
