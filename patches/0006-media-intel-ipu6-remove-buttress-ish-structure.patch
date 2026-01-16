@@ -1,0 +1,38 @@
+From 394f85bc8316347626789f0e186403482da2c3da Mon Sep 17 00:00:00 2001
+From: Julian Chen <julian.chen@intel.com>
+Date: Mon, 12 Jan 2026 05:32:38 -0700
+Subject: [PATCH 06/28] media: intel/ipu6: remove buttress ish structure
+
+missed content in remove buttress ish patch
+
+Signed-off-by: Julian Chen <julian.chen@intel.com>
+---
+ 6.12.0/drivers/media/pci/intel/ipu6/ipu6-buttress.h | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/6.12.0/drivers/media/pci/intel/ipu6/ipu6-buttress.h b/6.12.0/drivers/media/pci/intel/ipu6/ipu6-buttress.h
+index 9b6f569..482978c 100644
+--- a/6.12.0/drivers/media/pci/intel/ipu6/ipu6-buttress.h
++++ b/6.12.0/drivers/media/pci/intel/ipu6/ipu6-buttress.h
+@@ -46,18 +46,12 @@ struct ipu6_buttress_ipc {
+ struct ipu6_buttress {
+ 	struct mutex power_mutex, auth_mutex, cons_mutex, ipc_mutex;
+ 	struct ipu6_buttress_ipc cse;
+-	struct ipu6_buttress_ipc ish;
+ 	struct list_head constraints;
+ 	u32 wdt_cached_value;
+ 	bool force_suspend;
+ 	u32 ref_clk;
+ };
+ 
+-enum ipu6_buttress_ipc_domain {
+-	IPU6_BUTTRESS_IPC_CSE,
+-	IPU6_BUTTRESS_IPC_ISH,
+-};
+-
+ struct ipu6_ipc_buttress_bulk_msg {
+ 	u32 cmd;
+ 	u32 expected_resp;
+-- 
+2.43.0
+

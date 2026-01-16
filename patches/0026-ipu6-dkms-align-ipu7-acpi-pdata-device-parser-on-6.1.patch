@@ -1,0 +1,80 @@
+From 60f5dbc2e602ad4e56fc2000448be4e01d4fdadf Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Mon, 12 Jan 2026 11:15:12 -0700
+Subject: [PATCH 26/29] ipu6-dkms: align ipu7 acpi pdata device parser on 6.12
+
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ 6.12.0/drivers/media/pci/intel/ipu6/Makefile    | 5 ++++-
+ 6.12.0/drivers/media/pci/intel/ipu6/ipu6-isys.h | 1 +
+ 6.12.0/drivers/media/pci/intel/ipu6/ipu6.c      | 8 ++++----
+ 3 files changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/6.12.0/drivers/media/pci/intel/ipu6/Makefile b/6.12.0/drivers/media/pci/intel/ipu6/Makefile
+index c3d8ffd..9355e3f 100644
+--- a/6.12.0/drivers/media/pci/intel/ipu6/Makefile
++++ b/6.12.0/drivers/media/pci/intel/ipu6/Makefile
+@@ -1,8 +1,11 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
+-CC := ${CC} -I ${M}/../../../../../include-overrides -DCONFIG_INTEL_IPU6_ACPI -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
++CC := ${CC} -I ${M}/../../../../../../include -I ${M}/../../../../../include-overrides -DCONFIG_INTEL_IPU_ACPI -DCONFIG_INTEL_IPU6_ACPI -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
+ ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+ 
++# Path to ipu_acpi module build directory
++KBUILD_EXTRA_SYMBOLS += ${M}/../../../../../../Module.symvers
++
+ export CONFIG_VIDEO_INTEL_IPU6 = m
+ 
+ intel-ipu6-y			:= ipu6.o \
+diff --git a/6.12.0/drivers/media/pci/intel/ipu6/ipu6-isys.h b/6.12.0/drivers/media/pci/intel/ipu6/ipu6-isys.h
+index 57df01c..f935223 100644
+--- a/6.12.0/drivers/media/pci/intel/ipu6/ipu6-isys.h
++++ b/6.12.0/drivers/media/pci/intel/ipu6/ipu6-isys.h
+@@ -104,6 +104,7 @@ struct isys_iwake_watermark {
+ struct ipu6_isys_csi2_config {
+ 	u32 nlanes;
+ 	u32 port;
++	enum v4l2_mbus_type bus_type;
+ };
+ 
+ struct sensor_async_sd {
+diff --git a/6.12.0/drivers/media/pci/intel/ipu6/ipu6.c b/6.12.0/drivers/media/pci/intel/ipu6/ipu6.c
+index 3fa8980..0fb6b64 100644
+--- a/6.12.0/drivers/media/pci/intel/ipu6/ipu6.c
++++ b/6.12.0/drivers/media/pci/intel/ipu6/ipu6.c
+@@ -35,12 +35,12 @@
+ #include "ipu6-trace.h"
+ 
+ #if IS_ENABLED(CONFIG_INTEL_IPU6_ACPI)
+-#include <media/ipu-acpi.h>
++#include <media/ipu-get-acpi.h>
+ #endif
+ 
+ #if IS_ENABLED(CONFIG_INTEL_IPU6_ACPI)
+ static int isys_init_acpi_add_device(struct device *dev, void *priv,
+-				     struct ipu6_isys_csi2_config *csi2,
++				     void *csi2,
+ 				     bool reprobe)
+ {
+        return 0;
+@@ -437,14 +437,14 @@ ipu6_isys_init(struct pci_dev *pdev, struct device *parent,
+ #if IS_ENABLED(CONFIG_INTEL_IPU6_ACPI)
+ 	if (!spdata) {
+ 		dev_dbg(&pdev->dev, "No subdevice info provided");
+-		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, &acpi_pdata, NULL,
++		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, (void **)&acpi_pdata, NULL,
+ 				     isys_init_acpi_add_device);
+ 		if (acpi_pdata && (*acpi_pdata->subdevs)) {
+ 			pdata->spdata = acpi_pdata;
+ 		}
+ 	} else {
+ 		dev_dbg(&pdev->dev, "Subdevice info found");
+-		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, &acpi_pdata, &spdata,
++		ret = ipu_get_acpi_devices(isys_adev, &isys_adev->auxdev.dev, (void **)&acpi_pdata, (void **)&spdata,
+ 				     isys_init_acpi_add_device);
+ 	}
+ 	if (ret)
+-- 
+2.43.0
+
