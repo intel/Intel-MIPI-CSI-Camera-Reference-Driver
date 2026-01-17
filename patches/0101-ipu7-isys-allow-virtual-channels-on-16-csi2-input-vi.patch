@@ -1,0 +1,29 @@
+From dbfe2a70deae4b31e089e52d9ad40a1be37970da Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Sat, 17 Jan 2026 02:05:34 -0700
+Subject: [PATCH 101/104] ipu7-isys : allow virtual-channels on 16 csi2 input
+ video capture
+
+* ipu7-isys : extend per csi2 video captures v4l2 to 16 sensors input streams
+
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h
+index 6c23b80..dfca0d2 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h
+@@ -20,7 +20,7 @@ struct ipu7_isys_stream;
+ #define INVALID_VC_ID			-1
+ #define IPU7_NR_OF_CSI2_SINK_PADS	1U
+ #define IPU7_CSI2_PAD_SINK		0U
+-#define IPU7_NR_OF_CSI2_SRC_PADS	8U
++#define IPU7_NR_OF_CSI2_SRC_PADS	16U
+ #define IPU7_CSI2_PAD_SRC		1U
+ #define IPU7_NR_OF_CSI2_PADS		(IPU7_NR_OF_CSI2_SINK_PADS + \
+ 					 IPU7_NR_OF_CSI2_SRC_PADS)
+-- 
+2.43.0
+
