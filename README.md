@@ -1,20 +1,20 @@
-# Intel MIPI CSI Camera Reference Driver
+# Intel MIPI-GMSL Camera Reference (Linux v4l2 drivers)
 
-This repository contains reference drivers and configurations for Intel MIPI CSI cameras, supporting various sensor modules and Image Processing Units (IPUs).
+This repository contains Linux debian reference drivers and configurations for Intel Image Processing Units (IPUs) MIPI-GMSL CSI cameras, supporting multiple Camera sensor modules and serdes ODM/OEM implementations (e.g. Advantech,... )
 
 ## Supported Sensors
 
-| Sensor Name     |Sensor Type | Vendor          | Kernel Version | IPU Version |
-|-----------------|------------|-----------------|----------------|-------------|
-| AR0233          | GMSL       | Sensing         | K6.12          | IPU6EPMTL   |
-| AR0820          | GMSL       | Sensing         | K6.12          | IPU6EPMTL   |
-| ISX031          | MIPI CSI-2 | D3 Embedded     | K6.12          | IPU6EPMTL   |
-| ISX031          | GMSL       | D3 Embedded     | K6.12          | IPU6EPMTL   |
-| ISX031          | GMSL       | Sensing         | K6.12          | IPU6EPMTL   |
-| ISX031          | GMSL       | Leopard Imaging | K6.12          | IPU6EPMTL   |
-| AR0234          | MIPI CSI-2 | D3 Embedded     | K6.12          | IPU6EPMTL   |
+| Sensor Name     |Sensor Type  |Serializer Type |Deserializer Type | Vendor          | Kernel Version     | IPU Version         |
+|-----------------|-------------|----------------|------------------|-----------------|--------------------|---------------------|
+| AR0233          | GMSL        | max9295        | max9296/max96724 | Sensing         | K6.12/K6.17/K6.18  | IPU6EPMTL/IPU7PTL   |
+| AR0820          | GMSL        | max9295        | max9296/max96724 | Sensing         | K6.12/K6.17/K6.18  | IPU6EPMTL/IPU7PTL   |
+| ISX031          | GMSL        | max9295        | max9296/max96724 | D3 Embedded     | K6.12/K6.17/K6.18  | IPU6EPMTL/IPU7PTL   |
+| ISX031          | GMSL        | max9295        | max9296/max96724 | Sensing         | K6.12/K6.17/K6.18  | IPU6EPMTL/IPU7PTL   |
+| ISX031          | GMSL        | max9295        | max9296/max96724 | Leopard Imaging | K6.12/K6.17/K6.18  | IPU6EPMTL/IPU7PTL   |
+| ISX031          | MIPI-direct | none           | none             | D3 Embedded     | K6.12/K6.17/K6.18  | IPU6EPMTL/IPU7PTL   |
+| AR0234          | MIPI-direct | none           | none             | D3 Embedded     | K6.12/K6.17/K6.18  | IPU6EPMTL/IPU7PTL   |
 
-> **Note:** IPU6EPMTL represents MTL and ARL platforms
+> **Note:** IPU6EPMTL represents Intel Core Ultra Series 1 and 2 (aka. MTL and ARL) platforms, IPU7PTL represents Intel Core Ultra Series 3 (aka. PTL) platforms.
 
 ## Directory Structure
 
@@ -23,8 +23,72 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 - `doc/`: Documentation on Kernel Driver dependency on ipu6-drivers repository
 - `patch/`: Host Dependent Kernel patches to enable specific sensors
 - `include/`: Header files for driver compilation
+- `patches/`: DKMS Dependent out-of-tree patchset for V4L2-core, IPU6 and IPU7 ISYS amd PSYS kernel modules build
+- `helpers/`: Various helpers IPU6/IPU7 ISYS, serdes and sensor scripts for binding GMSL v4l2 subdevices, udev rules, modprobe.d .conf, ... 
 
-## Getting Started with Reference Camera
+## Getting Started with Debian Linux MIPI-GMSL2 Reference Camera
+
+1. Clone this repository and checkout to your desired release tag :
+
+```bash
+export $HOME=$(pwd)
+cd $HOME
+git clone --recurse-submodules https://github.com/intel/Intel-MIPI-CSI-Camera-Reference-Driver.git intel-mipi-gmsl-drivers
+cd intel-mipi-gmsl-drivers
+git checkout <commit-id>
+```
+
+2. install debian helper dependencies and build Canonical/Ubuntu 24.04 or GNU/Debian 13 compatible package :
+
+```bash
+sudo apt install equivs devscripts linux-headers-$(uname -r)
+mk-build-deps -i --host-arch amd64 --build-arch amd64 -t "apt-get -y -q -o Debug::pkgProblemResolver=yes --no-install-recommends --allow-downgrades" debian/control
+dpkg-buildpackage
+ls ../intel-mipi-gmsl*
+```
+
+> **Note:** this step should produce multiple debian files, especially `../intel-mipi-gmsl-dkms_20260112-0eci1_amd64.deb` , `../intel-mipi-gmsl-drivers_20260112-0eci1.tar.gz`, `../intel-mipi-gmsl-drivers_20260112-0eci1_amd64.buildinfo`, `../intel-mipi-gmsl-drivers_20260112-0eci1_amd64.changes`, `../intel-mipi-gmsl-drivers_20260112-0eci1.dsc`. 
+
+3. Install & Build everything at once e.g. Intel IPU6/IPU7 PSYS and ISYS, GMSL2 Serdes and Camera Sensor : 
+
+```bash
+sudo apt install ../intel-mipi-gmsl-dkms_20260112-0eci1_amd64.deb
+```
+
+4. Check dkms modules versioning, modprobe.d configuration before loading the IPU ISYS kernel modules :
+
+```bash
+modinfo intel-ipu6-isys
+modprobe --show-depends intel-ipu6-isys
+modprobe intel-ipu6-isys
+```
+
+> **Note:** all modules version should match the package version as well as dependencies with `ipu-acpi` kernel modules.
+
+5. Leverage helper scripts to bind v4l2 media pipeline for each individual sensors modules (Refer to `doc/\<sensor\>/acpi-ipu-pdata.md` to configure ACPI Camera PDATA from BIOS/UEFI menu). For example below the v4l2 media pipeline binding from any ISX031 GMSL sub-devices to IPU ISYS video capture devices: 
+
+```bash
+/usr/share/camera/ipu_max9x_bind.sh -s isx031
+```
+> **Note:**  ipu6 and ipu7 MIPI CSI2, as well as max9x Serializer and Deserializer, requires `v4l-utils (>=1.30)` to  set v4l2 subdevice streams and routes.
+The easiest way consist of downloading the latest Canonical Ubuntu `v4l-utils` package or rebuild once and install locally `v4l2-ctl 1.32.0` as followed :
+
+```bash
+cd $HOME
+git clone https://git.launchpad.net/ubuntu/+source/v4l-utils
+mk-build-deps -i --host-arch amd64 --build-arch amd64 -t "apt-get -y -q -o Debug::pkgProblemResolver=yes --no-install-recommends --allow-downgrades" debian/control
+echo 1.0 > debian/source/format
+dpkg-buildpackage
+apt install ../v4l-utils_1.32.0-2ubuntu1_amd64.deb ../libv4l-0t64_1.32.0-2ubuntu1_amd64.deb ../libv4l2rds0t64_1.32.0-2ubuntu1_amd64.deb  ../libv4lconvert0t64_1.32.0-2ubuntu1_amd64.deb
+v4l2-ctl --version
+```
+6. Final sanity-check if the v4l2 camera video streaming functional.
+
+```bash
+v4l2-ctl -d /dev/video-isx031-a-0 --set-fmt-video=width=1920,height=1536,pixelformat=UYVY && v4l2-ctl -d /dev/video-isx031-a-0 --stream-mmap
+```
+
+## Getting Started with Linux "BKC-image" Reference Camera
 
 1. Install Intel BKC image:
    - Go to rdc.intel.com
