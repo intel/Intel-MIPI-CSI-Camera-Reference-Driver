@@ -3,7 +3,7 @@
 
 KERNELRELEASE ?= $(shell uname -r)
 KERNEL_SRC ?= /lib/modules/$(KERNELRELEASE)/build
-KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
+KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9]\.[0-9]*\)\..*/\1.0/')
 BUILD_EXCLUSIVE_KERNEL="^(6\.(1[278])\.)"
 
 MODSRC := $(shell pwd)
@@ -25,6 +25,9 @@ export CONFIG_VIDEO_AR0234=m
 export CONFIG_VIDEO_ISX031=m
 export CONFIG_VIDEO_MAX9X=m
 
+# Path to v4l2-core module symbols
+KBUILD_EXTRA_SYMBOLS = $(M)/$(KERNEL_VERSION)/drivers/media/v4l2-core/Module.symvers
+
 obj-m += drivers/media/pci/intel/
 obj-m += drivers/media/i2c/
 
@@ -33,6 +36,8 @@ obj-y += drivers/media/platform/intel/
 
 subdir-ccflags-$(CONFIG_INTEL_IPU_ACPI) += \
         -DCONFIG_INTEL_IPU_ACPI
+subdir-ccflags-$(CONFIG_VIDEO_AR0234) += \
+        -DCONFIG_V4L2_CCI_I2C
 
 subdir-ccflags-y += $(subdir-ccflags-m)
 

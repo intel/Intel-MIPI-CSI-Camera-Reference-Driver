@@ -1,4 +1,4 @@
-From 15e1f9949d2934c4b417b25b17fb1c51ce1f3341 Mon Sep 17 00:00:00 2001
+From a2d5fa26b49e6f515cd4122a6874ca5b4f98030e Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Sat, 17 Jan 2026 02:10:39 -0700
 Subject: [PATCH 104/104] ipu7-isys: make modules suffix versioning same as
@@ -6,17 +6,17 @@ Subject: [PATCH 104/104] ipu7-isys: make modules suffix versioning same as
 
 Signed-off-by: Florent Pirou <florent.pirou@intel.com>
 ---
- ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile       | 9 +++++++++
- ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.c    | 1 +
- ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.c         | 1 +
- .../drivers/media/pci/intel/ipu7/psys/ipu-psys.c         | 1 +
- 4 files changed, 12 insertions(+)
+ ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile   | 12 ++++++++++++
+ .../drivers/media/pci/intel/ipu7/ipu7-isys.c         |  1 +
+ ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.c     |  1 +
+ .../drivers/media/pci/intel/ipu7/psys/ipu-psys.c     |  1 +
+ 4 files changed, 15 insertions(+)
 
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile b/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile
-index 5041701..14d46ff 100644
+index 5041701..7497dc7 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile
-@@ -1,5 +1,12 @@
+@@ -1,5 +1,15 @@
  # SPDX-License-Identifier: GPL-2.0
  # Copyright (c) 2017 - 2025 Intel Corporation.
 +KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
@@ -26,10 +26,13 @@ index 5041701..14d46ff 100644
 +KBUILD_EXTRA_SYMBOLS += ${M}/../../../../../../Module.symvers
 +
 +ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
++
++export EXTERNAL_BUILD = 1
++export CONFIG_VIDEO_INTEL_IPU7=m
  
  is_kernel_lt_6_10 = $(shell if [ $$(printf "6.10\n$(KERNELVERSION)" | sort -V | head -n1) != "6.10" ]; then echo 1; fi)
  ifeq ($(is_kernel_lt_6_10), 1)
-@@ -32,6 +39,8 @@ intel-ipu7-isys-objs                    += ipu7-isys-tpg.o
+@@ -32,6 +42,8 @@ intel-ipu7-isys-objs                    += ipu7-isys-tpg.o
  endif
  obj-$(CONFIG_VIDEO_INTEL_IPU7)		+= intel-ipu7-isys.o
  
