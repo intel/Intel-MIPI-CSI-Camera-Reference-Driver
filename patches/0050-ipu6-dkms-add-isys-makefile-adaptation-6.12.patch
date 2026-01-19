@@ -1,0 +1,76 @@
+From 95a2edd7b1e67b100ada6dbbf7346145b2c13cb2 Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Mon, 12 Jan 2026 03:45:03 -0700
+Subject: [PATCH 50/52] ipu6-dkms: add isys makefile adaptation 6.12
+
+*ipu6-isys: compile ISYS RESET and ACPI PDATA support
+---
+ ipu6-drivers/drivers/media/pci/intel/ipu6/Makefile  | 13 +++++++++++++
+ .../drivers/media/pci/intel/ipu6/ipu6-isys.c        |  1 +
+ ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6.c    |  1 +
+ .../drivers/media/pci/intel/ipu6/psys/ipu-psys.c    |  2 ++
+ 4 files changed, 17 insertions(+)
+
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/Makefile b/ipu6-drivers/drivers/media/pci/intel/ipu6/Makefile
+index 67c13c9..5ac7944 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/Makefile
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/Makefile
+@@ -1,5 +1,16 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
++KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9]\.[0-9]*\)\..*/\1.0/')
++
++CC := ${CC} -I ${M}/../../../../../../include -I ${M}/../../../../../../$(KERNEL_VERSION)/include-overrides -DCONFIG_DEBUG_FS -DCONFIG_INTEL_IPU_ACPI -DCONFIG_INTEL_IPU6_ACPI -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET -DCONFIG_VIDEO_INTEL_IPU6_EXT_CTRLS
++
++KBUILD_EXTRA_SYMBOLS += ${M}/../../../../../../Module.symvers
++
++ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
++
++export EXTERNAL_BUILD = 1
++export CONFIG_VIDEO_INTEL_IPU6 = m
++
+ intel-ipu6-y			:= ipu6.o \
+ 				ipu6-bus.o \
+ 				ipu6-dma.o \
+@@ -22,4 +33,6 @@ intel-ipu6-isys-y		:= ipu6-isys.o \
+ 				ipu6-isys-dwc-phy.o
+ 
+ obj-$(CONFIG_VIDEO_INTEL_IPU6)	+= intel-ipu6-isys.o
++
++subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+ obj-$(CONFIG_VIDEO_INTEL_IPU6)  += psys/
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+index 415ff06..eb66918 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+@@ -1774,3 +1774,4 @@ MODULE_LICENSE("GPL");
+ MODULE_DESCRIPTION("Intel IPU6 input system driver");
+ MODULE_IMPORT_NS(INTEL_IPU6);
+ MODULE_IMPORT_NS(INTEL_IPU_BRIDGE);
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6.c
+index bd0d706..53a61ac 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6.c
+@@ -963,3 +963,4 @@ MODULE_AUTHOR("Yunliang Ding <yunliang.ding@intel.com>");
+ MODULE_AUTHOR("Hongju Wang <hongju.wang@intel.com>");
+ MODULE_LICENSE("GPL");
+ MODULE_DESCRIPTION("Intel IPU6 PCI driver");
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/psys/ipu-psys.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/psys/ipu-psys.c
+index 6423238..5036ff8 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/psys/ipu-psys.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/psys/ipu-psys.c
+@@ -2745,7 +2745,9 @@ MODULE_DESCRIPTION("Intel IPU6 processing system driver");
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0)
+ MODULE_IMPORT_NS(DMA_BUF);
+ MODULE_IMPORT_NS(INTEL_IPU6);
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+ #else
+ MODULE_IMPORT_NS("DMA_BUF");
+ MODULE_IMPORT_NS("INTEL_IPU6");
++MODULE_VERSION("DRIVER_VERSION_SUFFIX");
+ #endif
+-- 
+2.43.0
+

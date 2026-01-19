@@ -1,0 +1,74 @@
+From d97b31e1923660f05d39db40028c4eb260f333e6 Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Mon, 19 Jan 2026 09:02:23 -0700
+Subject: [PATCH 51/52] Revert "ipu6-isys: lt6911uxc 2 pads linked to ipu 2
+ ports for split mode"
+
+This reverts commit b1c889b6240723d849da32f615ed8945d08d4e21.
+
+Change Description:
+single camera in bios setting, pprval for dummy port.
+create software node and link connection in ipu-brige.
+match the connection and port num in v4l2-async.
+finally create the media links.
+
+Signed-off-by: Chen Meng J <meng.j.chen@intel.com>
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ .../drivers/media/pci/intel/ipu6/ipu6-isys.c  | 19 ++-----------------
+ 1 file changed, 2 insertions(+), 17 deletions(-)
+
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+index eb66918..412afd0 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+@@ -158,7 +158,6 @@ static int isys_isr_one(struct ipu6_bus_device *adev);
+ static int
+ isys_complete_ext_device_registration(struct ipu6_isys *isys,
+ 				      struct v4l2_subdev *sd,
+-				      s16 src_pad,
+ 				      struct ipu6_isys_csi2_config *csi2)
+ {
+ 	struct device *dev = &isys->adev->auxdev.dev;
+@@ -176,17 +175,6 @@ isys_complete_ext_device_registration(struct ipu6_isys *isys,
+ 		goto unregister_subdev;
+ 	}
+ 
+-	if (src_pad >= 0)
+-		i = (unsigned int)src_pad;
+-
+-	if (sd->entity.pads[i].flags & MEDIA_PAD_FL_SOURCE) {
+-		dev_info(dev, "src pad %d\n", src_pad);
+-	} else {
+-		dev_warn(dev, "src pad %d not for src\n", src_pad);
+-		ret = -ENOENT;
+-		goto unregister_subdev;
+-	}
+-
+ 	ret = media_create_pad_link(&sd->entity, i,
+ 				    &isys->csi2[csi2->port].asd.sd.entity,
+ 				    0, MEDIA_LNK_FL_ENABLED |
+@@ -273,8 +261,7 @@ static int isys_register_ext_subdev(struct ipu6_isys *isys,
+ 	if (!sd_info->csi2)
+ 		return 0;
+ 
+-	/* src_pad is useless for non MIPI split case. Set it to '-1'.*/
+-	return isys_complete_ext_device_registration(isys, sd, -1, sd_info->csi2);
++	return isys_complete_ext_device_registration(isys, sd, sd_info->csi2);
+ 
+ skip_put_adapter:
+ 	i2c_put_adapter(adapter);
+@@ -1008,9 +995,7 @@ static int isys_notifier_bound(struct v4l2_async_notifier *notifier,
+ 
+ 	dev_dbg(&isys->adev->auxdev.dev, "bind %s nlanes is %d port is %d\n",
+ 		sd->name, s_asd->csi2.nlanes, s_asd->csi2.port);
+-	ret = isys_complete_ext_device_registration(isys, sd,
+-						    asc->match.src_pad,
+-						    &s_asd->csi2);
++	ret = isys_complete_ext_device_registration(isys, sd, &s_asd->csi2);
+ 	if (ret)
+ 		return ret;
+ 
+-- 
+2.43.0
+

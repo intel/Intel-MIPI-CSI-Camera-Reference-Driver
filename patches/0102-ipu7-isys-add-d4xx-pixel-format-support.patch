@@ -1,4 +1,4 @@
-From 3849f87c48328b61f1ed81817b8c3f29473c6624 Mon Sep 17 00:00:00 2001
+From 1fcc1dad44343b80e60841e03cff411ee41d9a5b Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Sat, 17 Jan 2026 02:08:28 -0700
 Subject: [PATCH 102/104] ipu7-isys : add d4xx pixel format support
@@ -13,10 +13,10 @@ Signed-off-by: Florent Pirou <florent.pirou@intel.com>
  5 files changed, 18 insertions(+), 2 deletions(-)
 
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
-index 45db85e..dcb9c49 100644
+index dc63449..9abf8d1 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
-@@ -126,6 +126,7 @@ enum ipu7_insys_frame_format_type {
+@@ -125,6 +125,7 @@ enum ipu7_insys_frame_format_type {
  	IPU_INSYS_FRAME_FORMAT_ARGB888 = 31,
  	IPU_INSYS_FRAME_FORMAT_BGRA888 = 32,
  	IPU_INSYS_FRAME_FORMAT_ABGR888 = 33,
@@ -79,7 +79,7 @@ index 98b6ef6..b99b5e9 100644
  	case MEDIA_BUS_FMT_SGBRG8_1X8:
  	case MEDIA_BUS_FMT_SGRBG8_1X8:
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
-index 12fdf55..2993d62 100644
+index de3ebf9..44aa17c 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 @@ -83,12 +83,21 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
@@ -105,10 +105,10 @@ index 12fdf55..2993d62 100644
  
  static int video_open(struct file *file)
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
-index c9ca2fb..8a505b8 100644
+index 2e45258..19eea94 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
-@@ -46,8 +46,8 @@ struct dentry;
+@@ -43,8 +43,8 @@ struct dentry;
  #define IPU_ISYS_SIZE_SEND_QUEUE	40U
  #define IPU_ISYS_NUM_RECV_QUEUE		1U
  

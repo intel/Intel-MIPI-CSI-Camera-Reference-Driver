@@ -1,0 +1,39 @@
+From 6c5b8023d44b41a832c02c685438f58ce15a58cd Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Mon, 19 Jan 2026 10:38:25 -0700
+Subject: [PATCH 104/104] ipu7-dkms: dummy patch to void last match miss
+
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile  | 2 +-
+ ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile~ | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile b/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile
+index 754d4e8..30f73db 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile
+@@ -10,7 +10,7 @@ ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+ 
+ export EXTERNAL_BUILD = 1
+ export CONFIG_VIDEO_INTEL_IPU7=m
+-
++#add a dummy change
+ is_kernel_lt_6_10 = $(shell if [ $$(printf "6.10\n$(KERNELVERSION)" | sort -V | head -n1) != "6.10" ]; then echo 1; fi)
+ ifeq ($(is_kernel_lt_6_10), 1)
+ ifneq ($(EXTERNAL_BUILD), 1)
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile~ b/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile~
+index 7497dc7..754d4e8 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile~
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/Makefile~
+@@ -1,6 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+ # Copyright (c) 2017 - 2025 Intel Corporation.
+-KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
++KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9]\.[0-9]*\)\..*/\1.0/')
+ 
+ CC := ${CC} -I ${M}/../../../../../../include -I ${M}/../../../../../../$(KERNEL_VERSION)/include-overrides -DCONFIG_DEBUG_FS -DCONFIG_INTEL_IPU_ACPI -DCONFIG_VIDEO_INTEL_IPU7_ISYS_RESET -DCONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
+ 
+-- 
+2.43.0
+

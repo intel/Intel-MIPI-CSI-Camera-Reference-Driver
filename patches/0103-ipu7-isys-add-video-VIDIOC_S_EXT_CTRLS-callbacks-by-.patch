@@ -1,4 +1,4 @@
-From f25d8a31605419e73bd9a0a30d23feee864e5a8f Mon Sep 17 00:00:00 2001
+From 64a32d86d6a48dadabfb6d767be28b6180f01845 Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Sat, 17 Jan 2026 02:09:32 -0700
 Subject: [PATCH 103/104] ipu7-isys: add video VIDIOC_S_EXT_CTRLS callbacks by
@@ -60,7 +60,7 @@ index 0000000..91b2eca
 +					void *data),
 +		void *data);
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
-index 2993d62..cc48706 100644
+index 44aa17c..2b1ee36 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 @@ -38,6 +38,9 @@
@@ -458,7 +458,7 @@ index 2993d62..cc48706 100644
  	return 0;
  unlock:
  	v4l2_subdev_unlock_state(s_state);
-@@ -1009,6 +1315,266 @@ out_media_entity_stop_streaming_firmware:
+@@ -957,6 +1263,266 @@ out_media_entity_stop_streaming_firmware:
  	return ret;
  }
  
@@ -725,7 +725,7 @@ index 2993d62..cc48706 100644
  static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
  	.vidioc_querycap = ipu7_isys_vidioc_querycap,
  	.vidioc_enum_fmt_vid_cap = ipu7_isys_vidioc_enum_fmt,
-@@ -1025,6 +1591,11 @@ static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
+@@ -973,6 +1539,11 @@ static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
  	.vidioc_streamon = vb2_ioctl_streamon,
  	.vidioc_streamoff = vb2_ioctl_streamoff,
  	.vidioc_expbuf = vb2_ioctl_expbuf,
@@ -737,7 +737,7 @@ index 2993d62..cc48706 100644
  };
  
  static const struct media_entity_operations entity_ops = {
-@@ -1297,8 +1868,28 @@ int ipu7_isys_video_init(struct ipu7_isys_video *av)
+@@ -1217,8 +1788,28 @@ int ipu7_isys_video_init(struct ipu7_isys_video *av)
  	if (ret)
  		goto out_media_entity_cleanup;
  
@@ -766,7 +766,7 @@ index 2993d62..cc48706 100644
  out_media_entity_cleanup:
  	vb2_video_unregister_device(&av->vdev);
  	media_entity_cleanup(&av->vdev.entity);
-@@ -1314,6 +1905,9 @@ out_mutex_destroy:
+@@ -1234,6 +1825,9 @@ out_mutex_destroy:
  
  void ipu7_isys_video_cleanup(struct ipu7_isys_video *av)
  {
