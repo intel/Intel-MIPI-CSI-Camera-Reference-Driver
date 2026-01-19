@@ -43,12 +43,12 @@ override_dh_auto_test:
 override_dh_auto_install:
 override_dh_auto_clean:
 
-override_dh_dkms: dkms.conf #debian/intel-mipi-gmsl-dkms.postinst
+override_dh_dkms: dkms.conf debian/intel-mipi-gmsl-dkms.postinst
 	dh_dkms -V $(DEB_VERSION_UPSTREAM_REVISION) -- dkms.conf
-#	cp -a debian/intel-mipi-gmsl-dkms.postinst debian/intel-mipi-gmsl-dkms.postinst.debhelper
+	cp -a debian/intel-mipi-gmsl-dkms.postinst debian/intel-mipi-gmsl-dkms.postinst.debhelper
 
-#override_dh_installdebconf-arch: debian/intel-mipi-gmsl-dkms.config debian/intel-mipi-gmsl-dkms.templates
-#	dh_installdebconf -a
+override_dh_installdebconf-arch: debian/intel-mipi-gmsl-dkms.config debian/intel-mipi-gmsl-dkms.templates
+	dh_installdebconf -a
 
 override_dh_install: debian/intel-mipi-gmsl-dkms.install
 	dh_install --exclude=.gitignore

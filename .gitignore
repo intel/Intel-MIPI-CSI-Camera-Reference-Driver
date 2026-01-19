@@ -6,3 +6,8 @@ debian/debhelper-build-stamp
 debian/*.substvars
 debian/*.debhelper*
 debian/files
+debian/intel-mipi-gmsl-dkms.config
+debian/intel-mipi-gmsl-dkms.install
+debian/intel-mipi-gmsl-dkms.postinst
+debian/intel-mipi-gmsl-dkms.templates
+debian/intel-mipi-gmsl-dkms/
