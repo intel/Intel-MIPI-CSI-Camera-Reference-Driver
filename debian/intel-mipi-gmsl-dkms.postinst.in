@@ -1,0 +1,50 @@
+# Automatically added by dh_dkms/3.0.10-7
+# The original file can be found in template-dkms-mkdeb/debian/postinst
+# in the DKMS tarball, check it for copyright notices.
+
+DKMS_NAME=@DKMS_PACKAGE_NAME@
+DKMS_PACKAGE_NAME=@DKMS_PACKAGE_NAME@
+DKMS_VERSION=@DKMS_PACKAGE_VERSION@
+
+postinst_found=0
+
+set -e
+
+. /usr/share/debconf/confmodule
+
+db_get ${DKMS_PACKAGE_NAME}/max9x
+MAX9X=${RET}
+
+case "$1" in
+	configure)
+		echo "postinst d4xx build for ${MAX9X}" >&2
+		if [ "$MAX9X" = "max9296" ]; then
+			echo "clear MAKE_OPTS" >&2
+			export MAKE_OPTS=""
+		fi
+		if [ "$MAX9X" = "max96724" ]; then
+			echo "apply MAKE_OPTS=\"-DCONFIG_VIDEO_D4XX_MAX96724\"" >&2
+			export MAKE_OPTS="-DCONFIG_VIDEO_D4XX_MAX96724"
+		fi
+		if [ "$MAX9X" = "max96712" ]; then
+			echo "apply MAKE_OPTS=\"-DCONFIG_VIDEO_D4XX_MAX96712\"" >&2
+			export MAKE_OPTS="-DCONFIG_VIDEO_D4XX_MAX96712"
+		fi
+
+		for DKMS_POSTINST in /usr/lib/dkms/common.postinst /usr/share/$DKMS_PACKAGE_NAME/postinst; do
+			if [ -f $DKMS_POSTINST ]; then
+				$DKMS_POSTINST $DKMS_NAME $DKMS_VERSION /usr/share/$DKMS_PACKAGE_NAME "" $2
+				postinst_found=1
+				break
+			fi
+		done
+		if [ "$postinst_found" -eq 0 ]; then
+			echo "ERROR: DKMS version is too old and $DKMS_PACKAGE_NAME was not"
+			echo "built with legacy DKMS support."
+			echo "You must either rebuild $DKMS_PACKAGE_NAME with legacy postinst"
+			echo "support or upgrade DKMS to a more current version."
+			exit 1
+		fi
+	;;
+esac
+# End automatically added section

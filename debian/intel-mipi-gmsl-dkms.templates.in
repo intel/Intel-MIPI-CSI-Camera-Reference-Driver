@@ -1,0 +1,7 @@
+Template: intel-mipi-gmsl-dkms/max9x
+Type: select
+Choices: @marchlist@
+Default: @marchdefault@
+Description: Select d4xx GMSL2 Deserializer type [defaut:@marchdefault@]
+ build d4xx drivers with compile options either for @marchlist@.
+ 

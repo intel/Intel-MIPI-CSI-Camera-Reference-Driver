@@ -1,0 +1,40 @@
+From 87db5a82cd6f71ac73b825ad335ae306ce64ce60 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Tue, 3 Mar 2026 08:08:47 -0700
+Subject: [PATCH] media-ctl: add pad support 2-digits stream-id
+
+* v4l2: workaround pad stream-id single-digit limit
+```
+media-ctl -d /dev/media0 -V '"Intel IPU7 CSI2 2":"11/10" [fmt:VYUY8_1X16/640x480 field:none]' -v
+...
+Enumerating pads and links
+Expected '['
+
+ "Intel IPU7 CSI2 2":"11/10" [fmt:VYUY8_1X16/640x480 field:none]
+                      ^
+		      Unable to parse format
+		      Unable to setup formats: Invalid argument (22)
+
+```
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ utils/media-ctl/libmediactl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/utils/media-ctl/libmediactl.c b/utils/media-ctl/libmediactl.c
+index 64ac8cf1..1d5f9b81 100644
+--- a/utils/media-ctl/libmediactl.c
++++ b/utils/media-ctl/libmediactl.c
+@@ -909,7 +909,7 @@ struct media_pad *media_parse_pad_stream(struct media_device *media,
+ 		*stream = 0;
+ 	}
+ 
+-	for (; isspace(*p); ++p);
++	for (p = ep + 1; isspace(*p); ++p);
+ 
+ 	if (endp)
+ 		*endp = (char*)p;
+-- 
+2.25.1
+
