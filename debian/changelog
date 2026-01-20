@@ -1,0 +1,53 @@
+intel-mipi-gmsl-drivers (20260211-4) UNRELEASED; urgency=low
+
+  * ipu7-isys: workaround isys-queue noise in HW_ERR_BAD_FRAME_DIM conditions
+  * helpers: add isx031 mtbf testcases
+  * helpers: bind 8-only srcpad ipu7-isys and ipu6-isys subdevs media graph
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Wed, 25 Mar 2026 12:32:36 +0000
+
+intel-mipi-gmsl-drivers (20260211-3) UNRELEASED; urgency=low
+
+  * ipu-acpi : fallback for uefi camera parameters without the `rotation` entry
+  * ipu6-isys: workaround ipu6-isys STREAM_CAPTURE fw cmd race-conditions
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Wed, 25 Mar 2026 12:32:36 +0000
+
+intel-mipi-gmsl-drivers (20260211-2) UNRELEASED; urgency=low
+
+  * d4xx : fix max96724 realsense2 multicam and multistream support
+  * ipu7-isys: workaround csi2 unsupported YUYV8_1X16 css pixelformat
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Fri, 20 Mar 2026 13:57:30 +0000
+
+intel-mipi-gmsl-drivers (20260211-1) UNRELEASED; urgency=low
+
+  * d4xx : add d4xx realsense2 custom max9295, max9296 and max96724 implementations
+  * d4xx : add d4xx realsense2 v4l2 graph binding helper scripts
+  * ipu6-isys, ipu6-isys: add d4xx video VIDIOC_S_EXT_CTRLS by streamid
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Mon, 15 Feb 2026 13:20:02 +0000
+
+intel-mipi-gmsl-drivers (20260211-0) UNRELEASED; urgency=low
+
+  * initial package based of Intel MIPI-CSI Camera Reference drivers [Release 2026 Q1.1.1a](https://github.com/intel/Intel-MIPI-CSI-Camera-Reference-Driver/commit/96ae361c20e778efe53426848b89528205d18ad3)
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Wed, 11 Feb 2026 09:24:00 +0000
+
+intel-mipi-gmsl-drivers (20260115-2) UNRELEASED; urgency=low
+
+  * debian : add postinstall and debconf
+  * d4xx : add d4xx realsense2 custom max9295, max9296 and max96724 implementations
+  * d4xx : add d4xx realsense2 v4l2 graph binding helper scripts
+  * ipu6-isys, ipu6-isys: add d4xx video VIDIOC_S_EXT_CTRLS by streamid
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Thu, 19 Jan 2026 14:46:17 +0000
+
+intel-mipi-gmsl-drivers (20260115-1) UNRELEASED; urgency=low
+
+  * debian : initial package rules and control
+  * ipu7-drivers : add baseline IPU7 20251226_1140_191_PTL_PV_IoT
+  * ipu6-drivers : add baseline IPU6 & PTL release for iot on 2025-12-30
+  * v4l2-core : add linux 6.12, 6.17 and 6.18 stream and route v4l2 api enabled videodev
+
+ -- ECI Maintainer <eci.maintainer@intel.com>  Thu, 19 Jan 2026 14:46:17 +0000
