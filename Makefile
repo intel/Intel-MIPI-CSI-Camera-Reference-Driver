@@ -10,6 +10,9 @@ MODSRC := $(shell pwd)
 
 subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
 
+export CONFIG_VIDEO_INTEL_IPU7=m
+export CONFIG_VIDEO_INTEL_IPU6=m
+
 # Define config macros for conditional compilation in ipu6-acpi.c
 # IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE
 subdir-ccflags-y += -DCONFIG_VIDEO_MAX9X_MODULE=1
@@ -25,6 +28,7 @@ export CONFIG_VIDEO_AR0820=m
 export CONFIG_VIDEO_AR0234=m
 export CONFIG_VIDEO_ISX031=m
 export CONFIG_VIDEO_MAX9X=m
+
 export CONFIG_VIDEO_D4XX_MAX9295 = m
 export CONFIG_VIDEO_D4XX_MAX9296 = m
 export CONFIG_VIDEO_D4XX_MAX96724 = m
@@ -39,6 +43,10 @@ obj-m += drivers/media/i2c/
 export CONFIG_INTEL_IPU_ACPI = m
 obj-y += drivers/media/platform/intel/
 
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6) += \
+	-DCONFIG_VIDEO_INTEL_IPU6
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU7) += \
+	-DCONFIG_VIDEO_INTEL_IPU7
 subdir-ccflags-$(CONFIG_INTEL_IPU_ACPI) += \
         -DCONFIG_INTEL_IPU_ACPI
 subdir-ccflags-$(CONFIG_VIDEO_AR0234) += \
