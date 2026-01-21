@@ -9,6 +9,15 @@ BUILD_EXCLUSIVE_KERNEL="^(6\.(1[278])\.)"
 MODSRC := $(shell pwd)
 
 subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+# Extract kernel version components - strip suffix like "-intel"
+KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | cut -d. -f1)
+KERNEL_PATCHLEVEL := $(shell echo $(KERNELRELEASE) | cut -d. -f2 | cut -d- -f1)
+
+# Check if kernel version is 6.17 or above
+KERNEL_EQ_6_17 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 17 ]) && echo 1 || echo 0)
+
+# Check if kernel version is 6.12 or above
+KERNEL_EQ_6_12 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 12 ]) && echo 1 || echo 0)
 
 export EXTERNAL_BUILD = 1
 export CONFIG_IPU_BRIDGE=m
@@ -60,9 +69,8 @@ obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
 endif
 
 obj-m += drivers/media/pci/intel/
-obj-m += drivers/media/i2c/
 obj-y += drivers/media/platform/intel/
-obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
+obj-m += drivers/media/i2c/
 
 subdir-ccflags-y += $(subdir-ccflags-m)
 subdir-ccflags-y +=  -iquote $(src)/include/ -I$(src)/include/ -I$(src)/ipu6-drivers/include
