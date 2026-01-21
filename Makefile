@@ -19,6 +19,9 @@ export CONFIG_VIDEO_MAX9X=m
 export CONFIG_VIDEO_LT6911UXE=m
 export CONFIG_VIDEO_LT6911UXC=m
 export CONFIG_VIDEO_LT6911GXD=m
+export CONFIG_VIDEO_INTEL_IPU6=m
+export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
+export CONFIG_INTEL_IPU_ACPI=m
 
 # Define config macros for conditional compilation in ipu-acpi.c
 # IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE
@@ -31,6 +34,8 @@ subdir-ccflags-$(CONFIG_INTEL_IPU_ACPI) += -DCONFIG_INTEL_IPU_ACPI
 subdir-ccflags-$(CONFIG_VIDEO_LT6911UXE) += -DCONFIG_VIDEO_LT6911UXE
 subdir-ccflags-$(CONFIG_VIDEO_LT6911UXC) += -DCONFIG_VIDEO_LT6911UXC
 subdir-ccflags-$(CONFIG_VIDEO_LT6911GXD) += -DCONFIG_VIDEO_LT6911GXD
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6) += -DCONFIG_VIDEO_INTEL_IPU6
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
 # Override LINUXINCLUDE to put our include path first
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 
@@ -38,13 +43,11 @@ ccflags-y := -I$(src)/include
 
 obj-m += drivers/media/pci/intel/
 obj-m += drivers/media/i2c/
-
-export CONFIG_INTEL_IPU_ACPI = m
 obj-y += drivers/media/platform/intel/
+obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
 
 subdir-ccflags-y += $(subdir-ccflags-m)
-
-subdir-ccflags-y +=  -iquote $(src)/include/ -I$(src)/include/ 
+subdir-ccflags-y +=  -iquote $(src)/include/ -I$(src)/include/ -I$(src)/ipu6-drivers/include
 
 all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(MODSRC) modules
