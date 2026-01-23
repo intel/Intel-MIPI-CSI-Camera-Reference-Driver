@@ -25,6 +25,11 @@ export CONFIG_VIDEO_AR0234=m
 export CONFIG_VIDEO_ISX031=m
 export CONFIG_VIDEO_MAX9X=m
 
+# Override LINUXINCLUDE to put our include path first
+LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
+
+ccflags-y := -I$(src)/include
+
 obj-m += drivers/media/pci/intel/
 obj-m += drivers/media/i2c/
 
