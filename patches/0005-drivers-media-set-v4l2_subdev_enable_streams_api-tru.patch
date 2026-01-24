@@ -1,4 +1,4 @@
-From 33750bc14545f84d7c26168b956e960b6427b005 Mon Sep 17 00:00:00 2001
+From 8073249ecbd0e8773c00b2ab31c59a166eac175f Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Mon, 17 Nov 2025 07:45:23 -0700
 Subject: [PATCH 5/8] drivers: media: set v4l2_subdev_enable_streams_api=true

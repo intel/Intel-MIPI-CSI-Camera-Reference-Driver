@@ -47,7 +47,7 @@ subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6) += -DCONFIG_VIDEO_INTEL_IPU6
 subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
 
 # Path to v4l2-core module symbols
-KBUILD_EXTRA_SYMBOLS = $(M)/$(KERNEL_SUBVERSION)/drivers/media/v4l2-core/Module.symvers
+KBUILD_EXTRA_SYMBOLS += $(M)/$(KERNEL_SUBVERSION)/drivers/media/v4l2-core/Module.symvers
 
 # Override LINUXINCLUDE to put our include path first
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)

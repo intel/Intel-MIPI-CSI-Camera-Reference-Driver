@@ -1,0 +1,93 @@
+From 5ab7c9dde64501bc4248d6cd856934b4a3b71ea1 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Sun, 1 Mar 2026 11:54:14 -0700
+Subject: [PATCH 11/11] media: v4l2-subdev: extend v6.18 max frame desc to 16
+
+* v4l2_async: avoid disagrees about version of symbol
+```
+[   40.350994] v4l2_async: disagrees about version of symbol v4l2_subdev_put_privacy_led
+[   40.358929] v4l2_async: Unknown symbol v4l2_subdev_put_privacy_led (err -22)
+[   40.366156] v4l2_async: disagrees about version of symbol v4l2_device_unregister_subdev
+[   40.374264] v4l2_async: Unknown symbol v4l2_device_unregister_subdev (err -22)
+[   40.381720] v4l2_async: disagrees about version of symbol __v4l2_device_register_subdev
+[   40.389828] v4l2_async: Unknown symbol __v4l2_device_register_subdev (err -22)
+```
+* videobuf2_v4l2: avoid disagrees about version of symbol
+```
+[   48.919711] videobuf2_v4l2: disagrees about version of symbol video_devdata
+[   48.926728] videobuf2_v4l2: Unknown symbol video_devdata (err -22)
+[   48.933073] videobuf2_v4l2: disagrees about version of symbol video_unregister_device
+[   48.940941] videobuf2_v4l2: Unknown symbol video_unregister_device (err -22)
+```
+* v4l2_fwnode: avoid disagrees about version of symbol
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ 6.18.0/drivers/media/common/videobuf2/Makefile         | 6 ++++++
+ 6.18.0/drivers/media/common/videobuf2/videobuf2-v4l2.c | 1 +
+ 6.18.0/drivers/media/v4l2-core/Makefile                | 1 +
+ 6.18.0/drivers/media/v4l2-core/v4l2-async.c            | 1 +
+ 6.18.0/include-overrides/media/v4l2-subdev.h           | 2 +-
+ 5 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/6.18.0/drivers/media/common/videobuf2/Makefile b/6.18.0/drivers/media/common/videobuf2/Makefile
+index a6fe3f3..754812f 100644
+--- a/6.18.0/drivers/media/common/videobuf2/Makefile
++++ b/6.18.0/drivers/media/common/videobuf2/Makefile
+@@ -1,4 +1,10 @@
+ # SPDX-License-Identifier: GPL-2.0
++# ipu6/7 dkms appendix
++CC := ${CC} -I ${M}/../../../../include-overrides
++ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
++
++KBUILD_EXTRA_SYMBOLS += ${M}/../../v4l2-core/Module.symvers
++
+ videobuf2-common-objs := videobuf2-core.o
+ videobuf2-common-objs += frame_vector.o
+ 
+diff --git a/6.18.0/drivers/media/common/videobuf2/videobuf2-v4l2.c b/6.18.0/drivers/media/common/videobuf2/videobuf2-v4l2.c
+index 83862d5..a4e4aee 100644
+--- a/6.18.0/drivers/media/common/videobuf2/videobuf2-v4l2.c
++++ b/6.18.0/drivers/media/common/videobuf2/videobuf2-v4l2.c
+@@ -1370,3 +1370,4 @@ EXPORT_SYMBOL_GPL(vb2_request_queue);
+ MODULE_DESCRIPTION("Driver helper framework for Video for Linux 2");
+ MODULE_AUTHOR("Pawel Osciak <pawel@osciak.com>, Marek Szyprowski");
+ MODULE_LICENSE("GPL");
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+diff --git a/6.18.0/drivers/media/v4l2-core/Makefile b/6.18.0/drivers/media/v4l2-core/Makefile
+index 82c235f..63cf788 100644
+--- a/6.18.0/drivers/media/v4l2-core/Makefile
++++ b/6.18.0/drivers/media/v4l2-core/Makefile
+@@ -5,6 +5,7 @@
+ # ipu7-dkms appendix
+ CC := ${CC} -I ${M}/../../../include-overrides -I ${M}/../tuners -I ${M}/../dvb-core -I ${M}/../dvb-frontends
+ ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
++ccflags-m += -DCONFIG_V4L2_ASYNC
+ 
+ ccflags-y += -I$(srctree)/drivers/media/dvb-frontends
+ ccflags-y += -I$(srctree)/drivers/media/tuners
+diff --git a/6.18.0/drivers/media/v4l2-core/v4l2-async.c b/6.18.0/drivers/media/v4l2-core/v4l2-async.c
+index ee884a8..a54a016 100644
+--- a/6.18.0/drivers/media/v4l2-core/v4l2-async.c
++++ b/6.18.0/drivers/media/v4l2-core/v4l2-async.c
+@@ -974,3 +974,4 @@ MODULE_AUTHOR("Sakari Ailus <sakari.ailus@linux.intel.com>");
+ MODULE_AUTHOR("Ezequiel Garcia <ezequiel@collabora.com>");
+ MODULE_DESCRIPTION("V4L2 asynchronous subdevice registration API");
+ MODULE_LICENSE("GPL");
++MODULE_VERSION(DRIVER_VERSION_SUFFIX);
+diff --git a/6.18.0/include-overrides/media/v4l2-subdev.h b/6.18.0/include-overrides/media/v4l2-subdev.h
+index ad37aaf..9c4a15e 100644
+--- a/6.18.0/include-overrides/media/v4l2-subdev.h
++++ b/6.18.0/include-overrides/media/v4l2-subdev.h
+@@ -368,7 +368,7 @@ struct v4l2_mbus_frame_desc_entry {
+   * If this number is too small, it should be dropped altogether and the
+   * API switched to a dynamic number of frame descriptor entries.
+   */
+-#define V4L2_FRAME_DESC_ENTRY_MAX	8
++#define V4L2_FRAME_DESC_ENTRY_MAX	16
+ 
+ /**
+  * enum v4l2_mbus_frame_desc_type - media bus frame description type
+-- 
+2.43.0
+

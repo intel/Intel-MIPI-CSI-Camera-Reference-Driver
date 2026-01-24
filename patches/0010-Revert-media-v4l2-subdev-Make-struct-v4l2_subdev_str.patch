@@ -1,7 +1,7 @@
-From 8c7dfa096703507d068d4e28b23fae48bb9ebcac Mon Sep 17 00:00:00 2001
+From 689ebbd8b1e280c47161dfcb6cc9b0cf78cc4a72 Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Fri, 16 Jan 2026 10:10:16 -0700
-Subject: [PATCH 8/8] Revert "media: v4l2-subdev: Make struct
+Subject: [PATCH 10/11] Revert "media: v4l2-subdev: Make struct
  v4l2_subdev_stream_config private"
 
 This reverts commit 5195b777552d2e2fa735c6cad75797efa132bd60.

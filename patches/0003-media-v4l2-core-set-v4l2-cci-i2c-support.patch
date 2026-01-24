@@ -1,4 +1,4 @@
-From 1f1be31e07f67b8c4a3432d86961b848463f7aca Mon Sep 17 00:00:00 2001
+From 3549a047c91feae74ac48dab5abc810f46ee6d61 Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Sun, 18 Jan 2026 13:46:44 -0700
 Subject: [PATCH 3/8] media: v4l2-core : set v4l2-cci i2c support

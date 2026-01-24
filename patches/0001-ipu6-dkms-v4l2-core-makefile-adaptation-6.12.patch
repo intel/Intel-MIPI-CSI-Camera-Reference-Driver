@@ -1,4 +1,4 @@
-From c3c5d9f0239c3776f82bbc90d6d126338c63e823 Mon Sep 17 00:00:00 2001
+From cb1f16873b6ef82287272c35ff5c921339ef99d6 Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Mon, 17 Nov 2025 07:44:33 -0700
 Subject: [PATCH 1/8] ipu6-dkms : v4l2-core makefile adaptation 6.12
