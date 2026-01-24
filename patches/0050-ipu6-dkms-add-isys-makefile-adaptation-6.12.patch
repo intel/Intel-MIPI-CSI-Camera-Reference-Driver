@@ -1,7 +1,7 @@
-From e87b17da6960b58bed4eb401964935231c160224 Mon Sep 17 00:00:00 2001
+From 1c30b3765e354d740b6c548dd59a67e032159ec5 Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Mon, 12 Jan 2026 03:45:03 -0700
-Subject: [PATCH 50/52] ipu6-dkms: add isys makefile adaptation 6.12
+Subject: [PATCH 50/55] ipu6-dkms: add isys makefile adaptation 6.12
 
 *ipu6-isys: compile ISYS RESET and ACPI PDATA support
 

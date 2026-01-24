@@ -1,0 +1,122 @@
+From 29f7172eb2d33fe095bb39c827fcdce9cf7ede7f Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Fri, 23 Jan 2026 16:24:42 -0700
+Subject: [PATCH 53/55] ipu6-isys : add d4xx pixel format support
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h | 1 +
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c        | 3 +++
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c      | 2 ++
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-video.c       | 9 +++++++++
+ ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h    | 4 ++--
+ 5 files changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
+index 545180c..0ec08ee 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
+@@ -209,6 +209,7 @@ enum ipu6_fw_isys_frame_format_type {
+ 	IPU6_FW_ISYS_FRAME_FORMAT_RGBA888, /* 32 bit RGBA, 1 plane, A=Alpha */
+ 	IPU6_FW_ISYS_FRAME_FORMAT_QPLANE6, /* Internal, for advanced ISP */
+ 	IPU6_FW_ISYS_FRAME_FORMAT_BINARY_8, /* byte stream, used for jpeg. */
++	IPU6_FW_ISYS_FRAME_FORMAT_VYUY,	/* 16 bit YUV 422, VYUY interleaved */
+ 	N_IPU6_FW_ISYS_FRAME_FORMAT
+ };
+ 
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
+index 5f2f836..47ac8ea 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
+@@ -26,10 +26,12 @@
+ #include "ipu6-platform-isys-csi2-reg.h"
+ 
+ static const u32 csi2_supported_codes[] = {
++	MEDIA_BUS_FMT_Y8_1X8,
+ 	MEDIA_BUS_FMT_RGB565_1X16,
+ 	MEDIA_BUS_FMT_RGB888_1X24,
+ 	MEDIA_BUS_FMT_UYVY8_1X16,
+ 	MEDIA_BUS_FMT_YUYV8_1X16,
++	MEDIA_BUS_FMT_VYUY8_1X16,
+ 	MEDIA_BUS_FMT_SBGGR10_1X10,
+ 	MEDIA_BUS_FMT_SGBRG10_1X10,
+ 	MEDIA_BUS_FMT_SGRBG10_1X10,
+@@ -47,6 +49,7 @@ static const u32 csi2_supported_codes[] = {
+ 	MEDIA_BUS_FMT_META_12,
+ 	MEDIA_BUS_FMT_META_16,
+ 	MEDIA_BUS_FMT_META_24,
++	MEDIA_BUS_FMT_FIXED,
+ 	0
+ };
+ 
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c
+index 0a06de5..3aa27a2 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c
+@@ -25,6 +25,7 @@ unsigned int ipu6_isys_mbus_code_to_bpp(u32 code)
+ 	case MEDIA_BUS_FMT_RGB565_1X16:
+ 	case MEDIA_BUS_FMT_UYVY8_1X16:
+ 	case MEDIA_BUS_FMT_YUYV8_1X16:
++	case MEDIA_BUS_FMT_VYUY8_1X16:
+ 	case MEDIA_BUS_FMT_META_16:
+ 		return 16;
+ 	case MEDIA_BUS_FMT_SBGGR12_1X12:
+@@ -39,6 +40,7 @@ unsigned int ipu6_isys_mbus_code_to_bpp(u32 code)
+ 	case MEDIA_BUS_FMT_SRGGB10_1X10:
+ 	case MEDIA_BUS_FMT_META_10:
+ 		return 10;
++	case MEDIA_BUS_FMT_Y8_1X8:
+ 	case MEDIA_BUS_FMT_SBGGR8_1X8:
+ 	case MEDIA_BUS_FMT_SGBRG8_1X8:
+ 	case MEDIA_BUS_FMT_SGRBG8_1X8:
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+index 927d92e..b8dd4e0 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+@@ -82,12 +82,20 @@ const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RAW10 },
+ 	{ V4L2_PIX_FMT_UYVY, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_UYVY},
++	{ V4L2_PIX_FMT_Z16, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
++	  IPU6_FW_ISYS_FRAME_FORMAT_UYVY},
+ 	{ V4L2_PIX_FMT_YUYV, 16, 16, MEDIA_BUS_FMT_YUYV8_1X16,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_YUYV},
++	{ V4L2_PIX_FMT_Y8I, 16, 16, MEDIA_BUS_FMT_VYUY8_1X16,
++	  IPU6_FW_ISYS_FRAME_FORMAT_YUYV},
+ 	{ V4L2_PIX_FMT_RGB565, 16, 16, MEDIA_BUS_FMT_RGB565_1X16,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RGB565 },
+ 	{ V4L2_PIX_FMT_BGR24, 24, 24, MEDIA_BUS_FMT_RGB888_1X24,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RGBA888 },
++	{ V4L2_PIX_FMT_Y12I, 32, 24, MEDIA_BUS_FMT_RGB888_1X24,
++	  IPU6_FW_ISYS_FRAME_FORMAT_RGBA888 },
++	{ V4L2_PIX_FMT_GREY, 8, 8, MEDIA_BUS_FMT_Y8_1X8,
++	  IPU6_FW_ISYS_FRAME_FORMAT_RAW8 },
+ 	{ V4L2_META_FMT_GENERIC_8, 8, 8, MEDIA_BUS_FMT_META_8,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RAW8, true },
+ 	{ V4L2_META_FMT_GENERIC_CSI2_10, 10, 10, MEDIA_BUS_FMT_META_10,
+@@ -96,6 +104,7 @@ const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RAW12, true },
+ 	{ V4L2_META_FMT_GENERIC_CSI2_16, 16, 16, MEDIA_BUS_FMT_META_16,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RAW16, true },
++	{ V4L2_META_FMT_D4XX, 8, 8, MEDIA_BUS_FMT_FIXED, 0 },
+ };
+ 
+ static int video_open(struct file *file)
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h
+index 4c7ba6e..6a425c8 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h
+@@ -43,8 +43,8 @@ struct ipu6_bus_device;
+ #define IPU6_ISYS_SIZE_PROXY_SEND_QUEUE 5
+ #define IPU6_ISYS_NUM_RECV_QUEUE 1
+ 
+-#define IPU6_ISYS_MIN_WIDTH		2U
+-#define IPU6_ISYS_MIN_HEIGHT		2U
++#define IPU6_ISYS_MIN_WIDTH		1U
++#define IPU6_ISYS_MIN_HEIGHT		1U
+ #define IPU6_ISYS_MAX_WIDTH		4672U
+ #define IPU6_ISYS_MAX_HEIGHT		3416U
+ 
+-- 
+2.43.0
+

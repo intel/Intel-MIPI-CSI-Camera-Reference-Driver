@@ -1,0 +1,27 @@
+From 0746dc3215a0ba02d3a26b119cda78557f35f5d1 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Fri, 23 Jan 2026 16:55:59 -0700
+Subject: [PATCH 54/55] ipu6-isys : allow virtual-channels on 16 csi2 input
+ video capture
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.h b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.h
+index ea609dd..3b4328b 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.h
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.h
+@@ -21,7 +21,7 @@ struct ipu6_isys_stream;
+ #define INVALID_VC_ID		-1
+ #define NR_OF_CSI2_SINK_PADS	1
+ #define CSI2_PAD_SINK		0
+-#define NR_OF_CSI2_SRC_PADS	8
++#define NR_OF_CSI2_SRC_PADS	16
+ #define CSI2_PAD_SRC		1
+ #define NR_OF_CSI2_PADS		(NR_OF_CSI2_SINK_PADS + NR_OF_CSI2_SRC_PADS)
+ 
+-- 
+2.43.0
+
