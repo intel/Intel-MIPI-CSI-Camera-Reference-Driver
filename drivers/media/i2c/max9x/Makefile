@@ -1,4 +1,4 @@
-KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed 's/[^0-9.]*\([0-9]\.[0-9]*\)\..*/\1.0/')
+KERNEL_VERSION := $(shell echo $(KERNELRELEASE) cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
 
 ccflags-y += -I$(src)/../../../../ipu7-drivers/drivers/media/pci/intel/ipu7
 ccflags-y += -I$(src)/../../../../$(KERNEL_VERSION)/include-overrides
