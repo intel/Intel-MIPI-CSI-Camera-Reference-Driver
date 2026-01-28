@@ -46,7 +46,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # mapping for DS5 mux entity to IPU6 CSI-2 entity matching.
-declare -A media_mux_capture_link=( [0]=0 [1]=16 [2]=32)
+declare -A media_mux_capture_link=( [0]=0 [1]=16 [2]=32 [3]=48 [4]=64 [5]=80)
 
 # all available DS5 muxes, each one represent physically connected camera.
 # muxes prefix a, b, c, d referes to max96724 aggregated link cameras
@@ -105,7 +105,7 @@ cap_prefix=$(${v4l2_util} --list-devices | grep ipu | grep PCI | sed 's/^\(ipu[6
 [[ -z "${cap_prefix}" ]] && exit 0
 
 media_ctl_cmd="${media_util} -d ${mdev}"
-out $media_ctl_cmd -r # <- this can be used to clean-up all bindings from media controller
+$media_ctl_cmd -r # <- this can be used to clean-up all bindings from media controller
 # cache media-ctl output
 dot=$($media_ctl_cmd --print-dot)
 
@@ -116,9 +116,9 @@ fmt_ir="${fmt:-[fmt:VYUY8_1X16/640x480 field:none]}"
 # IMU will have 32bit axis values.
 # 5.16.x.y = firmware version: 0x0510
 # state->fw_version < 0x510
-fmt_imu="${fmt:-[fmt:Y8_1X8/32x1 field:none]}"
+#fmt_imu="${fmt:-[fmt:Y8_1X8/32x1 field:none]}"
 # state->fw_version >= 0x510
-#fmt_imu="${fmt:-[fmt:Y8_1X8/38x1 field:none]}"
+fmt_imu="${fmt:-[fmt:Y8_1X8/38x1 field:none]}"
 out() {
   [[ $quiet -eq 0 ]] && echo -n "${@}    " >&2
   "${@}"
