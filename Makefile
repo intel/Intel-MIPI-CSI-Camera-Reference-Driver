@@ -10,14 +10,6 @@ MODSRC := $(shell pwd)
 
 subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
 
-# Define config macros for conditional compilation in ipu6-acpi.c
-# IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE
-subdir-ccflags-y += -DCONFIG_VIDEO_MAX9X_MODULE=1
-subdir-ccflags-y += -DCONFIG_VIDEO_ISX031_MODULE=1
-subdir-ccflags-y += -DCONFIG_VIDEO_AR0820_MODULE=1
-subdir-ccflags-y += -DCONFIG_VIDEO_AR0234_MODULE=1
-subdir-ccflags-y += -DCONFIG_IPU_BRIDGE_MODULE=1
-
 export EXTERNAL_BUILD = 1
 export CONFIG_IPU_BRIDGE=m
 export CONFIG_VIDEO_AR0820=m
@@ -25,6 +17,14 @@ export CONFIG_VIDEO_AR0234=m
 export CONFIG_VIDEO_ISX031=m
 export CONFIG_VIDEO_MAX9X=m
 
+# Define config macros for conditional compilation in ipu-acpi.c
+# IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE
+subdir-ccflags-$(CONFIG_VIDEO_MAX9X) += -DCONFIG_VIDEO_MAX9X
+subdir-ccflags-$(CONFIG_VIDEO_ISX031) += -DCONFIG_VIDEO_ISX031
+subdir-ccflags-$(CONFIG_VIDEO_AR0820) += -DCONFIG_VIDEO_AR0820
+subdir-ccflags-$(CONFIG_VIDEO_AR0234) += -DCONFIG_VIDEO_AR0234
+subdir-ccflags-$(CONFIG_IPU_BRIDGE) += -DCONFIG_IPU_BRIDGE
+subdir-ccflags-$(CONFIG_INTEL_IPU_ACPI) += -DCONFIG_INTEL_IPU_ACPI
 # Override LINUXINCLUDE to put our include path first
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 
@@ -35,9 +35,6 @@ obj-m += drivers/media/i2c/
 
 export CONFIG_INTEL_IPU_ACPI = m
 obj-y += drivers/media/platform/intel/
-
-subdir-ccflags-$(CONFIG_INTEL_IPU_ACPI) += \
-        -DCONFIG_INTEL_IPU_ACPI
 
 subdir-ccflags-y += $(subdir-ccflags-m)
 
