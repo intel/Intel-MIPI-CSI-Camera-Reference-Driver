@@ -56,26 +56,6 @@ mux_list=${mux_param:-'a-0 b-0 c-0 d-0 a-1 b-1 c-1 d-1 a-2 b-2 c-2 d-2 a-3 b-3 c
 
 # vc_id mapping for D4XX sensor entity to IPU6|IPU7 CSI-2 pad.
 # IPU7 CSI-2 pad  1, vc 0, depth a-?
-# IPU7 CSI-2 pad  2, vc 4, depth c-? or meta data a-?
-# IPU7 CSI-2 pad  3, vc 1, RGB a-?
-# IPU7 CSI-2 pad  4, vc 5, RGB c-? or meta data a-?
-# IPU7 CSI-2 pad  5, vc 6, IR a-?
-# IPU7 CSI-2 pad  6, vc 7, IMU a-?
-# Aggregated-links
-# IPU7 CSI-2 pad  7, vc 2,  depth b-?
-# IPU7 CSI-2 pad  8, vc 6,  depth d-? or meta data b-?
-# IPU7 CSI-2 pad  9, vc 3,  RGB b-?
-# IPU7 CSI-2 pad  10, vc 7,  RGB d-? or meta data b-?
-# IPU7 CSI-2 pad  11, vc 4, IR b-?
-# IPU7 CSI-2 pad  12, vc 5, IMU b-?
-# IPU7 CSI-2 pad  13, vc 2, IR c-?
-# IPU7 CSI-2 pad  14, vc 3, IMU c-?
-# IPU7 CSI-2 pad  15, vc 0, IR d-?
-# IPU7 CSI-2 pad  16, vc 1, IMU d-?
-#declare -A media_sensor_csi_route=( [1]=0 [2]=4 [3]=1 [4]=5 [5]=6 [6]=7 [7]=2 [8]=6 [9]=3 [10]=7 [11]=4 [12]=5 [13]=2 [14]=3 [15]=0 [16]=1 )
-
-# vc_id mapping for D4XX sensor entity to IPU6|IPU7 CSI-2 pad.
-# IPU7 CSI-2 pad  1, vc 0, depth a-?
 # IPU7 CSI-2 pad  2, vc 1, depth c-? or meta data a-?
 # IPU7 CSI-2 pad  3, vc 1, RGB a-?
 # IPU7 CSI-2 pad  4, vc 0, RGB c-? or meta data a-?
@@ -88,11 +68,11 @@ mux_list=${mux_param:-'a-0 b-0 c-0 d-0 a-1 b-1 c-1 d-1 a-2 b-2 c-2 d-2 a-3 b-3 c
 # IPU7 CSI-2 pad  10, vc 2,  RGB d-? or meta data b-?
 # IPU7 CSI-2 pad  11, vc 0, IR b-?
 # IPU7 CSI-2 pad  12, vc 1, IMU b-?
-# IPU7 CSI-2 pad  13, vc 2, IR c-?
-# IPU7 CSI-2 pad  14, vc 3, IMU c-?
+# IPU7 CSI-2 pad  13, vc 3, IR c-?
+# IPU7 CSI-2 pad  14, vc 2, IMU c-?
 # IPU7 CSI-2 pad  15, vc 1, IR d-?
 # IPU7 CSI-2 pad  16, vc 0, IMU d-?
-declare -A media_sensor_csi_route=( [1]=0 [2]=1 [3]=1 [4]=0 [5]=2 [6]=3 [7]=2 [8]=3 [9]=3 [10]=2 [11]=0 [12]=1 [13]=2 [14]=3 [15]=1 [16]=0 )
+declare -A media_sensor_csi_route=( [1]=0 [2]=1 [3]=1 [4]=0 [5]=2 [6]=3 [7]=2 [8]=3 [9]=3 [10]=2 [11]=0 [12]=1 [13]=3 [14]=2 [15]=1 [16]=0 )
 
 # Find media device.
 # For case with usb camera plugged in during the boot,
@@ -202,7 +182,7 @@ for camera in ${mux_list}; do
   isys_vc_imu=$((${media_sensor_csi_route[${isys_pad_imu}]}+0))
 
   # bind (enable) link DS5 mux pad 0 to CSI-2 pad 0
-  out $media_ctl_cmd -v -l "\"DS5 mux ${mux}\":0 -> \"Intel ${cap_prefix} CSI-2 ${csi2}\":0[1]" 1>/dev/null
+  out $media_ctl_cmd -v -l "\"DS5 mux ${camera}\":0 -> \"Intel ${cap_prefix} CSI-2 ${csi2}\":0[1]" 1>/dev/null
 
   # subdev entity '['pad-number '/' stream-number '->' pad-number '/' stream-number '[' route-flags ']' ']' ;
   # example:  /usr/bin/media-ctl -d /dev/media0 -R "'Intel ${cap_prefix} CSI2 2'[0/1->3/1,0/0->1/0]"
