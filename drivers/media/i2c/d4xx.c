@@ -3755,10 +3755,10 @@ error:
 
 #if IS_ENABLED(CONFIG_VIDEO_INTEL_IPU6) || IS_ENABLED(CONFIG_VIDEO_INTEL_IPU7)
 #ifdef CONFIG_VIDEO_D4XX_MAX96724
-static short sensor_vc[NR_OF_DS5_STREAMS * 4] = {0,1,2,3, 2,3,0,1, 1,0,2,3, 3,2,0,1};
+static short sensor_vc[NR_OF_DS5_STREAMS * 4] = {0,1,2,3, 2,3,0,1, 1,0,3,2, 3,2,1,0};
 module_param_array(sensor_vc, ushort, NULL, 0444);
 MODULE_PARM_DESC(sensor_vc, "VC set for sensors\n"
-		"\t\tsensor_vc=0,1,2,3,2,3,0,1,1,0,2,3,3,2,0,1");
+		"\t\tsensor_vc=0,1,2,3,2,3,0,1,1,0,3,2,3,2,1,0");
 #else
 static short sensor_vc[NR_OF_DS5_STREAMS * 2] = {0,1,2,3, 2,3,0,1};
 module_param_array(sensor_vc, ushort, NULL, 0444);
