@@ -6456,7 +6456,7 @@ static int ds5_chrdev_init(struct i2c_client *c, struct ds5 *state)
 	 * - IPU6 legacy when standalone <a|b|c|d|e|f> when aggregated <g|h|i|j|k|l|m>
 	 */
 	if (strnlen(spdata->suffix, sizeof(spdata->suffix)) > 1) {
-		snprintf(dev_name, sizeof(dev_name), "D4XX %s %s",
+		snprintf(dev_name, sizeof(dev_name), "%s-%s",
 			 DS5_DRIVER_NAME_DFU, spdata->suffix);
 	}else if (state->aggregated & 1) {
 		suffix += 6;
