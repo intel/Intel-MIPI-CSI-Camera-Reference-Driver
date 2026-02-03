@@ -1,4 +1,4 @@
-From 237ca9668cf428a411124dafe211d025b0232d58 Mon Sep 17 00:00:00 2001
+From 4270216dc2f7cd252df252ebb7b3755f7ec6c91b Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Mon, 19 Jan 2026 09:02:23 -0700
 Subject: [PATCH 51/55] Revert "ipu6-isys: lt6911uxc 2 pads linked to ipu 2

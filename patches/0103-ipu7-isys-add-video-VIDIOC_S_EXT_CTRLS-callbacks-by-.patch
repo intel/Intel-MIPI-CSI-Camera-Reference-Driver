@@ -1,4 +1,4 @@
-From 66ce61431c0a956ae4b36ee3ffb9ab75f8364e3d Mon Sep 17 00:00:00 2001
+From 8f24df12aaf30dbd4e07a9e1b9c43d415e95fe38 Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Sat, 17 Jan 2026 02:09:32 -0700
 Subject: [PATCH 103/104] ipu7-isys: add video VIDIOC_S_EXT_CTRLS callbacks by
@@ -60,7 +60,7 @@ index 0000000..91b2eca
 +					void *data),
 +		void *data);
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
-index 44aa17c..2b1ee36 100644
+index 5526074..4937534 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 @@ -38,6 +38,9 @@
@@ -73,7 +73,7 @@ index 44aa17c..2b1ee36 100644
  #include "ipu7-platform-regs.h"
  
  const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
-@@ -102,8 +105,8 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
+@@ -104,8 +107,8 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
  
  static int video_open(struct file *file)
  {
@@ -83,7 +83,7 @@ index 44aa17c..2b1ee36 100644
  	struct ipu7_isys *isys = av->isys;
  	struct ipu7_bus_device *adev = isys->adev;
  
-@@ -115,6 +118,11 @@ static int video_open(struct file *file)
+@@ -117,6 +120,11 @@ static int video_open(struct file *file)
  	}
  	mutex_unlock(&isys->reset_mutex);
  
@@ -95,7 +95,7 @@ index 44aa17c..2b1ee36 100644
  #endif
  	return v4l2_fh_open(file);
  }
-@@ -139,6 +147,7 @@ static int video_release(struct file *file)
+@@ -141,6 +149,7 @@ static int video_release(struct file *file)
  }
  
  #endif
@@ -103,7 +103,7 @@ index 44aa17c..2b1ee36 100644
  const struct ipu7_isys_pixelformat *ipu7_isys_get_isys_format(u32 pixelformat)
  {
  	unsigned int i;
-@@ -168,7 +177,7 @@ static int ipu7_isys_vidioc_enum_fmt(struct file *file, void *fh,
+@@ -170,7 +179,7 @@ static int ipu7_isys_vidioc_enum_fmt(struct file *file, void *fh,
  				     struct v4l2_fmtdesc *f)
  {
  	unsigned int i, num_found;
@@ -112,7 +112,7 @@ index 44aa17c..2b1ee36 100644
  	for (i = 0, num_found = 0; i < ARRAY_SIZE(ipu7_isys_pfmts); i++) {
  		if (f->type != V4L2_BUF_TYPE_VIDEO_CAPTURE)
  			continue;
-@@ -188,12 +197,62 @@ static int ipu7_isys_vidioc_enum_fmt(struct file *file, void *fh,
+@@ -190,12 +199,62 @@ static int ipu7_isys_vidioc_enum_fmt(struct file *file, void *fh,
  	}
  
  	return -EINVAL;
@@ -175,7 +175,7 @@ index 44aa17c..2b1ee36 100644
  
  	if (fsize->index > 0)
  		return -EINVAL;
-@@ -214,8 +273,187 @@ static int ipu7_isys_vidioc_enum_framesizes(struct file *file, void *fh,
+@@ -216,8 +275,187 @@ static int ipu7_isys_vidioc_enum_framesizes(struct file *file, void *fh,
  	}
  
  	return -EINVAL;
@@ -363,7 +363,7 @@ index 44aa17c..2b1ee36 100644
  static int ipu7_isys_vidioc_g_fmt_vid_cap(struct file *file, void *fh,
  					  struct v4l2_format *f)
  {
-@@ -282,6 +520,30 @@ static int ipu7_isys_vidioc_try_fmt_vid_cap(struct file *file, void *fh,
+@@ -284,6 +522,30 @@ static int ipu7_isys_vidioc_try_fmt_vid_cap(struct file *file, void *fh,
  
  	__ipu_isys_vidioc_try_fmt_vid_cap(av, f);
  
@@ -394,7 +394,7 @@ index 44aa17c..2b1ee36 100644
  	return 0;
  }
  
-@@ -290,9 +552,51 @@ static int ipu7_isys_vidioc_s_fmt_vid_cap(struct file *file, void *fh,
+@@ -292,9 +554,51 @@ static int ipu7_isys_vidioc_s_fmt_vid_cap(struct file *file, void *fh,
  {
  	struct ipu7_isys_video *av = video_drvdata(file);
  
@@ -447,7 +447,7 @@ index 44aa17c..2b1ee36 100644
  	return 0;
  }
  
-@@ -374,7 +678,9 @@ static int link_validate(struct media_link *link)
+@@ -376,7 +680,9 @@ static int link_validate(struct media_link *link)
  	}
  
  	v4l2_subdev_unlock_state(s_state);
@@ -458,7 +458,7 @@ index 44aa17c..2b1ee36 100644
  	return 0;
  unlock:
  	v4l2_subdev_unlock_state(s_state);
-@@ -957,6 +1263,266 @@ out_media_entity_stop_streaming_firmware:
+@@ -959,6 +1265,266 @@ out_media_entity_stop_streaming_firmware:
  	return ret;
  }
  
@@ -725,7 +725,7 @@ index 44aa17c..2b1ee36 100644
  static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
  	.vidioc_querycap = ipu7_isys_vidioc_querycap,
  	.vidioc_enum_fmt_vid_cap = ipu7_isys_vidioc_enum_fmt,
-@@ -973,6 +1539,11 @@ static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
+@@ -975,6 +1541,11 @@ static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
  	.vidioc_streamon = vb2_ioctl_streamon,
  	.vidioc_streamoff = vb2_ioctl_streamoff,
  	.vidioc_expbuf = vb2_ioctl_expbuf,
@@ -737,7 +737,7 @@ index 44aa17c..2b1ee36 100644
  };
  
  static const struct media_entity_operations entity_ops = {
-@@ -1217,8 +1788,28 @@ int ipu7_isys_video_init(struct ipu7_isys_video *av)
+@@ -1219,8 +1790,28 @@ int ipu7_isys_video_init(struct ipu7_isys_video *av)
  	if (ret)
  		goto out_media_entity_cleanup;
  
@@ -766,7 +766,7 @@ index 44aa17c..2b1ee36 100644
  out_media_entity_cleanup:
  	vb2_video_unregister_device(&av->vdev);
  	media_entity_cleanup(&av->vdev.entity);
-@@ -1234,6 +1825,9 @@ out_mutex_destroy:
+@@ -1236,6 +1827,9 @@ out_mutex_destroy:
  
  void ipu7_isys_video_cleanup(struct ipu7_isys_video *av)
  {

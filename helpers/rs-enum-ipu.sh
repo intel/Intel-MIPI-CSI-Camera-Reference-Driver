@@ -149,7 +149,7 @@ for camera in $mux_list; do
       ln -s $vid $dev_ln
       # enable ipu7 link enumeration feature
       ${v4l2_util} -d $dev_ln -c enumerate_graph_link=1
-      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'depth' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=640,height=480,pixelformat='UYVY'
+      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'depth' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=640,height=480,pixelformat='Z16 '
       [[ -e $dev_ln && ${camera_names["${sens}"]} == 'color' ]] && ${v4l2_util} -d $dev_ln  --set-fmt-video=width=640,height=480,pixelformat='YUYV'
       [[ -e $dev_ln && ${camera_names["${sens}"]} == 'ir' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=640,height=480,pixelformat='Y8I '
       # For fimware version starting from: 5.16,

@@ -1,16 +1,16 @@
-From 29f7172eb2d33fe095bb39c827fcdce9cf7ede7f Mon Sep 17 00:00:00 2001
+From fd99cf0044547cb8d0e2219a56f48aeb1749c4c8 Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Fri, 23 Jan 2026 16:24:42 -0700
 Subject: [PATCH 53/55] ipu6-isys : add d4xx pixel format support
 
 Signed-off-by: florent pirou <florent.pirou@intel.com>
 ---
- ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h | 1 +
- .../drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c        | 3 +++
- .../drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c      | 2 ++
- .../drivers/media/pci/intel/ipu6/ipu6-isys-video.c       | 9 +++++++++
- ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h    | 4 ++--
- 5 files changed, 17 insertions(+), 2 deletions(-)
+ .../drivers/media/pci/intel/ipu6/ipu6-fw-isys.h       |  1 +
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c     |  4 ++++
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c   |  6 ++++++
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-video.c    | 11 +++++++++++
+ ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h |  4 ++--
+ 5 files changed, 24 insertions(+), 2 deletions(-)
 
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
 index 545180c..0ec08ee 100644
@@ -25,14 +25,15 @@ index 545180c..0ec08ee 100644
  };
  
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
-index 5f2f836..47ac8ea 100644
+index 5f2f836..27a5368 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
 +++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
-@@ -26,10 +26,12 @@
+@@ -26,10 +26,13 @@
  #include "ipu6-platform-isys-csi2-reg.h"
  
  static const u32 csi2_supported_codes[] = {
 +	MEDIA_BUS_FMT_Y8_1X8,
++	MEDIA_BUS_FMT_Y10_1X10,
  	MEDIA_BUS_FMT_RGB565_1X16,
  	MEDIA_BUS_FMT_RGB888_1X24,
  	MEDIA_BUS_FMT_UYVY8_1X16,
@@ -41,7 +42,7 @@ index 5f2f836..47ac8ea 100644
  	MEDIA_BUS_FMT_SBGGR10_1X10,
  	MEDIA_BUS_FMT_SGBRG10_1X10,
  	MEDIA_BUS_FMT_SGRBG10_1X10,
-@@ -47,6 +49,7 @@ static const u32 csi2_supported_codes[] = {
+@@ -47,6 +50,7 @@ static const u32 csi2_supported_codes[] = {
  	MEDIA_BUS_FMT_META_12,
  	MEDIA_BUS_FMT_META_16,
  	MEDIA_BUS_FMT_META_24,
@@ -50,51 +51,72 @@ index 5f2f836..47ac8ea 100644
  };
  
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c
-index 0a06de5..3aa27a2 100644
+index 0a06de5..76c7e43 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c
 +++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c
-@@ -25,6 +25,7 @@ unsigned int ipu6_isys_mbus_code_to_bpp(u32 code)
- 	case MEDIA_BUS_FMT_RGB565_1X16:
+@@ -26,6 +26,8 @@ unsigned int ipu6_isys_mbus_code_to_bpp(u32 code)
  	case MEDIA_BUS_FMT_UYVY8_1X16:
  	case MEDIA_BUS_FMT_YUYV8_1X16:
-+	case MEDIA_BUS_FMT_VYUY8_1X16:
  	case MEDIA_BUS_FMT_META_16:
++	case MEDIA_BUS_FMT_Y10_1X10:
++	case MEDIA_BUS_FMT_VYUY8_1X16:
  		return 16;
  	case MEDIA_BUS_FMT_SBGGR12_1X12:
-@@ -39,6 +40,7 @@ unsigned int ipu6_isys_mbus_code_to_bpp(u32 code)
- 	case MEDIA_BUS_FMT_SRGGB10_1X10:
- 	case MEDIA_BUS_FMT_META_10:
- 		return 10;
+ 	case MEDIA_BUS_FMT_SGBRG12_1X12:
+@@ -44,6 +46,7 @@ unsigned int ipu6_isys_mbus_code_to_bpp(u32 code)
+ 	case MEDIA_BUS_FMT_SGRBG8_1X8:
+ 	case MEDIA_BUS_FMT_SRGGB8_1X8:
+ 	case MEDIA_BUS_FMT_META_8:
 +	case MEDIA_BUS_FMT_Y8_1X8:
- 	case MEDIA_BUS_FMT_SBGGR8_1X8:
+ 		return 8;
+ 	default:
+ 		WARN_ON(1);
+@@ -60,6 +63,8 @@ unsigned int ipu6_isys_mbus_code_to_mipi(u32 code)
+ 		return MIPI_CSI2_DT_RGB888;
+ 	case MEDIA_BUS_FMT_UYVY8_1X16:
+ 	case MEDIA_BUS_FMT_YUYV8_1X16:
++	case MEDIA_BUS_FMT_Y10_1X10:
++	case MEDIA_BUS_FMT_VYUY8_1X16:
+ 		return MIPI_CSI2_DT_YUV422_8B;
+ 	case MEDIA_BUS_FMT_SBGGR16_1X16:
+ 	case MEDIA_BUS_FMT_SGBRG16_1X16:
+@@ -80,6 +85,7 @@ unsigned int ipu6_isys_mbus_code_to_mipi(u32 code)
  	case MEDIA_BUS_FMT_SGBRG8_1X8:
  	case MEDIA_BUS_FMT_SGRBG8_1X8:
+ 	case MEDIA_BUS_FMT_SRGGB8_1X8:
++	case MEDIA_BUS_FMT_Y8_1X8:
+ 		return MIPI_CSI2_DT_RAW8;
+ 	default:
+ 		/* return unavailable MIPI data type - 0x3f */
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
-index 927d92e..b8dd4e0 100644
+index 927d92e..46c0222 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
 +++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
-@@ -82,12 +82,20 @@ const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
- 	  IPU6_FW_ISYS_FRAME_FORMAT_RAW10 },
- 	{ V4L2_PIX_FMT_UYVY, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
- 	  IPU6_FW_ISYS_FRAME_FORMAT_UYVY},
-+	{ V4L2_PIX_FMT_Z16, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
-+	  IPU6_FW_ISYS_FRAME_FORMAT_UYVY},
- 	{ V4L2_PIX_FMT_YUYV, 16, 16, MEDIA_BUS_FMT_YUYV8_1X16,
- 	  IPU6_FW_ISYS_FRAME_FORMAT_YUYV},
-+	{ V4L2_PIX_FMT_Y8I, 16, 16, MEDIA_BUS_FMT_VYUY8_1X16,
-+	  IPU6_FW_ISYS_FRAME_FORMAT_YUYV},
- 	{ V4L2_PIX_FMT_RGB565, 16, 16, MEDIA_BUS_FMT_RGB565_1X16,
- 	  IPU6_FW_ISYS_FRAME_FORMAT_RGB565 },
- 	{ V4L2_PIX_FMT_BGR24, 24, 24, MEDIA_BUS_FMT_RGB888_1X24,
- 	  IPU6_FW_ISYS_FRAME_FORMAT_RGBA888 },
-+	{ V4L2_PIX_FMT_Y12I, 32, 24, MEDIA_BUS_FMT_RGB888_1X24,
-+	  IPU6_FW_ISYS_FRAME_FORMAT_RGBA888 },
+@@ -40,6 +40,14 @@
+ #include "ipu6-platform-regs.h"
+ 
+ const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
 +	{ V4L2_PIX_FMT_GREY, 8, 8, MEDIA_BUS_FMT_Y8_1X8,
 +	  IPU6_FW_ISYS_FRAME_FORMAT_RAW8 },
++	{ V4L2_PIX_FMT_Y10, 16, 10, MEDIA_BUS_FMT_Y10_1X10,
++	  IPU6_FW_ISYS_FRAME_FORMAT_RAW16 },
++	{ V4L2_PIX_FMT_Y8I, 16, 16, MEDIA_BUS_FMT_VYUY8_1X16,
++	  IPU6_FW_ISYS_FRAME_FORMAT_YUYV},
++	{ V4L2_PIX_FMT_Z16, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
++	  IPU6_FW_ISYS_FRAME_FORMAT_UYVY},
+ 	{ V4L2_PIX_FMT_SBGGR12, 16, 12, MEDIA_BUS_FMT_SBGGR12_1X12,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RAW16 },
+ 	{ V4L2_PIX_FMT_SGBRG12, 16, 12, MEDIA_BUS_FMT_SGBRG12_1X12,
+@@ -86,6 +94,8 @@ const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_YUYV},
+ 	{ V4L2_PIX_FMT_RGB565, 16, 16, MEDIA_BUS_FMT_RGB565_1X16,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RGB565 },
++	{ V4L2_PIX_FMT_Y12I, 32, 24, MEDIA_BUS_FMT_RGB888_1X24,
++	  IPU6_FW_ISYS_FRAME_FORMAT_RGBA888 },
+ 	{ V4L2_PIX_FMT_BGR24, 24, 24, MEDIA_BUS_FMT_RGB888_1X24,
+ 	  IPU6_FW_ISYS_FRAME_FORMAT_RGBA888 },
  	{ V4L2_META_FMT_GENERIC_8, 8, 8, MEDIA_BUS_FMT_META_8,
- 	  IPU6_FW_ISYS_FRAME_FORMAT_RAW8, true },
- 	{ V4L2_META_FMT_GENERIC_CSI2_10, 10, 10, MEDIA_BUS_FMT_META_10,
-@@ -96,6 +104,7 @@ const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
+@@ -96,6 +106,7 @@ const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
  	  IPU6_FW_ISYS_FRAME_FORMAT_RAW12, true },
  	{ V4L2_META_FMT_GENERIC_CSI2_16, 16, 16, MEDIA_BUS_FMT_META_16,
  	  IPU6_FW_ISYS_FRAME_FORMAT_RAW16, true },

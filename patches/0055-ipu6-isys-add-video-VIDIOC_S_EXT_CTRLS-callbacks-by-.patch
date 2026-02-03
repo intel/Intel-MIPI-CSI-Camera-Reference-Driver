@@ -1,4 +1,4 @@
-From 4d917c651ed0c8efe561d554cf856c69c5e645e4 Mon Sep 17 00:00:00 2001
+From ea49b4be01c668f082702a750befe5376def91dd Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Fri, 23 Jan 2026 18:42:59 -0700
 Subject: [PATCH 55/55] ipu6-isys: add video VIDIOC_S_EXT_CTRLS callbacks by
@@ -60,7 +60,7 @@ index 0000000..57338f7
 +					void *data),
 +		void *data);
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
-index b8dd4e0..39370e7 100644
+index 46c0222..ba769e7 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
 +++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
 @@ -37,6 +37,9 @@
@@ -73,7 +73,7 @@ index b8dd4e0..39370e7 100644
  #include "ipu6-platform-regs.h"
  
  const struct ipu6_isys_pixelformat ipu6_isys_pfmts[] = {
-@@ -120,7 +123,11 @@ static int video_open(struct file *file)
+@@ -122,7 +125,11 @@ static int video_open(struct file *file)
  		return -EIO;
  	}
  	mutex_unlock(&isys->mutex);
@@ -86,7 +86,7 @@ index b8dd4e0..39370e7 100644
  	return v4l2_fh_open(file);
  }
  
-@@ -186,7 +193,7 @@ static int ipu6_isys_vidioc_enum_fmt(struct file *file, void *fh,
+@@ -188,7 +195,7 @@ static int ipu6_isys_vidioc_enum_fmt(struct file *file, void *fh,
  				     struct v4l2_fmtdesc *f)
  {
  	unsigned int i, num_found;
@@ -95,7 +95,7 @@ index b8dd4e0..39370e7 100644
  	for (i = 0, num_found = 0; i < ARRAY_SIZE(ipu6_isys_pfmts); i++) {
  		if ((ipu6_isys_pfmts[i].is_meta &&
  		     f->type != V4L2_BUF_TYPE_META_CAPTURE) ||
-@@ -209,12 +216,65 @@ static int ipu6_isys_vidioc_enum_fmt(struct file *file, void *fh,
+@@ -211,12 +218,65 @@ static int ipu6_isys_vidioc_enum_fmt(struct file *file, void *fh,
  	}
  
  	return -EINVAL;
@@ -161,7 +161,7 @@ index b8dd4e0..39370e7 100644
  
  	if (fsize->index > 0)
  		return -EINVAL;
-@@ -235,8 +295,187 @@ static int ipu6_isys_vidioc_enum_framesizes(struct file *file, void *fh,
+@@ -237,8 +297,187 @@ static int ipu6_isys_vidioc_enum_framesizes(struct file *file, void *fh,
  	}
  
  	return -EINVAL;
@@ -349,7 +349,7 @@ index b8dd4e0..39370e7 100644
  static int ipu6_isys_vidioc_g_fmt_vid_cap(struct file *file, void *fh,
  				      struct v4l2_format *f)
  {
-@@ -313,6 +552,30 @@ static int ipu6_isys_vidioc_try_fmt_vid_cap(struct file *file, void *fh,
+@@ -315,6 +554,30 @@ static int ipu6_isys_vidioc_try_fmt_vid_cap(struct file *file, void *fh,
  
  	__ipu6_isys_vidioc_try_fmt_vid_cap(av, f);
  
@@ -380,7 +380,7 @@ index b8dd4e0..39370e7 100644
  	return 0;
  }
  
-@@ -342,7 +605,50 @@ static int ipu6_isys_vidioc_s_fmt_vid_cap(struct file *file, void *fh,
+@@ -344,7 +607,50 @@ static int ipu6_isys_vidioc_s_fmt_vid_cap(struct file *file, void *fh,
  {
  	struct ipu6_isys_video *av = video_drvdata(file);
  
@@ -431,7 +431,7 @@ index b8dd4e0..39370e7 100644
  	av->pix_fmt = f->fmt.pix;
  
  	return 0;
-@@ -1150,6 +1456,266 @@ out_media_entity_stop_streaming_firmware:
+@@ -1152,6 +1458,266 @@ out_media_entity_stop_streaming_firmware:
  	return ret;
  }
  
@@ -698,7 +698,7 @@ index b8dd4e0..39370e7 100644
  static const struct v4l2_ioctl_ops ipu6_v4l2_ioctl_ops = {
  	.vidioc_querycap = ipu6_isys_vidioc_querycap,
  	.vidioc_enum_fmt_vid_cap = ipu6_isys_vidioc_enum_fmt,
-@@ -1170,6 +1736,11 @@ static const struct v4l2_ioctl_ops ipu6_v4l2_ioctl_ops = {
+@@ -1172,6 +1738,11 @@ static const struct v4l2_ioctl_ops ipu6_v4l2_ioctl_ops = {
  	.vidioc_streamon = vb2_ioctl_streamon,
  	.vidioc_streamoff = vb2_ioctl_streamoff,
  	.vidioc_expbuf = vb2_ioctl_expbuf,
@@ -710,7 +710,7 @@ index b8dd4e0..39370e7 100644
  };
  
  static const struct media_entity_operations entity_ops = {
-@@ -1415,9 +1986,29 @@ int ipu6_isys_video_init(struct ipu6_isys_video *av)
+@@ -1417,9 +1988,29 @@ int ipu6_isys_video_init(struct ipu6_isys_video *av)
  	if (ret)
  		goto out_media_entity_cleanup;
  
@@ -741,7 +741,7 @@ index b8dd4e0..39370e7 100644
  	vb2_video_unregister_device(&av->vdev);
  	media_entity_cleanup(&av->vdev.entity);
  
-@@ -1432,6 +2023,9 @@ out_free_watermark:
+@@ -1434,6 +2025,9 @@ out_free_watermark:
  
  void ipu6_isys_video_cleanup(struct ipu6_isys_video *av)
  {

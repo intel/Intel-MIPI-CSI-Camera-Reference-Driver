@@ -1,4 +1,4 @@
-From 2e74d7d47b713a0b8872dccd69c6c359883a5d89 Mon Sep 17 00:00:00 2001
+From 87fccaa5b1e263c8ef38a47473ea03384109321f Mon Sep 17 00:00:00 2001
 From: Peter Zijlstra <peterz@infradead.org>
 Date: Mon, 19 Jan 2026 11:41:13 -0700
 Subject: [PATCH 52/55] module: Convert symbol namespace to string literal

@@ -1,4 +1,4 @@
-From 0746dc3215a0ba02d3a26b119cda78557f35f5d1 Mon Sep 17 00:00:00 2001
+From 96c523e0056fe51eff9ebf92217e6f1cbcc512a6 Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Fri, 23 Jan 2026 16:55:59 -0700
 Subject: [PATCH 54/55] ipu6-isys : allow virtual-channels on 16 csi2 input
