@@ -3631,7 +3631,7 @@ static int ds5_board_setup(struct ds5 *state)
 
 	/* populate g_ctx from pdata */
 #if defined(CONFIG_VIDEO_D4XX_MAX96724)
-	state->g_ctx.dst_csi_port = (suffix == 'a') ? GMSL_CSI_PORT_C : GMSL_CSI_PORT_A;
+	state->g_ctx.dst_csi_port = (suffix == 'a') ? GMSL_CSI_PORT_C : GMSL_CSI_PORT_B;
 	state->g_ctx.csi_mode = GMSL_CSI_2X4_MODE; //GMSL_CSI_4X2_MODE;
 #elif defined(CONFIG_VIDEO_D4XX_MAX96712)
 	state->g_ctx.dst_csi_port = GMSL_CSI_PORT_A;
