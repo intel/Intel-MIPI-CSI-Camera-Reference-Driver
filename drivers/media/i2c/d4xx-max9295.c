@@ -349,11 +349,13 @@ int max9295_setup_streaming(struct device *dev)
 					 * overrides TX_SRC_SEL. would be useful in
 					 * using same mappings in all ser devs.
 					 */
+#if !defined(CONFIG_VIDEO_D4XX_MAX96724) || !defined(CONFIG_VIDEO_D4XX_MAX96712)
 					if (g_ctx->serdes_csi_link ==
 						GMSL_SERDES_CSI_LINK_B) {
 						map_pipe_dtype[j].addr += 2;
 						map_pipe_dtype[j].st_id += 1;
 					}
+#endif
 
 					g_stream->st_id_sel = map_pipe_dtype[j].st_id;
 					st_en = (map_pipe_dtype[j].addr ==
@@ -469,8 +471,16 @@ int max9295_setup_control(struct device *dev)
 		prim_priv__ = NULL;
 	}
 #endif
+#if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
+	if (g_ctx->serdes_csi_link == GMSL_SERDES_CSI_LINK_A ||
+	    g_ctx->serdes_csi_link == GMSL_SERDES_CSI_LINK_B ||
+	    g_ctx->serdes_csi_link == GMSL_SERDES_CSI_LINK_C ||
+	    g_ctx->serdes_csi_link == GMSL_SERDES_CSI_LINK_D)
+		err = max9295_write_reg(dev, MAX9295_CTRL0_ADDR, 0x21);
+#else
 	if (g_ctx->serdes_csi_link == GMSL_SERDES_CSI_LINK_A)
 		err = max9295_write_reg(dev, MAX9295_CTRL0_ADDR, 0x21);
+#endif
 	else
 		err = max9295_write_reg(dev, MAX9295_CTRL0_ADDR, 0x22);
 
@@ -628,6 +638,9 @@ int max9295_sdev_pair(struct device *dev, struct gmsl_link_ctx *g_ctx)
 	priv->g_client.st_done = false;
 
 	priv->g_client.g_ctx = g_ctx;
+	dev_dbg(dev, "paired 0x%x->0x%x SerDes context\n",
+		g_ctx->sdev_def,
+		g_ctx->sdev_reg);
 
 error:
 	mutex_unlock(&priv->lock);

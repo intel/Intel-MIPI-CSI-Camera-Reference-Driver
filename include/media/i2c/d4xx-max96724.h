@@ -31,9 +31,11 @@
 struct max96724_pdata {
 	bool splitter_enabled;
 	__u32 max_src;
+	__u32 src_link;
 	__u32 csi_mode;
 	__u32 d4xx_hacks;
 	__u32 csi_phy;
+	__u32 csi_out;
 };
 
 int max96724_get_available_pipe_id(struct device *dev, int vc_id);
@@ -130,6 +132,7 @@ void max96724_power_off(struct device *dev);
 int max96724_init_settings(struct device *dev);
 int max96724_set_mfp(struct device *dev, int pin, int val);
 int max96724_check_status(struct device *dev);
+int max96724_switch_link_channel(struct device *dev);
 /** @} */
 
 #endif  /* __MAX96724_H__ */
