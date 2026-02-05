@@ -726,14 +726,28 @@ int max96724_check_status(struct device *dev)
 			(vid_status & 0x40) ? "VID_LOCK " : "",
 			(vid_status & 0x20) ? "VID_PKT_DET " : "",
 			(vid_status & 0x10) ? "VID_SEQ_ERR " : "");
-		unsigned int pipe_de_status = 0;
+		unsigned int pipe_de_status = 0, pipe_hs_status = 0, pipe_vs_status = 0;
 		max96724_read_reg(dev, MAX96724_PIPE_DE_STATUS_ADDR, &pipe_de_status);
-		dev_dbg(dev, "%s: %s Video Pipeline status: 0x%02x (bit0-3: %s%s%s)\n",
+		dev_dbg(dev, "%s: %s Video Pipeline DE status: 0x%02x (bit0-3: %s%s%s%s)\n",
 			__func__, max96724_get_link_name(priv->src_link), pipe_de_status,
 			(pipe_de_status & 0x01) ? "DE_DET_0 " : "",
 			(pipe_de_status & 0x02) ? "DE_DET_1 " : "",
 			(pipe_de_status & 0x04) ? "DE_DET_2 " : "",
 			(pipe_de_status & 0x08) ? "DE_DET_3 " : "");
+		max96724_read_reg(dev, MAX96724_PIPE_HS_STATUS_ADDR, &pipe_hs_status);
+		dev_dbg(dev, "%s: %s Video Pipeline HS status: 0x%02x (bit0-3: %s%s%s%s)\n",
+			__func__, max96724_get_link_name(priv->src_link), pipe_hs_status,
+			(pipe_hs_status & 0x01) ? "HS_DET_0 " : "",
+			(pipe_hs_status & 0x02) ? "HS_DET_1 " : "",
+			(pipe_hs_status & 0x04) ? "HS_DET_2 " : "",
+			(pipe_hs_status & 0x08) ? "HS_DET_3 " : "");
+		max96724_read_reg(dev, MAX96724_PIPE_VS_STATUS_ADDR, &pipe_vs_status);
+		dev_dbg(dev, "%s: %s Video Pipeline VS status: 0x%02x (bit0-3: %s%s%s%s)\n",
+			__func__, max96724_get_link_name(priv->src_link), pipe_vs_status,
+			(pipe_vs_status & 0x01) ? "VS_DET_0 " : "",
+			(pipe_vs_status & 0x02) ? "VS_DET_1 " : "",
+			(pipe_vs_status & 0x04) ? "VS_DET_2 " : "",
+			(pipe_vs_status & 0x08) ? "VS_DET_3 " : "");
 	}
 
 	mutex_unlock(&priv->lock);
@@ -1325,6 +1339,8 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 	u8 all_mapping_phy = 0x55;
 	u8 dis_lim_heart = 0x0A;
 
+	u8 link_id = max96724_link_to_port(priv->src_link);
+
 	u8 vc_id_2b_lsb = ((u8) vc_id) & 0x3;
 	u8 vc_id_2b_msb = (((u8) vc_id) >>  2) & 0x3;
 
@@ -1355,15 +1371,6 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 		{MAX96724_MIPI_PHY2, 0xF4},
 		{MAX96724_MIPI_PHY3, 0x44},
 		{MAX96724_MIPI_PHY5, 0x00},
-#ifdef CONFIG_VIDEO_D4XX_MAX96712
-		{MAX96724_VIDEO_PIPE_SEL_0_ADDR, 0x10},
-		{MAX96724_VIDEO_PIPE_SEL_1_ADDR, 0x32},
-		{MAX96724_VIDEO_PIPE_EN_ADDR, 0x0F},
-#else
-		{MAX96724_VIDEO_PIPE_SEL_0_ADDR, 0x50},
-		{MAX96724_VIDEO_PIPE_SEL_1_ADDR, 0xFA},
-		{MAX96724_VIDEO_PIPE_EN_ADDR, 0x1F}, //disable max9712 legacy-mode
-#endif
 	};
 
 	struct reg_pair map_pipe_control[] = {
@@ -1425,8 +1432,10 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 	map_pipe_control[14].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
 	map_pipe_control[15].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
 
-	dev_info(dev, "%s: pipe %u set on vc_id=%u [reg: src/dst:0x%x, dstext:0x%x] \n",
-		__func__, pipe_id, vc_id,
+	dev_info(dev, "%s: %s pipe %u set on vc_id=%u [reg: src/dst:0x%x, dstext:0x%x] \n",
+		__func__,
+		 max96724_get_link_name(priv->src_link),
+		 pipe_id, vc_id,
 		(vc_id_2b_lsb << 6),
 		vc_id_2b_msb);
 
@@ -1441,15 +1450,47 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 			err);
 	}
 
+	/* Video Pipe Input Source Selection
+	 * This tells MAX96724 which PHY (Link) feeds which Video Pipe.
+	 * Without this, video data cannot flow from GMSL links to CSI-2 output.
+	 *
+	 * REG 0x00F0: Video Pipe 0/1 input selection
+	 *   Bit[7:6] = <link_id>: Pipe 1 from GMSL A, B, C or D link
+	 *   Bit[5:4] = 01: Pipe 1 uses internal Pipe Y
+	 *   Bit[3:2] = <link_id>: Pipe 0 from GMSL A, B, C or D link
+	 *   Bit[1:0] = 00: Pipe 0 uses internal Pipe X
+	 *
+	 * REG 0x00F1: Video Pipe 2/3 input selection
+	 *   Bit[7:6] = <link_id>: Pipe 3 from GMSL A, B, C or D link
+	 *   Bit[5:4] = 11: Pipe 3 uses internal Pipe Z
+	 *   Bit[3:2] = <link_id>: Pipe 2 from GMSL A, B, C or D link
+	 *   Bit[1:0] = 10: Pipe 2 uses internal Pipe U
+	 *
+	 * REG 0x00F4: Enable/disable Video Pipes
+	 *   Bit[3:0] = <pipe_id>: Enable Pipe 3, 2, 1 or 0
+	 */
+	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_VIDEO_PIPE_EN_ADDR,
+			MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id),
+			MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id), 0U));
+
 	err |= max96724_set_registers(dev, map_pipe_select,
 				     ARRAY_SIZE(map_pipe_select));
+
+	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_VIDEO_PIPE_SEL(pipe_id),
+			MAX96724_VIDEO_PIPE_SEL_LINK_FIELD(pipe_id)
+			| MAX96724_VIDEO_PIPE_SEL_INPUT_FIELD(pipe_id),
+			MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_SEL_LINK_FIELD(pipe_id), link_id)
+			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_SEL_INPUT_FIELD(pipe_id), pipe_id));
+
+	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_VIDEO_PIPE_EN_ADDR,
+			MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id),
+			MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id), 1U));
 
 	// 0x02: ALT_MEM_MAP8, 0x10: ALT2_MEM_MAP8
 	err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_MIPI_TX_ALT_MEM(csi_id), 0x2);
 
 	err |= max96724_set_registers(dev, map_pipe_control,
 				     ARRAY_SIZE(map_pipe_control));
-
 
 	/* Configure per Pipe CSI and PHY type
 	*/
@@ -1523,6 +1564,20 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY");
 	}
 
+#ifndef CONFIG_VIDEO_D4XX_MAX96712
+	/* Write 0x1d00 register sequence
+	 * This register is written twice with different values - appears to be
+	 * some kind of command sequence or state machine control
+	 */
+	err = max96724_write_reg(dev, 0x1d00, 0xf4);
+	err |= max96724_write_reg(dev, 0x1d00, 0xf5);
+	if (err) {
+		dev_warn(dev, "%s: Failed to reset internal state machine : %d\n",
+			__func__,
+			err);
+	}
+#endif
+
 	// enable CSI out link after initialization complet
 	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
 		MAX96724_CSI_OUT_EN_FIELD,
@@ -1534,8 +1589,9 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 	}
 
 	if(!err)
-		dev_info(dev, "%s: Enabled CSI %u %s at 1500bps\n",
+		dev_info(dev, "%s: Enabled %s CSI %u %s at 1500bps\n",
 			 __func__,
+			 max96724_get_link_name(priv->src_link),
 			 csi_id,
 			 priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY");
 
@@ -1637,21 +1693,7 @@ int max96724_init_settings(struct device *dev)
 		goto init_settings_out;
 	}
 
-	msleep(300);  // Wait after pipe configuration
-
-#ifndef CONFIG_VIDEO_D4XX_MAX96712
-	/* Write 0x1d00 register sequence
-	 * This register is written twice with different values - appears to be
-	 * some kind of command sequence or state machine control
-	err = max96724_write_reg(dev, 0x1d00, 0xf4);
-	err |= max96724_write_reg(dev, 0x1d00, 0xf5);
-	if (err) {
-		dev_warn(dev, "%s: Failed to reset internal state machine : %d\n",
-			__func__,
-			err);
-	}
-	 */
-#endif
+	//msleep(300);  // Wait after pipe configuration
 
 	/* Configure MIPI D-PHY/C-PHY
 	 * These registers configure the MIPI physical layer for CSI-2 output
@@ -1693,14 +1735,28 @@ int max96724_init_settings(struct device *dev)
 			(vid_status & 0x40) ? "VID_LOCK " : "",
 			(vid_status & 0x20) ? "VID_PKT_DET " : "",
 			(vid_status & 0x10) ? "VID_SEQ_ERR " : "");
-		unsigned int pipe_de_status = 0;
+		unsigned int pipe_de_status = 0, pipe_hs_status = 0, pipe_vs_status = 0;
 		max96724_read_reg(dev, MAX96724_PIPE_DE_STATUS_ADDR, &pipe_de_status);
-		dev_dbg(dev, "%s: %s Video Pipeline status: 0x%02x (bit0-3: %s%s%s)\n",
+		dev_dbg(dev, "%s: %s Video Pipeline DE status: 0x%02x (bit0-3: %s%s%s%s)\n",
 			__func__, max96724_get_link_name(priv->src_link), pipe_de_status,
 			(pipe_de_status & 0x01) ? "DE_DET_0 " : "",
 			(pipe_de_status & 0x02) ? "DE_DET_1 " : "",
 			(pipe_de_status & 0x04) ? "DE_DET_2 " : "",
 			(pipe_de_status & 0x08) ? "DE_DET_3 " : "");
+		max96724_read_reg(dev, MAX96724_PIPE_HS_STATUS_ADDR, &pipe_hs_status);
+		dev_dbg(dev, "%s: %s Video Pipeline HS status: 0x%02x (bit0-3: %s%s%s%s)\n",
+			__func__, max96724_get_link_name(priv->src_link), pipe_hs_status,
+			(pipe_hs_status & 0x01) ? "HS_DET_0 " : "",
+			(pipe_hs_status & 0x02) ? "HS_DET_1 " : "",
+			(pipe_hs_status & 0x04) ? "HS_DET_2 " : "",
+			(pipe_hs_status & 0x08) ? "HS_DET_3 " : "");
+		max96724_read_reg(dev, MAX96724_PIPE_VS_STATUS_ADDR, &pipe_vs_status);
+		dev_dbg(dev, "%s: %s Video Pipeline VS status: 0x%02x (bit0-3: %s%s%s%s)\n",
+			__func__, max96724_get_link_name(priv->src_link), pipe_vs_status,
+			(pipe_vs_status & 0x01) ? "VS_DET_0 " : "",
+			(pipe_vs_status & 0x02) ? "VS_DET_1 " : "",
+			(pipe_vs_status & 0x04) ? "VS_DET_2 " : "",
+			(pipe_vs_status & 0x08) ? "VS_DET_3 " : "");
 	}
 
 init_settings_out:
@@ -1774,14 +1830,28 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 			(vid_status & 0x40) ? "VID_LOCK " : "",
 			(vid_status & 0x20) ? "VID_PKT_DET " : "",
 			(vid_status & 0x10) ? "VID_SEQ_ERR " : "");
-		unsigned int pipe_de_status = 0;
+		unsigned int pipe_de_status = 0, pipe_hs_status = 0, pipe_vs_status = 0;
 		max96724_read_reg(dev, MAX96724_PIPE_DE_STATUS_ADDR, &pipe_de_status);
-		dev_dbg(dev, "%s: %s Video Pipeline status: 0x%02x (bit0-3: %s%s%s)\n",
+		dev_dbg(dev, "%s: %s Video Pipeline DE status: 0x%02x (bit0-3: %s%s%s%s)\n",
 			__func__, max96724_get_link_name(priv->src_link), pipe_de_status,
 			(pipe_de_status & 0x01) ? "DE_DET_0 " : "",
 			(pipe_de_status & 0x02) ? "DE_DET_1 " : "",
 			(pipe_de_status & 0x04) ? "DE_DET_2 " : "",
 			(pipe_de_status & 0x08) ? "DE_DET_3 " : "");
+		max96724_read_reg(dev, MAX96724_PIPE_HS_STATUS_ADDR, &pipe_hs_status);
+		dev_dbg(dev, "%s: %s Video Pipeline HS status: 0x%02x (bit0-3: %s%s%s%s)\n",
+			__func__, max96724_get_link_name(priv->src_link), pipe_hs_status,
+			(pipe_hs_status & 0x01) ? "HS_DET_0 " : "",
+			(pipe_hs_status & 0x02) ? "HS_DET_1 " : "",
+			(pipe_hs_status & 0x04) ? "HS_DET_2 " : "",
+			(pipe_hs_status & 0x08) ? "HS_DET_3 " : "");
+		max96724_read_reg(dev, MAX96724_PIPE_VS_STATUS_ADDR, &pipe_vs_status);
+		dev_dbg(dev, "%s: %s Video Pipeline VS status: 0x%02x (bit0-3: %s%s%s%s)\n",
+			__func__, max96724_get_link_name(priv->src_link), pipe_vs_status,
+			(pipe_vs_status & 0x01) ? "VS_DET_0 " : "",
+			(pipe_vs_status & 0x02) ? "VS_DET_1 " : "",
+			(pipe_vs_status & 0x04) ? "VS_DET_2 " : "",
+			(pipe_vs_status & 0x08) ? "VS_DET_3 " : "");
 	}
 
 	dev_info(dev, "%s: Successfully enabled %s pipe %u (vc_id %u) CSI %u %s lanes %s map\n",

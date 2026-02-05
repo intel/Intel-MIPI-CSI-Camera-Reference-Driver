@@ -3670,7 +3670,7 @@ static int ds5_board_setup(struct ds5 *state)
 	state->g_ctx.dst_vc = 0;
 
 #if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
-	state->g_ctx.num_csi_lanes = 2;
+	state->g_ctx.num_csi_lanes = (state->g_ctx.csi_mode == GMSL_CSI_4X2_MODE) ? 2 : 4;
 #else
 	state->g_ctx.num_csi_lanes = 2;
 #endif
