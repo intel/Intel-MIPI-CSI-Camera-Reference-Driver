@@ -907,6 +907,120 @@ static int max96724_write_link(struct device *dev, u32 link)
 	dev_dbg(dev, "%s: write %s link (id=0x%x, idx=%u)\n",
 		__func__, max96724_get_link_name(link), port);
 
+	/* Configure 6Gbps GMSL2 mode BEFORE reset to match MAX9295 serializer
+	 * Reference script: enable_6g sets 0x0010=0x22, 0x0011=0x22
+	 * These are CTRL0 and CTRL1 registers for GMSL2 6Gbps PHY rate
+	 */
+	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_PHY_RATE_CTRL(0), 0x22);
+	err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_PHY_RATE_CTRL(2), 0x22);
+	if (err) {
+		dev_err(dev, "%s: Failed to enable %s 6Gbps link: %d\n",
+			__func__,
+			max96724_get_link_name(link),
+			err);
+		goto write_link_out;
+	}
+
+
+	/* Disable CSI output initially (matches script step 2)
+	 * This is done early in initialization, before any video configuration
+	 */
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
+		MAX96724_CSI_OUT_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 0U));
+	if (err) {
+		dev_err(dev, "%s: Failed to csi output link: %d\n",
+			__func__,
+			err);
+		goto write_link_out;
+	}
+
+	/* Enable GMSL2 input sources links state
+	*/
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_LINK_CTRL_ADDR,
+			   MAX96724_LINK_CTRL_EN_FIELD(0)
+			   | MAX96724_LINK_CTRL_GMSL_FIELD(0)
+			   | MAX96724_LINK_CTRL_EN_FIELD(1)
+			   | MAX96724_LINK_CTRL_GMSL_FIELD(1)
+			   | MAX96724_LINK_CTRL_EN_FIELD(2)
+			   | MAX96724_LINK_CTRL_GMSL_FIELD(2)
+			   | MAX96724_LINK_CTRL_EN_FIELD(3)
+			   | MAX96724_LINK_CTRL_GMSL_FIELD(3),
+			   MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(0), 1U)
+			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(0), 1U)
+			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(1), 1U)
+			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(1), 1U)
+			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(2), 1U)
+			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(2), 1U)
+			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(3), 1U)
+			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(3), 1U));
+	if (err) {
+		dev_err(dev, "%s: Failed to enable  %s link control: %d\n",
+			__func__,
+			max96724_get_link_name(link),
+			err);
+		goto write_link_out;
+	}
+
+#ifndef CONFIG_VIDEO_D4XX_MAX96712
+	/* Enable internal regulators (0x17 and 0x19) - before reset
+	*/
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_REG17_ADDR,
+		MAX96724_REG17_CTRL_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_REG17_CTRL_EN_FIELD, 1U));
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_REG19_ADDR,
+		MAX96724_REG19_CTRL_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_REG19_CTRL_EN_FIELD, 1U));
+
+	/* Enable PoC (Power over Coax) for cameras
+	*/
+	dev_dbg(dev, "Enabling PoC (Power over Coax)...\n");
+	ret = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL1, 0x80);
+	ret = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL2, 0x80);
+	ret = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL3, 0x01);
+
+	msleep(100); /* Wait for power to stabilize */
+#endif
+
+	/* Reset GMSL2 links state
+	*/
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_CTRL_FIELD(0)
+		| MAX96724_RESET_CTRL_FIELD(1)
+		| MAX96724_RESET_CTRL_FIELD(2)
+		| MAX96724_RESET_CTRL_FIELD(3),
+		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(0), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(1), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(2), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(3), 1U));
+	if (err) {
+		dev_err(dev, "%s: Failed to reset %s link: %d\n",
+			__func__,
+			max96724_get_link_name(link),
+			err);
+		goto write_link_out;
+	}
+
+	/* delay to settle link */
+	msleep(300);
+
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_CTRL_FIELD(0)
+		| MAX96724_RESET_CTRL_FIELD(1)
+		| MAX96724_RESET_CTRL_FIELD(2)
+		| MAX96724_RESET_CTRL_FIELD(3),
+		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(0), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(1), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(2), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(3), 0U));
+	if (err) {
+		dev_err(dev, "%s: Failed to reset %s link: %d\n",
+			__func__,
+			max96724_get_link_name(link),
+			err);
+		goto write_link_out;
+	}
+
 	/* Check GMSL link status - hardware auto-negotiation should have completed */
 	{
 		int i;
@@ -1783,26 +1897,7 @@ int max96724_init_settings(struct device *dev)
 
 	mutex_lock(&priv->lock);
 
-#ifdef CONFIG_VIDEO_D4XX_MAX96712
-	/* Enable internal regulators (0x17 and 0x19) - before reset
-	*/
-	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG17_ADDR, 0x12);
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_REG19_ADDR,
-		MAX96724_REG19_CTRL_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_REG19_CTRL_EN_FIELD, 1U));
-
-	/* Enable PoC (Power over Coax) for cameras
-	*/
-	dev_dbg(dev, "Enabling PoC (Power over Coax)...\n");
-	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL1, 0x80);
-	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL2, 0x80);
-	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL3, 0x01);
-
-	msleep(100); // Wait for power to stabilize
-#endif
-
 	/* Reset GMSL2 links state
-	*/
 	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
 		MAX96724_RESET_LINK_FIELD(0)
 		| MAX96724_RESET_LINK_FIELD(1)
@@ -1837,6 +1932,7 @@ int max96724_init_settings(struct device *dev)
 		goto init_settings_out;
 	}
 	msleep(100);	// delay to settle link
+	*/
 
 	for (i = 0; i < MAX96724_MAX_PIPES; i++) {
 		dev_dbg(dev, "%s: enable %s link to Video pipe %d",
