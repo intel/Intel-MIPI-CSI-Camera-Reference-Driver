@@ -1355,9 +1355,15 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 		{MAX96724_MIPI_PHY2, 0xF4},
 		{MAX96724_MIPI_PHY3, 0x44},
 		{MAX96724_MIPI_PHY5, 0x00},
+#ifdef CONFIG_VIDEO_D4XX_MAX96712
 		{MAX96724_VIDEO_PIPE_SEL_0_ADDR, 0x10},
 		{MAX96724_VIDEO_PIPE_SEL_1_ADDR, 0x32},
 		{MAX96724_VIDEO_PIPE_EN_ADDR, 0x0F},
+#else
+		{MAX96724_VIDEO_PIPE_SEL_0_ADDR, 0x50},
+		{MAX96724_VIDEO_PIPE_SEL_1_ADDR, 0xFA},
+		{MAX96724_VIDEO_PIPE_EN_ADDR, 0x1F}, //disable max9712 legacy-mode
+#endif
 	};
 
 	struct reg_pair map_pipe_control[] = {
