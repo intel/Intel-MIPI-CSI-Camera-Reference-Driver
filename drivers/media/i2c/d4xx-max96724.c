@@ -1839,7 +1839,8 @@ int max96724_init_settings(struct device *dev)
 	msleep(100);	// delay to settle link
 
 	for (i = 0; i < MAX96724_MAX_PIPES; i++) {
-		dev_dbg(dev, "%s enable GMSL link through pipe X source to Video pipe %d",
+		dev_dbg(dev, "%s: enable %s link to Video pipe %d",
+			__func__,
 			max96724_get_link_name(priv->src_link),
 			i);
 
@@ -1847,7 +1848,7 @@ int max96724_init_settings(struct device *dev)
 							GMSL_CSI_DT_EMBED, i, priv->dst_link);
 	}
 	if (err) {
-		dev_err(dev, "%s: Failed to configure %s pipe X to Video pipes : %d\n",
+		dev_err(dev, "%s: Failed to configure %s link to Video pipes : %d\n",
 			__func__,
 			max96724_get_link_name(priv->src_link),
 			err);
