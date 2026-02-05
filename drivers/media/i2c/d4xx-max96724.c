@@ -30,6 +30,8 @@
 
 
 #define MAX96724_REG3_ADDR 0x0003  /* I2C Remote Control Channel Enable */
+#define MAX96724_REG5_ADDR 0x0005
+#define MAX96724_REG6_ADDR 0x0006
 #define MAX96724_REG10_ADDR 0x0010 /* PHY A/B RX/TX rate control */
 #define MAX96724_REG11_ADDR 0x0011 /* PHY C/D RX/TX rate control */
 #define MAX96724_PWR1_ADDR 0x0013  /* RESET_ALL */
@@ -248,6 +250,7 @@
 #define MAX96724_MIPI_PHY_LANE_MAP_FIELD(csi, lane) \
 	(GENMASK(1, 0) << (MAX96724_FLD_OFS(csi, 4, 2) + MAX96724_FLD_OFS(lane, 2, 2)))
 
+#define MAX96724_MIPI_PHY5 0x08A5
 #define MAX96724_MIPI_PHY13 0x08AD
 #define MAX96724_CPHY_PREAMBLE_ADDR MAX96724_MIPI_PHY13
 #define MAX96724_CPHY_PREAMBLE_FIELD GENMASK(5, 0)
@@ -305,10 +308,10 @@
 #define MAX96724_CPHY_PREAMBLE_DEFAULT 0x1f
 #define MAX96724_CPHY_PREP_DEFAULT 0x5d
 
-// write 0x06 for CPHY 1500Mbps/lane on CSI2 controller-1 & PHY1
-#define MAX96724_CPHY_CLK_1500BPS 0x25
-// write 0x15 for DPHY 1500Mbps/lane on CSI2 controller-1 & PHY1
-#define MAX96724_DPHY_CLK_1500BPS 0x35
+// write 0x20 for 1500Mbps/lane on CSI2 controller & CPHY
+#define MAX96724_CPHY_CLK_1500BPS 0x20
+// write 0x2f for 1500Mbps/lane on CSI2 controller & DPHY
+#define MAX96724_DPHY_CLK_1500BPS 0x2F
 
 #define MAX96724_RESET_ALL 0x80
 
@@ -827,120 +830,6 @@ static int max96724_write_link(struct device *dev, u32 link)
 	dev_dbg(dev, "%s: write %s link (id=0x%x, idx=%u)\n",
 		__func__, max96724_get_link_name(link), port);
 
-	/* Configure 6Gbps GMSL2 mode BEFORE reset to match MAX9295 serializer
-	 * Reference script: enable_6g sets 0x0010=0x22, 0x0011=0x22
-	 * These are CTRL0 and CTRL1 registers for GMSL2 6Gbps PHY rate
-	 */
-	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_PHY_RATE_CTRL(0), 0x22);
-	err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_PHY_RATE_CTRL(2), 0x22);
-	if (err) {
-		dev_err(dev, "%s: Failed to enable %s 6Gbps link: %d\n",
-			__func__,
-			max96724_get_link_name(link),
-			err);
-		goto write_link_out;
-	}
-
-
-	/* Disable CSI output initially (matches script step 2)
-	 * This is done early in initialization, before any video configuration
-	 */
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
-		MAX96724_CSI_OUT_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to csi output link: %d\n",
-			__func__,
-			err);
-		goto write_link_out;
-	}
-
-	/* Enable GMSL2 input sources links state
-	*/
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_LINK_CTRL_ADDR,
-			   MAX96724_LINK_CTRL_EN_FIELD(0)
-			   | MAX96724_LINK_CTRL_GMSL_FIELD(0)
-			   | MAX96724_LINK_CTRL_EN_FIELD(1)
-			   | MAX96724_LINK_CTRL_GMSL_FIELD(1)
-			   | MAX96724_LINK_CTRL_EN_FIELD(2)
-			   | MAX96724_LINK_CTRL_GMSL_FIELD(2)
-			   | MAX96724_LINK_CTRL_EN_FIELD(3)
-			   | MAX96724_LINK_CTRL_GMSL_FIELD(3),
-			   MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(0), 1U)
-			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(0), 1U)
-			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(1), 1U)
-			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(1), 1U)
-			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(2), 1U)
-			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(2), 1U)
-			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(3), 1U)
-			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(3), 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable  %s link control: %d\n",
-			__func__,
-			max96724_get_link_name(link),
-			err);
-		goto write_link_out;
-	}
-
-#ifndef CONFIG_VIDEO_D4XX_MAX96712_LEGACY_MODE
-	/* Enable internal regulators (0x17 and 0x19) - before reset
-	*/
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_REG17_ADDR,
-		MAX96724_REG17_CTRL_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_REG17_CTRL_EN_FIELD, 1U));
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_REG19_ADDR,
-		MAX96724_REG19_CTRL_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_REG19_CTRL_EN_FIELD, 1U));
-
-	/* Enable PoC (Power over Coax) for cameras
-	*/
-	dev_dbg(dev, "Enabling PoC (Power over Coax)...\n");
-	ret = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL1, 0x80);
-	ret = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL2, 0x80);
-	ret = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL3, 0x01);
-
-	msleep(100); /* Wait for power to stabilize */
-#endif
-
-	/* Reset GMSL2 links state
-	*/
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_CTRL_FIELD(0)
-		| MAX96724_RESET_CTRL_FIELD(1)
-		| MAX96724_RESET_CTRL_FIELD(2)
-		| MAX96724_RESET_CTRL_FIELD(3),
-		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(0), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(1), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(2), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(3), 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset %s link: %d\n",
-			__func__,
-			max96724_get_link_name(link),
-			err);
-		goto write_link_out;
-	}
-
-	/* delay to settle link */
-	msleep(300);
-
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_CTRL_FIELD(0)
-		| MAX96724_RESET_CTRL_FIELD(1)
-		| MAX96724_RESET_CTRL_FIELD(2)
-		| MAX96724_RESET_CTRL_FIELD(3),
-		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(0), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(1), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(2), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(3), 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset %s link: %d\n",
-			__func__,
-			max96724_get_link_name(link),
-			err);
-		goto write_link_out;
-	}
-
 	/* Check GMSL link status - hardware auto-negotiation should have completed */
 	{
 		int i;
@@ -1065,36 +954,7 @@ int max96724_setup_control(struct device *dev, struct device *s_dev)
 		dev_dbg(dev, "%s: set %s SerDes GMSL A & B & C & D quad-link)\n",
 			__func__,
 			priv->dev_id == MAX96724_DEV_REV_ID ? "MAX96724" : "MAX96712");
-		/*
-		src_port = max96724_link_to_port(priv->src_link);
-		err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-			MAX96724_RESET_LINK_FIELD(src_port) | MAX96724_RESET_CTRL_FIELD(src_port),
-			MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 1U) | 
-			MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(src_port), 0U));
-		if (err) {
-			dev_err(dev, "%s: Failed to trigger %s link reset: %d\n",
-				__func__,
-				max96724_get_link_name(priv->src_link),
-				err);
-			goto error;
-		}
 
-		// delay to settle link 
-		msleep(100);
-
-		// clear link reset
-		err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-			MAX96724_RESET_LINK_FIELD(src_port) | MAX96724_RESET_CTRL_FIELD(src_port),
-			MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 0U) | 
-			MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(src_port), 0U));
-		if (err) {
-			dev_err(dev, "%s: Failed to clear %s link reset: %d\n",
-				__func__,
-				max96724_get_link_name(priv->src_link),
-				err);
-			goto error;
-		}
-		*/
 		priv->splitter_enabled = true;
 
 		dev_dbg(dev, "%s: reset %s link done\n",
@@ -1417,77 +1277,41 @@ void max96724_reset_oneshot(struct device *dev)
 {
 	struct max96724 *priv = dev_get_drvdata(dev);
 	int err = 0;
-	u8 src_port = max96724_link_to_port(priv->src_link);
-
-	mutex_lock(&priv->lock);
-
-	/* Re-Check GMSL link status after initial configuration */
-	{
-		unsigned int link_status = 0;
-		max96724_read_reg(dev, MAX96724_LINK_STATUS(src_port), &link_status);
-		dev_dbg(dev, "%s: %s Link status: 0x%02x (LOCK=%d, bit0-7: %s%s%s%s%s%s%s%s)\n",
-			__func__, max96724_get_link_name(priv->src_link), link_status, !!(link_status & MAX96724_LINK_LOCK_BIT),
-			(link_status & 0x01) ? "VID_LOCK " : "",
-			(link_status & 0x02) ? "CONFIG_DETECT " : "",
-			(link_status & 0x04) ? "VIDEO_DETECT " : "",
-			(link_status & 0x08) ? "LOCK " : "",
-			(link_status & 0x10) ? "ERROR " : "",
-			(link_status & 0x20) ? "bit5 " : "",
-			(link_status & 0x40) ? "bit6 " : "",
-			(link_status & 0x80) ? "LOCKED " : "");
-		unsigned int pll_status = 0;
-		max96724_read_reg(dev, MAX96724_DPLL_STATUS_ADDR, &pll_status);
-		dev_dbg(dev, "%s: %s DPLL status: 0x%02x (bit0-7: %s%s%s%s)\n",
-			__func__, max96724_get_link_name(priv->src_link), pll_status,
-			(pll_status & MAX96724_DPLL_STATUS_FIELD(0)) ? "CSIPLL0_LOCK " : "",
-			(pll_status & MAX96724_DPLL_STATUS_FIELD(1)) ? "CSIPLL1_LOCK " : "",
-			(pll_status & MAX96724_DPLL_STATUS_FIELD(2)) ? "CSIPLL2_LOCK " : "",
-			(pll_status & MAX96724_DPLL_STATUS_FIELD(3)) ? "CSIPLL3_LOCK " : "");
-		unsigned int vid_status = 0;
-		max96724_read_reg(dev, MAX96724_VID_STATUS_ADDR(src_port), &vid_status);
-		dev_dbg(dev, "%s: %s Video RX status: 0x%02x (LOCK=%d, bit4-6: %s%s%s)\n",
-			__func__, max96724_get_link_name(priv->src_link), vid_status, !!(link_status & MAX96724_VID_LOCK_BIT),
-			(vid_status & 0x40) ? "VID_LOCK " : "",
-			(vid_status & 0x20) ? "VID_PKT_DET " : "",
-			(vid_status & 0x10) ? "VID_SEQ_ERR " : "");
-		unsigned int pipe_de_status = 0;
-		max96724_read_reg(dev, MAX96724_PIPE_DE_STATUS_ADDR, &pipe_de_status);
-		dev_dbg(dev, "%s: %s Video Pipeline status: 0x%02x (bit0-3: %s%s%s)\n",
-			__func__, max96724_get_link_name(priv->src_link), pipe_de_status,
-			(pipe_de_status & 0x01) ? "DE_DET_0 " : "",
-			(pipe_de_status & 0x02) ? "DE_DET_1 " : "",
-			(pipe_de_status & 0x04) ? "DE_DET_2 " : "",
-			(pipe_de_status & 0x08) ? "DE_DET_3 " : "");
-	}
 	
 	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_LINK_FIELD(src_port) | MAX96724_RESET_CTRL_FIELD(src_port),
-		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 1U) |
-		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(src_port), 0U));
+		MAX96724_RESET_CTRL_FIELD(0)
+		| MAX96724_RESET_CTRL_FIELD(1)
+		| MAX96724_RESET_CTRL_FIELD(2)
+		| MAX96724_RESET_CTRL_FIELD(3),
+		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(0), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(1), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(2), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(3), 1U));
 	if (err) {
-		dev_err(dev, "%s: Failed to trigger %s link reset: %d\n",
+		dev_err(dev, "%s: Failed to trigger link reset: %d\n",
 			__func__,
-			max96724_get_link_name(priv->src_link),
 			err);
-		goto reset_link_out;
 	}
 
-	/* delay to settle link */
-	msleep(100);
+	msleep(1); // delay to settle link
 
 	/* clear link and ctrl reset */
 	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_LINK_FIELD(src_port) | MAX96724_RESET_CTRL_FIELD(src_port),
-		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 0U) |
-		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(src_port), 0U));
+		MAX96724_RESET_CTRL_FIELD(0)
+		| MAX96724_RESET_CTRL_FIELD(1)
+		| MAX96724_RESET_CTRL_FIELD(2)
+		| MAX96724_RESET_CTRL_FIELD(3),
+		MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(0), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(1), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(2), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_CTRL_FIELD(3), 0U));
 	if (err)
-		dev_err(dev, "%s: Failed to clear %s link reset: %d\n",
+		dev_err(dev, "%s: Failed to clear link reset: %d\n",
 			__func__,
-			max96724_get_link_name(priv->src_link),
 			err);
 
-reset_link_out:
-	mutex_unlock(&priv->lock);
+	msleep(100); // delay to settle link
+
 }
 EXPORT_SYMBOL(max96724_reset_oneshot);
 
@@ -1495,6 +1319,7 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 				    u8 data_type2, u32 vc_id, u32 csi_id )
 {
 	int err = 0;
+	struct max96724 *priv = dev_get_drvdata(dev);
 	int i = 0;
 	u8 en_mapping_num = 0x0F;
 	u8 all_mapping_phy = 0x55;
@@ -1508,62 +1333,52 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 
 	switch (csi_id) {
 	case GMSL_CSI_PORT_A:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x10;
-		else
-			all_mapping_phy = 0x00;
+		all_mapping_phy = 0x00;
 		break;
 	case GMSL_CSI_PORT_B:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x15;
-		else
-			all_mapping_phy = 0x55;
+		all_mapping_phy = 0x55;
 		break;
 	case GMSL_CSI_PORT_C:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x1A;
-		else
-			all_mapping_phy = 0xAA;
+		all_mapping_phy = 0xAA;
 		break;
 	case GMSL_CSI_PORT_D:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x1F;
-		else
-			all_mapping_phy = 0xFF;
+		all_mapping_phy = 0xFF;
 		break;
 	default:
 		dev_warn(dev, "%s: invalid deserializer csi port, default CSI 1!\n", __func__);
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x15;
 	};
 	
-	struct reg_pair map_pipe_opt[] = {
-		// Do not un-double 8bpp (Un-double 8bpp data)
-		//{0x031C, 0x00},o
-		// Do not un-double 8bpp
-		//{0x031F, 0x00},
-		// 0x02: ALT_MEM_MAP8, 0x10: ALT2_MEM_MAP8
-		{MAX96724_MIPI_TX_ALT_MEM(csi_id), 0x10},
+	struct reg_pair map_pipe_select[] = {
+		{MAX96724_REG5_ADDR, 0x80}, // Enable lock
+		{MAX96724_REG6_ADDR, 0xFF}, // Enable all GMSL input sources
+		{MAX96724_MIPI_PHY0, 0x01},
+		{MAX96724_MIPI_PHY2, 0xF4},
+		{MAX96724_MIPI_PHY3, 0x44},
+		{MAX96724_MIPI_PHY5, 0x00},
+		{MAX96724_VIDEO_PIPE_SEL_0_ADDR, 0x10},
+		{MAX96724_VIDEO_PIPE_SEL_1_ADDR, 0x32},
+		{MAX96724_VIDEO_PIPE_EN_ADDR, 0x0F},
 	};
+
 	struct reg_pair map_pipe_control[] = {
 		// Enable 4 mappings for Pipe X
 		{MAX96724_PIPE_X_EN_ADDR, 0x0F},
+		// Map data_type1 on vc_id
+		{MAX96724_PIPE_X_SRC_0_MAP_ADDR, 0x1E},
+		{MAX96724_PIPE_X_DST_0_MAP_ADDR, 0x1E},
+		// Map frame_start on vc_id
+		{MAX96724_PIPE_X_SRC_1_MAP_ADDR, 0x00},
+		{MAX96724_PIPE_X_DST_1_MAP_ADDR, 0x00},
+		// Map frame end on vc_id
+		{MAX96724_PIPE_X_SRC_2_MAP_ADDR, 0x01},
+		{MAX96724_PIPE_X_DST_2_MAP_ADDR, 0x01},
+		// Map data_type2 on vc_id
+		{MAX96724_PIPE_X_SRC_3_MAP_ADDR, 0x12},
+		{MAX96724_PIPE_X_DST_3_MAP_ADDR, 0x12},
 		// Mappings to CSI 1 (master for port A)
 		{MAX96724_PIPE_X_PHY_DEST_0_MAP_ADDR, all_mapping_phy},
-		// Map data_type1 on vc_id
-		{MAX96724_PIPE_X_SRC_0_MAP_ADDR, 0x1E},
-		{MAX96724_PIPE_X_DST_0_MAP_ADDR, 0x1E},
-		// Map frame_start on vc_id
-		{MAX96724_PIPE_X_SRC_1_MAP_ADDR, 0x00},
-		{MAX96724_PIPE_X_DST_1_MAP_ADDR, 0x00},
-		// Map frame end on vc_id
-		{MAX96724_PIPE_X_SRC_2_MAP_ADDR, 0x01},
-		{MAX96724_PIPE_X_DST_2_MAP_ADDR, 0x01},
-		// Map data_type2 on vc_id
-		{MAX96724_PIPE_X_SRC_3_MAP_ADDR, 0x12},
-		{MAX96724_PIPE_X_DST_3_MAP_ADDR, 0x12},
 		// SEQ_MISS_EN: Disabled / DIS_PKT_DET: Disabled
-		{MAX96724_VID_RX0_ADDR, 0x23}, // pipe X
+		{MAX96724_VID_RX0_ADDR, 0x33}, // pipe X
 		// LIM_HEART : Disabled
 		{MAX96724_VID_RX6_ADDR, dis_lim_heart},
 		// Extend each SRC/DST to CPHY 5-bits / DPHY 4-bits VCs
@@ -1576,159 +1391,149 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 	for (i = 0; i < 10; i++) {
 		map_pipe_control[i].addr += 0x40 * pipe_id;
 	}
+
+	map_pipe_control[0].val = en_mapping_num;
+	map_pipe_control[1].val = (vc_id_2b_lsb << 6) | data_type1;
+	map_pipe_control[2].val = (vc_id_2b_lsb << 6) | data_type1;
+	map_pipe_control[3].val = (vc_id_2b_lsb << 6) | 0x01;
+	map_pipe_control[4].val = (vc_id_2b_lsb << 6) | 0x01;
+	map_pipe_control[5].val = (vc_id_2b_lsb << 6) | 0x00;
+	map_pipe_control[6].val = (vc_id_2b_lsb << 6) | 0x00;
+	map_pipe_control[7].val = (vc_id_2b_lsb << 6) | data_type2;
+	map_pipe_control[8].val = (vc_id_2b_lsb << 6) | data_type2;
+	map_pipe_control[9].val = all_mapping_phy;
+
 	map_pipe_control[10].addr += 0x12 * pipe_id;
 	map_pipe_control[11].addr += 0x12 * pipe_id;
+
+	map_pipe_control[10].val = 0x33;
+	map_pipe_control[11].val = dis_lim_heart;
+
 	map_pipe_control[12].addr += 0x10 * pipe_id;
 	map_pipe_control[13].addr += 0x10 * pipe_id;
 	map_pipe_control[14].addr += 0x10 * pipe_id;
 	map_pipe_control[15].addr += 0x10 * pipe_id;
 
-	map_pipe_control[0].val = en_mapping_num;
-	map_pipe_control[1].val = all_mapping_phy;
-	map_pipe_control[2].val = (vc_id_2b_lsb << 6) | data_type1;
-	map_pipe_control[3].val = (vc_id_2b_lsb << 6) | data_type1;
-	map_pipe_control[4].val = (vc_id_2b_lsb << 6) | 0x01;
-	map_pipe_control[5].val = (vc_id_2b_lsb << 6) | 0x01;
-	map_pipe_control[6].val = (vc_id_2b_lsb << 6) | 0x00;
-	map_pipe_control[7].val = (vc_id_2b_lsb << 6) | 0x00;
-	map_pipe_control[8].val = (vc_id_2b_lsb << 6) | data_type2;
-	map_pipe_control[9].val = (vc_id_2b_lsb << 6) | data_type2;
-	map_pipe_control[10].val = 0x23;
-	map_pipe_control[11].val = dis_lim_heart;
 	map_pipe_control[12].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
 	map_pipe_control[13].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
 	map_pipe_control[14].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
 	map_pipe_control[15].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
 
-	dev_dbg(dev, "%s: pipe %u set on vc_id=%u [reg: src/dst:0x%x, dstext:0x%x] \n",
+	dev_info(dev, "%s: pipe %u set on vc_id=%u [reg: src/dst:0x%x, dstext:0x%x] \n",
 		__func__, pipe_id, vc_id,
 		(vc_id_2b_lsb << 6),
 		vc_id_2b_msb);
 
-	err |= max96724_set_registers(dev, map_pipe_control,
-				     ARRAY_SIZE(map_pipe_control));
 
-	dev_dbg(dev, "%s: d4xx specfic pipe %u optimizations\n",
-		__func__, pipe_id, vc_id,
-		(vc_id_2b_lsb << 6),
-		vc_id_2b_msb);
-
-	err |= max96724_set_registers(dev, map_pipe_opt,
-				     ARRAY_SIZE(map_pipe_opt));
-
-	return err;
-}
-
-
-static int __max96724_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
-			       u8 data_type2, u32 vc_id, u32 csi_id )
-{
-	int err = 0;
-	int i = 0;
-	u8 en_mapping_num = 0x0F;
-	u8 all_mapping_phy = 0x55;
-	u8 dis_lim_heart = 0x0A;
-
-	if (data_type2 == 0x0)
-		en_mapping_num = 0x07;
-
-	switch (csi_id) {
-	case GMSL_CSI_PORT_A:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x10;
-		else
-			all_mapping_phy = 0x00;
-		break;
-	case GMSL_CSI_PORT_B:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x15;
-		else
-			all_mapping_phy = 0x55;
-		break;
-	case GMSL_CSI_PORT_C:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x1A;
-		else
-			all_mapping_phy = 0xAA;
-		break;
-	case GMSL_CSI_PORT_D:
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x1F;
-		else
-			all_mapping_phy = 0xFF;
-		break;
-	default:
-		dev_warn(dev, "%s: invalid deserializer csi port, default CSI 1!\n", __func__);
-		if (data_type2 == 0x0)
-			all_mapping_phy = 0x15;
-	};
-
-	u8 vc_id_2b_lsb = ((u8) vc_id) & 0x3;
-	u8 vc_id_2b_msb = (((u8) vc_id) >>  2) & 0x3;
-
-	struct reg_pair map_pipe_control[] = {
-		// Enable 4 mappings for Pipe X
-		{MAX96724_PIPE_X_EN_ADDR, 0x0F},
-		// Mappings to PHY1 (master for port A)
-		{MAX96724_PIPE_X_PHY_DEST_0_MAP_ADDR, all_mapping_phy},
-		// Map data_type1 on vc_id
-		{MAX96724_PIPE_X_SRC_0_MAP_ADDR, 0x1E},
-		{MAX96724_PIPE_X_DST_0_MAP_ADDR, 0x1E},
-		// Map frame_start on vc_id
-		{MAX96724_PIPE_X_SRC_1_MAP_ADDR, 0x00},
-		{MAX96724_PIPE_X_DST_1_MAP_ADDR, 0x00},
-		// Map frame end on vc_id
-		{MAX96724_PIPE_X_SRC_2_MAP_ADDR, 0x01},
-		{MAX96724_PIPE_X_DST_2_MAP_ADDR, 0x01},
-		// Map data_type2 on vc_id
-		{MAX96724_PIPE_X_SRC_3_MAP_ADDR, 0x12},
-		{MAX96724_PIPE_X_DST_3_MAP_ADDR, 0x12},
-		// SEQ_MISS_EN: Disabled / LINE_CRC_EN: Enabled / DIS_PKT_DET: Disabled / LCRC_ERR = Disabled
-		{MAX96724_VID_RX0_ADDR, 0x23},
-		// LIM_HEART : Disabled
-		{MAX96724_VID_RX6_ADDR, dis_lim_heart},
-		// Extend each SRC/DST to CPHY 5-bits / DPHY 4-bits VCs
-		{MAX96724_PIPE_X_SRCDST_VC_EXT_0_MAP_ADDR, 0x0},
-		{MAX96724_PIPE_X_SRCDST_VC_EXT_1_MAP_ADDR, 0x0},
-		{MAX96724_PIPE_X_SRCDST_VC_EXT_2_MAP_ADDR, 0x0},
-		{MAX96724_PIPE_X_SRCDST_VC_EXT_3_MAP_ADDR, 0x0},
-	};
-
-	for (i = 0; i < 10; i++) {
-		map_pipe_control[i].addr += 0x40 * pipe_id;
+	// disable CSI out link during pipe re-configuration
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
+		MAX96724_CSI_OUT_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 0));
+	if (err) {
+		dev_err(dev, "%s: Failed to enable csi output link: %d\n",
+			__func__,
+			err);
 	}
-	map_pipe_control[10].addr += 0x12 * pipe_id;
-	map_pipe_control[11].addr += 0x12 * pipe_id;
-	map_pipe_control[12].addr += 0x10 * pipe_id;
-	map_pipe_control[13].addr += 0x10 * pipe_id;
-	map_pipe_control[14].addr += 0x10 * pipe_id;
-	map_pipe_control[15].addr += 0x10 * pipe_id;
 
-	map_pipe_control[0].val = en_mapping_num;
-	map_pipe_control[1].val = all_mapping_phy;
-	map_pipe_control[2].val = (vc_id_2b_lsb << 6) | data_type1;
-	map_pipe_control[3].val = (vc_id_2b_lsb << 6) | data_type1;
-	map_pipe_control[4].val = (vc_id_2b_lsb << 6) | 0x01;
-	map_pipe_control[5].val = (vc_id_2b_lsb << 6) | 0x01;
-	map_pipe_control[6].val = (vc_id_2b_lsb << 6) | 0x00;
-	map_pipe_control[7].val = (vc_id_2b_lsb << 6) | 0x00;
-	map_pipe_control[8].val = (vc_id_2b_lsb << 6) | data_type2;
-	map_pipe_control[9].val = (vc_id_2b_lsb << 6) | data_type2;
-	map_pipe_control[10].val = 0x23;
-	map_pipe_control[11].val = dis_lim_heart;
-	map_pipe_control[12].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
-	map_pipe_control[13].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
-	map_pipe_control[14].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
-	map_pipe_control[15].val = (vc_id_2b_msb << 3) | vc_id_2b_msb;
+	err |= max96724_set_registers(dev, map_pipe_select,
+				     ARRAY_SIZE(map_pipe_select));
 
-	dev_dbg(dev, "%s: pipe %u set on vc_id=%u [src/dst_vc:0x%x, ext_vc:0x%x] \n",
-		__func__, pipe_id,
-		vc_id,
-		(vc_id_2b_lsb << 6),
-		vc_id_2b_msb);
+	// 0x02: ALT_MEM_MAP8, 0x10: ALT2_MEM_MAP8
+	err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_MIPI_TX_ALT_MEM(csi_id), 0x2);
 
 	err |= max96724_set_registers(dev, map_pipe_control,
 				     ARRAY_SIZE(map_pipe_control));
+
+
+	/* Configure per Pipe CSI and PHY type
+	*/
+	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_MIPI_TX_LANE_CNT(i),
+		MAX96724_MIPI_TX_CPHY_EN_FIELD
+		| MAX96724_MIPI_TX_WAKEUP_CYC_FIELD
+		| MAX96724_MIPI_TX_VCX_EN_FIELD
+		| MAX96724_MIPI_TX_LANE_CNT_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_MIPI_TX_CPHY_EN_FIELD,
+				    priv->csi_phy == MAX96724_CSI_CPHY ? 1U : 0U)
+		| MAX96724_FIELD_PREP(MAX96724_MIPI_TX_WAKEUP_CYC_FIELD, 1U)
+		| MAX96724_FIELD_PREP(MAX96724_MIPI_TX_VCX_EN_FIELD, MAX96724_VC_2_BITS)
+		| MAX96724_LANE_CTRL_MAP(priv->dst_n_lanes-1));
+	if (err) {
+		dev_err(dev, "%s: Failed to configure pipe control %u %s %u lanes: %d\n",
+			__func__,
+			csi_id,
+			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+			priv->dst_n_lanes,
+			err);
+	}
+
+	err |= max967xx_phy_tuning(dev);
+	if (err) {
+		dev_err(dev, "%s: Failed to apply %s tunning : %d\n",
+			__func__,
+			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+			err);
+	}
+
+	/* Configure lane mapping DPLL Frequency
+	 * Script: DPHY_CLK_1500BPS 0x0415/0x0418/0x041B/0x041E = 0x2F
+	 * Script: CPHY_CLK_1500BPS 0x0415/0x0418/0x041B/0x041E = 0x20
+	*/
+	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_DPLL_FREQ(csi_id),
+		MAX96724_DPLL_FREQ_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_DPLL_FREQ_FIELD,
+		priv->csi_phy == MAX96724_CSI_CPHY 	? MAX96724_CPHY_CLK_1500BPS
+							: MAX96724_DPHY_CLK_1500BPS));
+	if (err) {
+		dev_err(dev, "%s: Failed to set CSI %u %s at 1500bps: %d\n",
+			__func__,
+			csi_id  ,
+			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+			err);
+	}
+
+	/* Configure CPHY preamble
+	*/
+	if (priv->csi_phy == MAX96724_CSI_CPHY) {
+		err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_CPHY_PREAMBLE_ADDR,
+			MAX96724_FIELD_PREP(MAX96724_CPHY_PREAMBLE_FIELD, MAX96724_CPHY_PREAMBLE_DEFAULT));
+		if (err) {
+			dev_err(dev, "%s: Failed to set CSI %u %s preamble : %d\n",
+				__func__,
+				csi_id,
+				priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+				err);
+		}
+
+		err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_CPHY_PREP_ADDR, MAX96724_CPHY_PREP_DEFAULT);
+		if (err) {
+			dev_err(dev, "%s: Failed to set CSI %u %s prep and post : %d\n",
+				__func__,
+				csi_id,
+				priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+				err);
+		}
+		dev_dbg(dev, "%s: preparing %s preamble : 0x8AD/0x8AE applied\n",
+			__func__,
+			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY");
+	}
+
+	// enable CSI out link after initialization complet
+	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
+		MAX96724_CSI_OUT_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 1U));
+	if (err) {
+		dev_err(dev, "%s: Failed to enable csi output link: %d\n",
+			__func__,
+			err);
+	}
+
+	if(!err)
+		dev_info(dev, "%s: Enabled CSI %u %s at 1500bps\n",
+			 __func__,
+			 csi_id,
+			 priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY");
+
+	max96724_reset_oneshot(dev);
 
 	return err;
 }
@@ -1755,98 +1560,68 @@ int max96724_init_settings(struct device *dev)
 
 	mutex_lock(&priv->lock);
 
-	// disable PHY CLK continuous mode
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_PHY0,
-		MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD, 0));
-	if (err) {
-		dev_err(dev, "%s: Failed to disable %s continuous clock  : %d\n",
-			__func__,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto init_settings_out;
-	}
-
-	// disable CSI out link during pipe re-configuration
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
-		MAX96724_CSI_OUT_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 0));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable csi output link: %d\n",
-			__func__,
-			err);
-		goto init_settings_out;
-	}
-
-	/* reconfigure all Video Pipe Input Sources
-	 * This tells MAX96724 which PHY (Link) feeds which Video Pipe.
-	 * Without this, video data cannot flow from GMSL links to CSI-2 output.
+#ifdef CONFIG_VIDEO_D4XX_MAX96712
+	/* Enable internal regulators (0x17 and 0x19) - before reset
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_REG19_ADDR,
+		MAX96724_REG19_CTRL_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_REG19_CTRL_EN_FIELD, 1U));
 	*/
+	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG17_ADDR, 0x12);
 
-#ifdef CONFIG_VIDEO_D4XX_MAX96712_LEGACY_MODE
-	/* Map link A pipe X -> pipe 0
-	 * Map link B pipe X -> pipe 1
-	 * Map link C pipe X -> pipe 2
-	 * Map link D pipe X -> pipe 3
-	 * Enable pipes 0/1/2/3
-	 * Enable max96712 "legacy" mode
-	 * Non "legacy" mode ignores pipe mapping, and selects all streams for pipe
-	 * 0. The ipu doesn't know what to do with that and throws spurious data
-	 * stream errors.
-	 */
-	err = MAX96724_WRITE_REG(map, MAX96724_VIDEO_PIPE_SEL_0_ADDR, 0x10);
-	err |= MAX96724_WRITE_REG(map, MAX96724_VIDEO_PIPE_SEL_1_ADDR, 0x32);
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_VIDEO_PIPE_EN_ADDR,
-			MAX96724_VIDEO_PIPE_STREAM_SEL_ALL_FIELD
-			| MAX96724_VIDEO_PIPE_EN_FIELD(0)
-			| MAX96724_VIDEO_PIPE_EN_FIELD(1)
-			| MAX96724_VIDEO_PIPE_EN_FIELD(2)
-			| MAX96724_VIDEO_PIPE_EN_FIELD(3),
-			MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_STREAM_SEL_ALL_FIELD,
-					    MAX96724_VIDEO_PIPE_LEGACY_MODE)
-			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(0), 1U)
-			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(1), 1U)
-			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(2), 1U)
-			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(3), 1U));
-#else
-	/* Map link A pipe Z -> pipe 0
-	 * Map link B pipe Z -> pipe 1
-	 * Map link C pipe Z -> pipe 2
-	 * Map link D pipe Z -> pipe 3
-	 * Enable pipes 0/1/2/3
-	 */
-	err = MAX96724_WRITE_REG(map, MAX96724_VIDEO_PIPE_SEL_0_ADDR, 0x50);
-	err |= MAX96724_WRITE_REG(map, MAX96724_VIDEO_PIPE_SEL_1_ADDR, 0xfa);
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_VIDEO_PIPE_EN_ADDR,
-			MAX96724_VIDEO_PIPE_EN_FIELD(0)
-			| MAX96724_VIDEO_PIPE_EN_FIELD(1)
-			| MAX96724_VIDEO_PIPE_EN_FIELD(2)
-			| MAX96724_VIDEO_PIPE_EN_FIELD(3),
-			MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(0), 1U)
-			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(1), 1U)
-			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(2), 1U)
-			| MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(3), 1U));
+	/* Enable PoC (Power over Coax) for cameras
+	dev_dbg(dev, "Enabling PoC (Power over Coax)...\n");
+	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL1, 0x80);
+	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL2, 0x80);
+	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REG_POC_CTRL3, 0x01);
+
+	msleep(100); // Wait for power to stabilize
+	*/
 #endif
+
+	/* Reset GMSL2 links state
+	*/
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_LINK_FIELD(0)
+		| MAX96724_RESET_LINK_FIELD(1)
+		| MAX96724_RESET_LINK_FIELD(2)
+		| MAX96724_RESET_LINK_FIELD(3),
+		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(0), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(1), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(2), 1U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(3), 1U));
 	if (err) {
-		dev_err(dev, "%s: Failed to configure %s pipe  to Video  pipe X/Y/Z/U : %d\n",
+		dev_err(dev, "%s: Failed to reset link: %d\n",
 			__func__,
-			max96724_get_link_name(priv->src_link),
 			err);
 		goto init_settings_out;
 	}
+
+	msleep(1);	// delay to settle link
+
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_LINK_FIELD(0)
+		| MAX96724_RESET_LINK_FIELD(1)
+		| MAX96724_RESET_LINK_FIELD(2)
+		| MAX96724_RESET_LINK_FIELD(3),
+		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(0), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(1), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(2), 0U)
+		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(3), 0U));
+	if (err) {
+		dev_err(dev, "%s: Failed to reset link: %d\n",
+			__func__,
+			err);
+		goto init_settings_out;
+	}
+	msleep(100);	// delay to settle link
 
 	for (i = 0; i < MAX96724_MAX_PIPES; i++) {
 		dev_dbg(dev, "%s enable GMSL link through pipe X source to Video pipe %d",
 			max96724_get_link_name(priv->src_link),
 			i);
 
-		if (priv->d4xx_hacks) {
-			err |= __max96724_set_pipe_d4xx(dev, i, GMSL_CSI_DT_YUV422_8,
+		err |= __max96724_set_pipe_d4xx(dev, i, GMSL_CSI_DT_YUV422_8,
 							GMSL_CSI_DT_EMBED, i, priv->dst_link);
-		} else {
-			err |= __max96724_set_pipe(dev, i, GMSL_CSI_DT_YUV422_8,
-						   GMSL_CSI_DT_EMBED, i, priv->dst_link);
-		}
 	}
 	if (err) {
 		dev_err(dev, "%s: Failed to configure %s pipe X to Video pipes : %d\n",
@@ -1856,11 +1631,12 @@ int max96724_init_settings(struct device *dev)
 		goto init_settings_out;
 	}
 
-#ifndef CONFIG_VIDEO_D4XX_MAX96712_LEGACY_MODE
+	msleep(300);  // Wait after pipe configuration
+
+#ifndef CONFIG_VIDEO_D4XX_MAX96712
 	/* Write 0x1d00 register sequence
 	 * This register is written twice with different values - appears to be
 	 * some kind of command sequence or state machine control
-	 */
 	err = max96724_write_reg(dev, 0x1d00, 0xf4);
 	err |= max96724_write_reg(dev, 0x1d00, 0xf5);
 	if (err) {
@@ -1868,9 +1644,8 @@ int max96724_init_settings(struct device *dev)
 			__func__,
 			err);
 	}
+	 */
 #endif
-
-	msleep(300);  /* Wait after pipe configuration */
 
 	/* Configure MIPI D-PHY/C-PHY
 	 * These registers configure the MIPI physical layer for CSI-2 output
@@ -1882,265 +1657,6 @@ int max96724_init_settings(struct device *dev)
 		 priv->csi_mode == MAX96724_CSI_MODE_1X4 || MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
 		 priv->dst_n_lanes,
 		 priv->dev_id == MAX96724_DEV_REV_ID ? "MAX96724" : "MAX96712");
-
-	err = max967xx_phy_tuning(dev);
-	if (err) {
-		dev_err(dev, "%s: Failed to apply %s tunning : %d\n",
-			__func__,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto init_settings_out;
-	}
-
-	err = MAX96724_UPDATE_BITS(map, MAX96724_DPLL_RESET(priv->dst_link),
-		MAX96724_DPLL_RESET_SOFT_RST_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_DPLL_RESET_SOFT_RST_FIELD, 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset configure CSI %u %s DPLL : %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto init_settings_out;
-	}
-	
-	/* Step 1: Configure MIPI PHY0 as 2-lane or 4-lanes (WITHOUT continuous clock first)
-	 * Script: 0x08A0 = 0x02 (2-lane, no continuous clock)
-	 * Script: 0x08A0 = 0x04 (4-lane, no continuous clock)
-	 * Continuous clock will be added later in 
-	 */
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_PHY0,
-		MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD
-		| MAX96724_MIPI_PHY0_MODE_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD, 0U)
-		| MAX96724_FIELD_PREP(MAX96724_MIPI_PHY0_MODE_FIELD, priv->csi_mode));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable %s %s lanes : %d\n",
-			__func__,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			priv->csi_mode == MAX96724_CSI_MODE_1X4 || MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2", 
-			err);
-		goto init_settings_out;
-	}
-
-	/* Step 2: Configure MIPI data rate
-	 * Script: 0x08A3/0x08A4 = 0xE4 (0xE4 = 800Mbps per lane for 1x4 mode)
-	 * Script: 0x08A3/0x08A4 = 0x44 (0x44 = 800Mbps per lane for 4x2 mode)
-	 *
-	 */
-	err = MAX96724_WRITE_REG(map, MAX96724_MIPI_PHY_LANE_MAP(GMSL_CSI_PORT_A),
-			(priv->csi_mode == MAX96724_CSI_MODE_2X4) ? 0xE4 : 0x44 );
-	err |= MAX96724_WRITE_REG(map, MAX96724_MIPI_PHY_LANE_MAP(GMSL_CSI_PORT_C),
-			(priv->csi_mode == MAX96724_CSI_MODE_2X4) ? 0xE4 : 0x44 );
-	if (err) {
-		dev_err(dev, "%s: Failed to configure CSI %u %s lanes %s map: %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			priv->csi_mode == MAX96724_CSI_MODE_1X4 || MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
-			err);
-		goto init_settings_out;
-	}
-
-	dev_dbg(dev, "%s: mapping %s %s mode x%u-lanes pinout : 0x8A3/0x8A4 applied\n",
-		__func__,
-		priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-		priv->csi_mode == MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
-		priv->dst_n_lanes);
-
-
-	if (priv->csi_phy == MAX96724_CSI_CPHY) {
-		/* Step 3b: Configure CPHY preamble
-		 */
-		err = MAX96724_WRITE_REG(map, MAX96724_CPHY_PREAMBLE_ADDR,
-			MAX96724_FIELD_PREP(MAX96724_CPHY_PREAMBLE_FIELD, MAX96724_CPHY_PREAMBLE_DEFAULT));
-		if (err) {
-			dev_err(dev, "%s: Failed to set CSI %u %s preamble : %d\n",
-				__func__,
-				priv->dst_link,
-				priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-				err);
-			goto init_settings_out;
-		}
-
-		err = MAX96724_WRITE_REG(map, MAX96724_CPHY_PREP_ADDR, MAX96724_CPHY_PREP_DEFAULT);
-		if (err) {
-			dev_err(dev, "%s: Failed to set CSI %u %s prep and post : %d\n",
-				__func__,
-				priv->dst_link,
-				priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-				err);
-			goto init_settings_out;
-		}
-		dev_dbg(dev, "%s: preparing %s preamble : 0x8AD/0x8AE applied\n",
-			__func__,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY");
-	}
-
-	/* Step 3: Configure per Pipe CSI and PHY CLK cycle
-	*/
-	for (err=0, i = GMSL_CSI_PORT_A; i < MAX96724_MAX_SOURCES; i++)
-		err |= MAX96724_UPDATE_BITS(map, MAX96724_MIPI_TX_LANE_CNT(i),
-			MAX96724_MIPI_TX_CPHY_EN_FIELD
-			| MAX96724_MIPI_TX_WAKEUP_CYC_FIELD
-	                | MAX96724_MIPI_TX_VCX_EN_FIELD
-			| MAX96724_MIPI_TX_LANE_CNT_FIELD,
-			MAX96724_FIELD_PREP(MAX96724_MIPI_TX_CPHY_EN_FIELD,
-	                                 priv->csi_phy == MAX96724_CSI_CPHY ? 1U : 0U)
-			| MAX96724_FIELD_PREP(MAX96724_MIPI_TX_WAKEUP_CYC_FIELD, 0U)
-			| MAX96724_FIELD_PREP(MAX96724_MIPI_TX_VCX_EN_FIELD, MAX96724_VC_2_BITS)
-			| MAX96724_LANE_CTRL_MAP(priv->dst_n_lanes-1));
-	if (err) {
-		dev_err(dev, "%s: Failed to configure CSI %u %s %u lanes: %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			priv->dst_n_lanes,
-			err);
-		goto init_settings_out;
-	}
-
-	/* Step 3b: Configure auto-deskew for all pipes
-	 * Script: 0x0903/0x0943/0x0983/0x09C3 = auto deskew enable
-	 */
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_TX_DESKEW_INIT(GMSL_CSI_PORT_A),
-			MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD,
-			MAX96724_FIELD_PREP(MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD, 1U));
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_MIPI_TX_DESKEW_INIT(GMSL_CSI_PORT_B),
-			MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD,
-			MAX96724_FIELD_PREP(MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD, 1U));
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_MIPI_TX_DESKEW_INIT(GMSL_CSI_PORT_C),
-			MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD,
-			MAX96724_FIELD_PREP(MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD, 1U));
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_MIPI_TX_DESKEW_INIT(GMSL_CSI_PORT_D),
-			MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD,
-			MAX96724_FIELD_PREP(MAX96724_MIPI_TX_DESKEW_INIT_AUTO_FIELD, 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable deskew CSI %u %s: %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto init_settings_out;
-	}
-
-	/* Step 4: Configure MIPI PHY lane control
-	 * Script: 0x08A2 = 0xF0 (all lanes enabled)
-	 */
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_PHY_ENABLE,
-		MAX96724_MIPI_PHY_ENABLE_FIELD(0)
-		| MAX96724_MIPI_PHY_ENABLE_FIELD(1)
-		| MAX96724_MIPI_PHY_ENABLE_FIELD(2)
-		| MAX96724_MIPI_PHY_ENABLE_FIELD(3),
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY_ENABLE_FIELD(0), 1U) |
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY_ENABLE_FIELD(1), 1U) |
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY_ENABLE_FIELD(2), 1U) |
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY_ENABLE_FIELD(3), 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable all %s output lanes: %d\n",
-			__func__,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto init_settings_out;
-	}
-
-	/* Step 5: Configure lane mapping DPLL Frequency
-	 * Script: DPHY_CLK_1500BPS 0x0415/0x0418/0x041B/0x041E = 0x35
-	 * Script: CPHY_CLK_1500BPS 0x0415/0x0418/0x041B/0x041E = 0x25
-	 */
-	err = MAX96724_UPDATE_BITS(map, MAX96724_DPLL_FREQ(GMSL_CSI_PORT_A),
-		MAX96724_DPLL_FREQ_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_DPLL_FREQ_FIELD,
-		priv->csi_phy == MAX96724_CSI_CPHY 	? MAX96724_CPHY_CLK_1500BPS
-							: MAX96724_DPHY_CLK_1500BPS));
-
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_DPLL_FREQ(GMSL_CSI_PORT_B),
-		MAX96724_DPLL_FREQ_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_DPLL_FREQ_FIELD,
-		priv->csi_phy == MAX96724_CSI_CPHY 	? MAX96724_CPHY_CLK_1500BPS
-							: MAX96724_DPHY_CLK_1500BPS));
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_DPLL_FREQ(GMSL_CSI_PORT_C),
-		MAX96724_DPLL_FREQ_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_DPLL_FREQ_FIELD,
-		priv->csi_phy == MAX96724_CSI_CPHY 	? MAX96724_CPHY_CLK_1500BPS
-							: MAX96724_DPHY_CLK_1500BPS));
-	err |= MAX96724_UPDATE_BITS(map, MAX96724_DPLL_FREQ(GMSL_CSI_PORT_D),
-		MAX96724_DPLL_FREQ_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_DPLL_FREQ_FIELD,
-		priv->csi_phy == MAX96724_CSI_CPHY 	? MAX96724_CPHY_CLK_1500BPS
-							: MAX96724_DPHY_CLK_1500BPS));
-	if (err) {
-		dev_err(dev, "%s: Failed to set CSI %u %s at 1500bps: %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto init_settings_out;
-	}
-
-
-        /* Reset all GMSL links after configuration (matches script line 508)
-         * Reference script does this AFTER all serializer config and BEFORE CSI enable:
-         *   1. Restore all links (0x0006 = 0xFF)
-         *   2. Reset all links (0x0018 = 0x0F) ← This step!
-         *   3. Enable CSI output (0x040B = 0x02)
-         *   4. Configure MIPI PHY continuous clock (0x08A0 = 0x84)
-         *
-         * This reset ensures all link configurations take effect properly
-         * and synchronizes the GMSL links before CSI streaming starts.
-	err = MAX96724_UPDATE_BITS(map, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_LINK_FIELD(0)
-		| MAX96724_RESET_LINK_FIELD(1)
-		| MAX96724_RESET_LINK_FIELD(2)
-		| MAX96724_RESET_LINK_FIELD(3),
-		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(0), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(1), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(2), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(3), 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset %s link: %d\n",
-			__func__,
-			max96724_get_link_name(priv->src_link),
-			err);
-		goto init_settings_out;
-	}
-
-	// delay to settle link
-	msleep(100);
-
-	// clear GMSL2 links Reset 
-	err = MAX96724_UPDATE_BITS(map, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_LINK_FIELD(0)
-		| MAX96724_RESET_LINK_FIELD(1)
-		| MAX96724_RESET_LINK_FIELD(2)
-		| MAX96724_RESET_LINK_FIELD(3),
-		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(0), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(1), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(2), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(3), 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset %s link: %d\n",
-			__func__,
-			max96724_get_link_name(priv->src_link),
-			err);
-		goto init_settings_out;
-	}
-         */
-
-        /* CRITICAL: DO NOT enable CSI_OUT_EN (0x040b) here!
-         *
-         * Reference script shows CSI should be enabled LAST, after:
-         * 1. All MAX967xx configuration complete
-         * 2. GMSL link is locked
-         * 3. Sensor is streaming valid data
-         *
-         * IPU6 behavior is CORRECT:
-         * - Firmware waits for initial capture BEFORE calling s_stream
-         * - This ensures IPU is ready to receive data
-         * - CSI should only output when sensor has valid data ready
-         *
-         * We enable CSI in s_stream AFTER sensor stream-on succeeds.
-         */
 
 	/* Re-Check GMSL link status after initial configuration */
 	{
@@ -2215,157 +1731,13 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 
 	mutex_lock(&priv->lock);
 
-	/* Step 1: Disable CSI output first (reverse order of enable)
-	 * This stops data transmission to IPU before shutting down PHY
-	 */
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
-		MAX96724_CSI_OUT_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable csi output link: %d\n",
-			__func__,
-			err);
-		goto set_pipe_out;
-	}
-	dev_dbg(dev, "%s: CSI output disabled\n", __func__);
-
-	/* Step 2: Disable MIPI PHY continuous clock mode
-	 */
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_PHY0,
-		MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD, 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to disable %s continuous clock  : %d\n",
-			__func__,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto set_pipe_out;
-	}
-	dev_dbg(dev, "%s: MIPI PHY continuous clock disabled\n", __func__);
-
-	/* Small delay for clean shutdown */
-	msleep(10);
-
-	/* Enable PHY (clear standby bit) 
-	*/
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_PHY_ENABLE,
-		MAX96724_MIPI_PHY_ENABLE_FIELD(priv->dst_link),
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY_ENABLE_FIELD(priv->dst_link), 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable CSI %u %s : %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto set_pipe_out;
-	}
-
 	dev_info(dev, "%s() : %s Re-configuring pipe_id %d, data_type1 %x, data_type2 %x, vc_id %u\n",
 		__func__,
 		max96724_get_link_name(priv->src_link),
 		pipe_id, data_type1, data_type2, vc_id);
 
-	err = MAX96724_UPDATE_BITS(map, MAX96724_VIDEO_PIPE_EN_ADDR,
-		MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id),
-		MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id), 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to disable %s pipe X to Video pipe %u : %d\n",
-			__func__,
-			max96724_get_link_name(priv->src_link),
-			pipe_id,
-			err);
-		goto set_pipe_out;
-	}
 
-	if (priv->d4xx_hacks) {
-		err = __max96724_set_pipe_d4xx(dev, pipe_id, data_type1, data_type2, vc_id, priv->dst_link);
-	} else {
-		err = __max96724_set_pipe(dev, pipe_id, data_type1, data_type2, vc_id, priv->dst_link);
-	}
-
-	err = MAX96724_UPDATE_BITS(map, MAX96724_VIDEO_PIPE_EN_ADDR,
-		MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id),
-		MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id), 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable %s pipe X to Video pipe %u : %d\n",
-			__func__,
-			max96724_get_link_name(priv->src_link),
-			pipe_id,
-			err);
-		goto set_pipe_out;
-	}
-
-	msleep(300);  /* Wait after pipe configuration */
-
-	dev_dbg(dev, "%s: Wake-up  %s pipe %u (vc_id %u) CSI %u %s mode %s (num_lanes:x%u)\n",
-		__func__,
-		max96724_get_link_name(priv->src_link),
-		pipe_id, vc_id,
-		priv->dst_link,
-		priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-		priv->csi_mode == MAX96724_CSI_MODE_1X4 || MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
-		priv->dst_n_lanes);
- 
-	/* Enable MIPI TX controller and enable PHY CLK cycle */
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_TX_LANE_CNT(priv->dst_link),
-		MAX96724_MIPI_TX_WAKEUP_CYC_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_MIPI_TX_WAKEUP_CYC_FIELD, 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to configure CSI %u %s wakeup cycles: %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto set_pipe_out;
-	}
-
-	/* CRITICAL: Wait for sensor video to stabilize before enabling CSI output!
-	 *   1. Triggers all cameras via GPIO (MFP7/MFP8)
-	 *   2. sleep 0.3  ← 300ms delay to let sensors stabilize!
-	 *   3. i2ctransfer ... 0x04 0x0b 0x02  ← Enable CSI
-	 *   4. i2ctransfer ... 0x08 0xa0 0x84  ← Enable continuous clock
-	 *
-	 * Without this delay, deserializer tries to lock video before sensor
-	 * outputs stable video data, resulting in VIDEO_LOCK failure (0x0108=0x02)
-	 */
-	dev_info(dev, "%s: Waiting 300ms for sensor video to stabilize...\n", __func__);
-	msleep(300);
-	dev_info(dev, "%s: Sensor stabilization delay complete\n", __func__);
-
-	// enable CSI out link after initialization complet
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
-		MAX96724_CSI_OUT_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable csi output link: %d\n",
-			__func__,
-			err);
-		goto set_pipe_out;
-	}
-	dev_dbg(dev, "%s: CSI output enabled\n", __func__);
-
-	/* Small delay for CSI to stabilize */
-	msleep(10);
-
-	/* Turn on MIPI PHY continuous clock mode (matches script line 520)
-	 * Reference script does this AFTER CSI enable (0x040B = 0x02)
-	 * This enables continuous clock on MIPI CSI-2 interface
-	 * 0x84 = 0b10000100
-	 *   Bit[7] = 1: Enable continuous clock mode
-	 */
-	err = MAX96724_UPDATE_BITS(map, MAX96724_MIPI_PHY0,
-		MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD
-		| MAX96724_MIPI_PHY0_MODE_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD, 1U) |
-		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY0_MODE_FIELD, priv->csi_mode));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable %s continuous clock  : %d\n",
-			__func__,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
-		goto set_pipe_out;
-	}
-	dev_dbg(dev, "%s: MIPI PHY continuous clock mode enabled\n", __func__);
+	err = __max96724_set_pipe_d4xx(dev, pipe_id, data_type1, data_type2, vc_id, priv->dst_link);
 
 	/* Double-Check GMSL link status after stream start configuration */
 	{
