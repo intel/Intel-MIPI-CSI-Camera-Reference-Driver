@@ -4,7 +4,7 @@ export DH_VERBOSE = 1
 include /usr/share/dpkg/pkg-info.mk
 
 # Deserializer arch
-deserlist := "max9296 max96724 mipi"
+deserlist := "max9296 max96712 max96724 mipi"
 defaultdeser := max9296
 
 # special characters
