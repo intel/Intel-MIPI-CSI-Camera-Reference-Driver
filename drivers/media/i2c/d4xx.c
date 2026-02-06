@@ -3482,6 +3482,24 @@ static int ds5_board_setup(struct ds5 *state)
 	char suffix = pdata->suffix;
 	char serdes_suffix[5]; /* suffix string for subdevs */
 
+#if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
+        /* Derive Deser CSI link mapping  */
+        switch (serdes_suffix[0]) {
+        case 'b':
+                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_B;
+                break;
+        case 'c':
+                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_C;
+                break;
+        case 'd':
+                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_D;
+                break;
+        default:
+                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_A;
+                break;
+        };
+#endif
+
 	static struct max9295_pdata max9295_pdata = {
 		.is_prim_ser = 1, // todo: configurable
 		.def_addr = 0x40, // todo: configurable
@@ -3494,6 +3512,9 @@ static int ds5_board_setup(struct ds5 *state)
 		.csi_phy = GMSL_CSI_CPHY,
 		.d4xx_hacks = 1,
 	};
+
+	max96724_pdata.src_link = state->g_ctx.serdes_csi_link;
+
 	static struct i2c_board_info i2c_info_des = {
 		I2C_BOARD_INFO("d4xx-max96724", 0x27),
 		.platform_data = &max96724_pdata,
@@ -3505,6 +3526,9 @@ static int ds5_board_setup(struct ds5 *state)
 		.csi_phy = GMSL_CSI_DPHY,
 		.d4xx_hacks = 1,
 	};
+
+	max96724_pdata.src_link = state->g_ctx.serdes_csi_link;
+
 	static struct i2c_board_info i2c_info_des = {
 		I2C_BOARD_INFO("d4xx-max96724", 0x6b),
 		.platform_data = &max96724_pdata,
@@ -3632,32 +3656,15 @@ static int ds5_board_setup(struct ds5 *state)
 	/* populate g_ctx from pdata */
 #if defined(CONFIG_VIDEO_D4XX_MAX96724)
 	state->g_ctx.dst_csi_port = (suffix == 'a') ? GMSL_CSI_PORT_C : GMSL_CSI_PORT_B;
-	state->g_ctx.csi_mode = GMSL_CSI_2X4_MODE; //GMSL_CSI_4X2_MODE;
 #elif defined(CONFIG_VIDEO_D4XX_MAX96712)
 	state->g_ctx.dst_csi_port = GMSL_CSI_PORT_A;
-	state->g_ctx.csi_mode = GMSL_CSI_2X4_MODE; //GMSL_CSI_4X2_MODE;
 #else
 	state->g_ctx.dst_csi_port = GMSL_CSI_PORT_A;
-	state->g_ctx.csi_mode = GMSL_CSI_1X4_MODE;
 #endif
+	state->g_ctx.csi_mode = GMSL_CSI_1X4_MODE;
+	state->g_ctx.src_csi_port = GMSL_CSI_PORT_B;
 
-#if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
-        /* Derive Deser CSI link mapping  */
-        switch (serdes_suffix[0]) {
-        case 'b':
-                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_B;
-                break;
-        case 'c':
-                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_C;
-                break;
-        case 'd':
-                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_D;
-                break;
-        default:
-                state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_A;
-                break;
-        };
-#else
+#if !defined(CONFIG_VIDEO_D4XX_MAX96724) && !defined(CONFIG_VIDEO_D4XX_MAX96712)
         state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_A;
 #endif
 	if (state->aggregated) { // dual aggregated-link fallback

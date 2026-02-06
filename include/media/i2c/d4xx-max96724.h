@@ -31,6 +31,7 @@
 struct max96724_pdata {
 	bool splitter_enabled;
 	__u32 max_src;
+	__u32 src_link;
 	__u32 csi_mode;
 	__u32 d4xx_hacks;
 	__u32 csi_phy;

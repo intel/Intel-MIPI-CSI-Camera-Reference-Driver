@@ -31,6 +31,7 @@
 
 #define MAX96724_REG3_ADDR 0x0003  /* I2C Remote Control Channel Enable */
 #define MAX96724_REG5_ADDR 0x0005
+#define MAX96724_REG4_ADDR 0x0004
 #define MAX96724_REG6_ADDR 0x0006
 #define MAX96724_REG10_ADDR 0x0010 /* PHY A/B RX/TX rate control */
 #define MAX96724_REG11_ADDR 0x0011 /* PHY C/D RX/TX rate control */
@@ -524,6 +525,37 @@ static int max96724_write_reg(struct device *dev,
 	return err;
 }
 
+static const char *max96724_get_link_name(u32 link)
+{
+	switch (link) {
+	case GMSL_SERDES_CSI_LINK_A:
+		return "GMSL A";
+	case GMSL_SERDES_CSI_LINK_B:
+		return "GMSL B";
+	case GMSL_SERDES_CSI_LINK_C:
+		return "GMSL C";
+	case GMSL_SERDES_CSI_LINK_D:
+		return "GMSL D";
+	default:
+		return "GMSL UNKNOWN";
+	}
+}
+
+static u8 max96724_link_to_port(u32 link)
+{
+	switch (link) {
+	case GMSL_SERDES_CSI_LINK_B:
+		return 1;
+	case GMSL_SERDES_CSI_LINK_C:
+		return 2;
+	case GMSL_SERDES_CSI_LINK_D:
+		return 3;
+	case GMSL_SERDES_CSI_LINK_A:
+	default:
+		return 0;
+	}
+}
+
 static int max96724_get_sdev_idx(struct device *dev,
 			struct device *s_dev, unsigned int *idx)
 {
@@ -532,15 +564,28 @@ static int max96724_get_sdev_idx(struct device *dev,
 	int err = 0;
 
 	mutex_lock(&priv->lock);
+
 	for (i = 0; i < priv->max_src; i++) {
+
+		if (max96724_link_to_port(priv->src_link) == (u8) i)
+			break;
+
+		if (!priv->sources[i].g_ctx || !priv->sources[i].g_ctx->s_dev)
+			continue;
+
 		if (priv->sources[i].g_ctx->s_dev == s_dev)
 			break;
 	}
+
 	if (i == priv->max_src) {
 		dev_err(dev, "no sdev found\n");
 		err = -EINVAL;
 		goto ret;
 	}
+
+	dev_dbg(dev, "%s: sdev found on %s link\n",
+		__func__,
+		max96724_get_link_name(priv->src_link));
 
 	if (idx)
 		*idx = i;
@@ -577,18 +622,17 @@ static void max96724_pipes_reset(struct max96724 *priv)
 
 static void max96724_reset_ctx(struct max96724 *priv)
 {
-	unsigned int i;
+	unsigned int i = (unsigned int) max96724_link_to_port(priv->src_link);
 
 	priv->link_setup = false;
 	priv->lane_setup = false;
 	priv->num_src_found = 0;
+	priv->sources[i].st_enabled = false;
 	priv->src_link = 0;
 	priv->dst_link = 0;
-	priv->dst_n_lanes = 2;
+	priv->dst_n_lanes = 4;
 	priv->splitter_enabled = false;
 	max96724_pipes_reset(priv);
-	for (i = 0; i < priv->num_src; i++)
-		priv->sources[i].st_enabled = false;
 }
 
 int max96724_power_on(struct device *dev)
@@ -656,38 +700,6 @@ void max96724_power_off(struct device *dev)
 	mutex_unlock(&priv->lock);
 }
 EXPORT_SYMBOL(max96724_power_off);
-
-static const char *max96724_get_link_name(u32 link)
-{
-	switch (link) {
-	case GMSL_SERDES_CSI_LINK_A:
-		return "GMSL A";
-	case GMSL_SERDES_CSI_LINK_B:
-		return "GMSL B";
-	case GMSL_SERDES_CSI_LINK_C:
-		return "GMSL C";
-	case GMSL_SERDES_CSI_LINK_D:
-		return "GMSL D";
-	default:
-		return "GMSL UNKNOWN";
-	}
-}
-
-static u8 max96724_link_to_port(u32 link)
-{
-	switch (link) {
-	case GMSL_SERDES_CSI_LINK_B:
-		return 1;
-	case GMSL_SERDES_CSI_LINK_C:
-		return 2;
-	case GMSL_SERDES_CSI_LINK_D:
-		return 3;
-	case GMSL_SERDES_CSI_LINK_A:
-	default:
-		return 0;
-	}
-}
-
 
 /* CRITICAL: max96724_check_status wait for sensor video to stabilize before enabling CSI output!
  *   1. Triggers all cameras via GPIO (MFP7/MFP8)
@@ -954,6 +966,7 @@ static int max96724_write_link(struct device *dev, u32 link)
 			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(2), 1U)
 			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_EN_FIELD(3), 1U)
 			   | MAX96724_FIELD_PREP(MAX96724_LINK_CTRL_GMSL_FIELD(3), 1U));
+	err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_REG4_ADDR, 0x0F);
 	if (err) {
 		dev_err(dev, "%s: Failed to enable  %s link control: %d\n",
 			__func__,
@@ -1049,6 +1062,7 @@ int max96724_setup_link(struct device *dev, struct device *s_dev)
 {
 	struct max96724 *priv = dev_get_drvdata(dev);
 	int err = 0;
+	u8 src_port = max96724_link_to_port(priv->src_link);
 	unsigned int i = 0;
 
 	dev_dbg(dev, "%s: ENTER\n", __func__);
@@ -1059,14 +1073,38 @@ int max96724_setup_link(struct device *dev, struct device *s_dev)
 		return err;
 	}
 
-	dev_info(dev, "%s: Source index=%d, link=%s\n", __func__, i,
-		 max96724_get_link_name(priv->sources[i].g_ctx->serdes_csi_link));
+	dev_info(dev, "%s: Source index=%u, link=%s\n", __func__, src_port,
+		 max96724_get_link_name(priv->src_link));
 
 	mutex_lock(&priv->lock);
 
+	/* Reset GMSL2 links state
+	*/
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_LINK_FIELD(src_port),
+		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 1U));
+	if (err) {
+		dev_err(dev, "%s: Failed to reset link: %d\n",
+			__func__,
+			err);
+		goto ret;
+	}
+
+	msleep(1);	// delay to settle link
+
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_LINK_FIELD(src_port),
+		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 0U));
+	if (err) {
+		dev_err(dev, "%s: Failed to reset link: %d\n",
+			__func__,
+			err);
+		goto ret;
+	}
+	msleep(100);	// delay to settle link
+
 	if (!priv->splitter_enabled) {
-		err = max96724_write_link(dev,
-				priv->sources[i].g_ctx->serdes_csi_link);
+		err = max96724_write_link(dev, priv->src_link);
 		if (err)
 			goto ret;
 
@@ -1084,9 +1122,8 @@ int max96724_setup_control(struct device *dev, struct device *s_dev)
 {
 	struct max96724 *priv = dev_get_drvdata(dev);
 	int err = 0;
+	u8 src_port = max96724_link_to_port(priv->src_link);
 	unsigned int i = 0;
-
-	u8 src_port;
 
 	dev_dbg(dev, "%s: ENTER\n", __func__);
 
@@ -1269,12 +1306,10 @@ int max96724_sdev_register(struct device *dev, struct gmsl_link_ctx *g_ctx)
 		dev_dbg(dev,
 			"%s: Checking Deserializer g_ctx->csi_mode=%s\n",
 			__func__,
-			(g_ctx->csi_mode == GMSL_CSI_4X2_MODE) == GMSL_CSI_4X2_MODE ? "4X2" : "2X4");
+			g_ctx->csi_mode == GMSL_CSI_4X2_MODE ? "4X2" : "2X4");
 
 		switch (priv->csi_mode) {
 		case MAX96724_CSI_MODE_1X4:
-			csi_mode_ok = (g_ctx->csi_mode == GMSL_CSI_1X4_MODE);
-			break;
 		case MAX96724_CSI_MODE_2X4:
 			csi_mode_ok = (g_ctx->csi_mode == GMSL_CSI_1X4_MODE) ||
 				(g_ctx->csi_mode == GMSL_CSI_2X4_MODE);
@@ -1296,14 +1331,13 @@ int max96724_sdev_register(struct device *dev, struct gmsl_link_ctx *g_ctx)
 		dev_dbg(dev, "%s: d4xx specfic csi-mode set\n", __func__);
 	}
 
-	for (i = 0; i < priv->num_src; i++) {
-		if (g_ctx->serdes_csi_link ==
-			priv->sources[i].g_ctx->serdes_csi_link) {
-			dev_err(dev,
-				"%s: serdes csi link is in use\n", __func__);
-			err = -EINVAL;
-			goto error;
-		}
+	for (i = 0; i < priv->max_src; i++) {
+
+		if (max96724_link_to_port(priv->src_link) == (u8) i)
+			break;
+
+		if (!priv->sources[i].g_ctx)
+			continue;
 		/*
 		 * All sdevs should have same num-csi-lanes regardless of
 		 * dst csi port selected.
@@ -1312,17 +1346,23 @@ int max96724_sdev_register(struct device *dev, struct gmsl_link_ctx *g_ctx)
 		 * check should be performed per port.
 		 */
 		if (g_ctx->num_csi_lanes !=
-				priv->sources[i].g_ctx->num_csi_lanes) {
-			dev_err(dev,
-				"%s: csi num lanes mismatch\n", __func__);
-			err = -EINVAL;
-			goto error;
-		}
+				priv->sources[i].g_ctx->num_csi_lanes)
+			continue;
+
+		if (g_ctx->serdes_csi_link ==
+			priv->sources[i].g_ctx->serdes_csi_link)
+			break;
 	}
 
-	priv->sources[priv->num_src].g_ctx = g_ctx;
-	priv->sources[priv->num_src].st_enabled = false;
+	if (i == priv->max_src) {
+		dev_err(dev,
+			"%s: undefined link or csi num lanes mismatch\n", __func__);
+		err = -EINVAL;
+		goto error;
+	}
 
+	priv->sources[i].g_ctx = g_ctx;
+	priv->sources[i].st_enabled = false;
 	priv->num_src++;
 
 error:
@@ -1351,14 +1391,14 @@ int max96724_sdev_unregister(struct device *dev, struct device *s_dev)
 		goto error;
 	}
 
-	for (i = 0; i < priv->num_src; i++) {
+	for (i = 0; i < priv->max_src; i++) {
 		if (s_dev == priv->sources[i].g_ctx->s_dev) {
 			priv->sources[i].g_ctx = NULL;
 			break;
 		}
 	}
 
-	if (i == priv->num_src) {
+	if (i == priv->max_src) {
 		dev_err(dev,
 			"%s: requested device not found\n", __func__);
 		err = -EINVAL;
@@ -1817,6 +1857,73 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 			err);
 	}
 #endif
+	return err;
+}
+
+int max96724_init_settings(struct device *dev)
+{
+	int err = 0;
+	int i;
+	unsigned src_pipe = MAX96724_PIPE_X;
+	unsigned phy_lane_map[MAX96724_NUM_CSI_LINKS];
+	unsigned rev;
+
+	struct max96724 *priv = dev_get_drvdata(dev);
+        struct regmap *map = priv->regmap;
+	u8 src_port = max96724_link_to_port(priv->src_link);
+
+	dev_dbg(dev, "%s: Clearing  %s CSI %u %s mode %s (num_lanes:x%u)\n",
+		__func__,
+		max96724_get_link_name(priv->src_link),
+		priv->dst_link,
+		priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+		priv->csi_mode == MAX96724_CSI_MODE_1X4 || MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
+		priv->dst_n_lanes);
+
+	mutex_lock(&priv->lock);
+
+	/* Reset GMSL2 links state
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_LINK_FIELD(src_port),
+		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 1U));
+	if (err) {
+		dev_err(dev, "%s: Failed to reset link: %d\n",
+			__func__,
+			err);
+		goto init_settings_out;
+	}
+
+	msleep(1);	// delay to settle link
+
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
+		MAX96724_RESET_LINK_FIELD(src_port),
+		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(src_port), 0U));
+	if (err) {
+		dev_err(dev, "%s: Failed to reset link: %d\n",
+			__func__,
+			err);
+		goto init_settings_out;
+	}
+	msleep(100);	// delay to settle link
+	*/
+
+	for (i = 0; i < MAX96724_MAX_PIPES; i++) {
+		dev_dbg(dev, "%s: enable %s link to Video pipe %d",
+			__func__,
+			max96724_get_link_name(priv->src_link),
+			i);
+
+		err |= __max96724_set_pipe_d4xx(dev, i, GMSL_CSI_DT_YUV422_8,
+							GMSL_CSI_DT_EMBED, i, priv->dst_link);
+	}
+	if (err) {
+		dev_err(dev, "%s: Failed to configure %s link to Video pipes : %d\n",
+			__func__,
+			max96724_get_link_name(priv->src_link),
+			err);
+		goto init_settings_out;
+	}
+
         /* Reset all GMSL links after configuration (matches script line 508)
          * Reference script does this AFTER all serializer config and BEFORE CSI enable:
          *   1. Restore all links (0x0006 = 0xFF)
@@ -1856,102 +1963,6 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 		dev_err(dev, "%s: Failed to reset all links: %d\n",
 			__func__, err);
         */
-
-        /* CRITICAL: DO NOT enable CSI_OUT_EN (0x040b) here!
-         *
-         * Reference script shows CSI should be enabled LAST, after:
-         * 1. All MAX967xx configuration complete
-         * 2. GMSL link is locked
-         * 3. Sensor is streaming valid data
-         *
-         * IPU behavior is CORRECT:
-         * - Firmware waits for initial capture BEFORE calling s_stream
-         * - This ensures IPU is ready to receive data
-         * - CSI should only output when sensor has valid data ready
-         *
-         * We enable CSI in s_stream AFTER sensor stream-on succeeds.
-         */
-
-	return err;
-}
-
-int max96724_init_settings(struct device *dev)
-{
-	int err = 0;
-	int i;
-	unsigned src_pipe = MAX96724_PIPE_X;
-	unsigned phy_lane_map[MAX96724_NUM_CSI_LINKS];
-	unsigned rev;
-
-	struct max96724 *priv = dev_get_drvdata(dev);
-        struct regmap *map = priv->regmap;
-	u8 src_port = max96724_link_to_port(priv->src_link);
-
-	dev_dbg(dev, "%s: Clearing  %s CSI %u %s mode %s (num_lanes:x%u)\n",
-		__func__,
-		max96724_get_link_name(priv->src_link),
-		priv->dst_link,
-		priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-		priv->csi_mode == MAX96724_CSI_MODE_1X4 || MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
-		priv->dst_n_lanes);
-
-	mutex_lock(&priv->lock);
-
-	/* Reset GMSL2 links state
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_LINK_FIELD(0)
-		| MAX96724_RESET_LINK_FIELD(1)
-		| MAX96724_RESET_LINK_FIELD(2)
-		| MAX96724_RESET_LINK_FIELD(3),
-		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(0), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(1), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(2), 1U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(3), 1U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset link: %d\n",
-			__func__,
-			err);
-		goto init_settings_out;
-	}
-
-	msleep(1);	// delay to settle link
-
-	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_RESET_CTRL_ADDR,
-		MAX96724_RESET_LINK_FIELD(0)
-		| MAX96724_RESET_LINK_FIELD(1)
-		| MAX96724_RESET_LINK_FIELD(2)
-		| MAX96724_RESET_LINK_FIELD(3),
-		MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(0), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(1), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(2), 0U)
-		| MAX96724_FIELD_PREP(MAX96724_RESET_LINK_FIELD(3), 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset link: %d\n",
-			__func__,
-			err);
-		goto init_settings_out;
-	}
-	msleep(100);	// delay to settle link
-	*/
-
-	for (i = 0; i < MAX96724_MAX_PIPES; i++) {
-		dev_dbg(dev, "%s: enable %s link to Video pipe %d",
-			__func__,
-			max96724_get_link_name(priv->src_link),
-			i);
-
-		err |= __max96724_set_pipe_d4xx(dev, i, GMSL_CSI_DT_YUV422_8,
-							GMSL_CSI_DT_EMBED, i, priv->dst_link);
-	}
-	if (err) {
-		dev_err(dev, "%s: Failed to configure %s link to Video pipes : %d\n",
-			__func__,
-			max96724_get_link_name(priv->src_link),
-			err);
-		goto init_settings_out;
-	}
-
-	//msleep(300);  // Wait after pipe configuration
 
 	/* Configure MIPI D-PHY/C-PHY
 	 * These registers configure the MIPI physical layer for CSI-2 output
@@ -2030,7 +2041,6 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 	struct max96724 *priv = dev_get_drvdata(dev);
 	unsigned src_pipe = MAX96724_PIPE_X;
 	unsigned rev;
-        struct regmap *map = priv->regmap;
 	int err = 0;
 	u8 src_port = max96724_link_to_port(priv->src_link);
 
@@ -2058,6 +2068,69 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 
 
 	err = __max96724_set_pipe_d4xx(dev, pipe_id, data_type1, data_type2, vc_id, priv->dst_link);
+
+        /* CRITICAL: DO NOT enable CSI_OUT_EN (0x040b) here!
+         *
+         * Reference script shows CSI should be enabled LAST, after:
+         * 1. All MAX967xx configuration complete
+         * 2. GMSL link is locked
+         * 3. Sensor is streaming valid data
+         *
+         * IPU behavior is CORRECT:
+         * - Firmware waits for initial capture BEFORE calling s_stream
+         * - This ensures IPU is ready to receive data
+         * - CSI should only output when sensor has valid data ready
+         *
+         * We enable CSI in s_stream AFTER sensor stream-on succeeds.
+	dev_info(dev, "%s: Wake-up %s CSI %u %s mode %s (num_lanes:x%u)\n",
+		__func__,
+		max96724_get_link_name(priv->src_link),
+		priv->dst_link,
+		priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+		priv->csi_mode == MAX96724_CSI_MODE_1X4 || MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
+		priv->dst_n_lanes);
+
+	// Enable MIPI TX controller and enable PHY CLK cycle
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_MIPI_TX_LANE_CNT(priv->dst_link),
+		MAX96724_MIPI_TX_WAKEUP_CYC_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_MIPI_TX_WAKEUP_CYC_FIELD, 1U));
+	if (err) {
+		dev_err(dev, "%s: Failed to configure CSI %u %s wakeup cycles: %d\n",
+			__func__,
+			priv->dst_link,
+			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+			err);
+	}
+
+	// enable CSI out link after initialization complet
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
+		MAX96724_CSI_OUT_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 1U));
+	if (err) {
+		dev_err(dev, "%s: Failed to enable csi output link: %d\n",
+			__func__,
+			err);
+	}
+
+	// Turn on MIPI PHY continuous clock mode
+	err = MAX96724_UPDATE_BITS(priv->regmap, MAX96724_MIPI_PHY0,
+		MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD,
+		MAX96724_FIELD_PREP(MAX96724_MIPI_PHY0_CLK_FORCE_EN_FIELD, 1U));
+	if (err)
+		dev_err(dev, "%s: Failed to enable %s %s continuous clock  : %d\n",
+			__func__,
+			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+			priv->csi_mode == MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
+			err);
+	else
+		dev_dbg(dev, "%s: %s CSI %u %s %s (num_lanes:x%u) continuous clock mode enabled\n",
+			__func__,
+			max96724_get_link_name(priv->src_link),
+			priv->dst_link,
+			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+			priv->csi_mode == MAX96724_CSI_MODE_2X4 ? "2X4" : "4X2",
+			priv->dst_n_lanes);
+         */
 
 	/* Double-Check GMSL link status after stream start configuration */
 	{
@@ -2225,6 +2298,7 @@ static int max96724_parse_pdata(struct max96724 *priv,
 		}
 
 		priv->max_src = pdata->max_src;
+		priv->src_link = pdata->src_link;
 		if (pdata->d4xx_hacks) {
 			priv->d4xx_hacks = pdata->d4xx_hacks;
 		} else {
@@ -2233,18 +2307,20 @@ static int max96724_parse_pdata(struct max96724 *priv,
 	} else {
 		priv->csi_mode = MAX96724_CSI_MODE_2X4;
 		priv->csi_phy = MAX96724_CSI_CPHY;
+		priv->src_link = GMSL_SERDES_CSI_LINK_A;
 		priv->max_src = 1;
 		priv->reset_gpio = 0;
 		priv->vdd_cam_1v2 = NULL;
 		priv->d4xx_hacks = 0;
 	}
 
-	dev_info(&client->dev, "%s: %s Deserializer PDATA set CSI %s %s lane config (max_src=%u) \n",
+	dev_info(&client->dev, "%s: %s Deserializer PDATA set %s link (max_src=%u) to CSI %s %s lane config\n",
 		__func__,
 		pdata->d4xx_hacks ? "d4xx" : "",
+		max96724_get_link_name(priv->src_link),
+		priv->max_src,
 		priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-		priv->csi_mode == MAX96724_CSI_MODE_4X2 ? "4X2" : "2X4",
-		priv->max_src);
+		priv->csi_mode == MAX96724_CSI_MODE_4X2 ? "4X2" : "2X4");
 
 	return 0;
 }
