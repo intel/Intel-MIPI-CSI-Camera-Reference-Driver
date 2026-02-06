@@ -3480,11 +3480,12 @@ static int ds5_board_setup(struct ds5 *state)
 	int err = 0;
 	int i;
 	char suffix = pdata->suffix;
+	struct d4xx_subdev_info *spdata = &pdata->subdev_info[0];
 	char serdes_suffix[5]; /* suffix string for subdevs */
 
 #if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
         /* Derive Deser CSI link mapping  */
-        switch (serdes_suffix[0]) {
+        switch (spdata->suffix[0]) {
         case 'b':
                 state->g_ctx.serdes_csi_link = GMSL_SERDES_CSI_LINK_B;
                 break;
@@ -3589,7 +3590,6 @@ static int ds5_board_setup(struct ds5 *state)
 	 * - IPU7 both standalone or aggregated links <a|b|c|d>-<mipi port index>
 	 * - IPU6 when standalone <a|b|c|d|e|f> when aggregated <g|h|i|j|k|l|m>
 	 */
-	struct d4xx_subdev_info *spdata = &pdata->subdev_info[0];
 	if (strnlen(spdata->suffix, sizeof(spdata->suffix)) > 1) {
 		snprintf(serdes_suffix, sizeof(serdes_suffix), "%s", spdata->suffix);
 	} else if (state->aggregated) {
@@ -3657,7 +3657,7 @@ static int ds5_board_setup(struct ds5 *state)
 #if defined(CONFIG_VIDEO_D4XX_MAX96724)
 	state->g_ctx.dst_csi_port = (suffix == 'a') ? GMSL_CSI_PORT_C : GMSL_CSI_PORT_B;
 #elif defined(CONFIG_VIDEO_D4XX_MAX96712)
-	state->g_ctx.dst_csi_port = GMSL_CSI_PORT_A;
+	state->g_ctx.dst_csi_port = GMSL_CSI_PORT_B;
 #else
 	state->g_ctx.dst_csi_port = GMSL_CSI_PORT_A;
 #endif
@@ -3677,7 +3677,8 @@ static int ds5_board_setup(struct ds5 *state)
 	state->g_ctx.dst_vc = 0;
 
 #if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
-	state->g_ctx.num_csi_lanes = (state->g_ctx.csi_mode == GMSL_CSI_4X2_MODE) ? 2 : 4;
+	//state->g_ctx.num_csi_lanes = (state->g_ctx.csi_mode == GMSL_CSI_4X2_MODE) ? 2 : 4;
+	state->g_ctx.num_csi_lanes = 2;
 #else
 	state->g_ctx.num_csi_lanes = 2;
 #endif
