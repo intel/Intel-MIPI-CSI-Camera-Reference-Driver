@@ -56,11 +56,11 @@ This document provides configuration details for **ar0234** sensor. The table be
 ####  IPU6EPMTL Configuration
 
 1. Import the files from ipu6/ below to `/etc/camera/ipu6epmtl/sensor`
-   - ar0234-1.xml
+   - ar0234-1-mipi.xml
 
 2. Append the new sensors into `/etc/camera/ipu6epmtl/libcamhal_profile.xml`
    ```xml
-   <availableSensors value="...,ar0234-1-0"/>
+   <availableSensors value="...,ar0234-1-mipi-0"/>
    ```
 
 3. AR0234 is a raw sensor, therefore it has dependencies on these files below. They can be installed and deployed from https://github.com/intel/ipu6-camera-hal.
