@@ -52,7 +52,7 @@ KBUILD_EXTRA_SYMBOLS += $(M)/$(KERNEL_SUBVERSION)/drivers/media/v4l2-core/Module
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 
 ccflags-y := -I$(src)/include
-ifeq ($(KERNEL_EQ_6_17),1)
+
 # IPU7 driver configs
 export CONFIG_VIDEO_INTEL_IPU7=m
 
@@ -60,7 +60,7 @@ subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU7
 
 # Build IPU7 drivers from submodule
 obj-m += ipu7-drivers/drivers/media/pci/intel/ipu7/
-else ifeq ($(KERNEL_EQ_6_12),1)
+
 # IPU6 driver configs
 export CONFIG_VIDEO_INTEL_IPU6=m
 export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
@@ -69,7 +69,6 @@ subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU6
 
 # Build IPU6 drivers from submodule
 obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
-endif
 
 obj-m += drivers/media/pci/intel/
 obj-y += drivers/media/platform/intel/
