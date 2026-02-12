@@ -3,7 +3,8 @@
 
 KERNELRELEASE ?= $(shell uname -r)
 KERNEL_SRC ?= /lib/modules/$(KERNELRELEASE)/build
-KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
+# Select extracted kernel tree based on running kernel
+KERNEL_MEDIA_TREE := $(shell echo $(KERNELRELEASE) | cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
 BUILD_EXCLUSIVE_KERNEL="^(6\.(1[278])\.)"
 
 MODSRC := $(shell pwd)
@@ -87,7 +88,6 @@ subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 
 ccflags-y := -I$(src)/include
-ifneq (,$(filter 1,$(KERNEL_EQ_6_17) $(KERNEL_EQ_6_18) $(KERNEL_EQ_7_0)))
 # IPU7 driver configs
 export CONFIG_VIDEO_INTEL_IPU7=m
 export CONFIG_VIDEO_INTEL_IPU7_ISYS_RESET=y
@@ -105,15 +105,6 @@ obj-$(CONFIG_VIDEO_INTEL_IPU7) += ipu7-drivers/drivers/media/pci/intel/ipu7/
 # Build IPU6 drivers from submodule
 obj-$(CONFIG_VIDEO_INTEL_IPU6) += ipu6-drivers/drivers/media/pci/intel/ipu6/
 
-# Select extracted kernel tree based on running kernel
-ifeq ($(KERNEL_EQ_7_0),1)
-KERNEL_MEDIA_TREE := 7.0.0
-else ifeq ($(KERNEL_EQ_6_18),1)
-KERNEL_MEDIA_TREE := 6.18.0
-else
-KERNEL_MEDIA_TREE := 6.17.0
-endif
-
 # Build V4L2 core module
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/v4l2-core/
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/mc/
@@ -121,21 +112,6 @@ LINUXINCLUDE := -I$(src)/$(KERNEL_MEDIA_TREE)/include/uapi -I$(src)/$(KERNEL_MED
 
 # Build ipu-bridge module
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/pci/intel/
-
-else ifeq ($(KERNEL_EQ_6_12),1)
-# IPU6 driver configs
-export CONFIG_VIDEO_INTEL_IPU6=m
-export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
-
-subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU6
-
-# Build IPU6 drivers from submodule
-obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
-
-# Build ipu-bridge module
-obj-m += 6.12.0/drivers/media/pci/intel/
-
-endif
 
 obj-y += drivers/media/platform/intel/
 obj-m += drivers/media/i2c/
