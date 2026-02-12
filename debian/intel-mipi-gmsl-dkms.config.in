@@ -1,0 +1,95 @@
+#!/bin/bash
+# inspired by http://www.fifi.org/doc/debconf-doc/tutorial.html
+
+# Exit on error
+set -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+db_version 2.0
+
+# This conf script is capable of backing up
+#db_capb backup
+
+declare -A BOARDS=@boardlist@
+declare -A SCENARIOS=@scenarios@
+STATE="max9x"
+
+#db_settitle intel-mipi-gmsl-dkms serdes-user-configuration
+
+while [ "$STATE" != "quit" -a "$STATE" != "done" ]; do
+    case "$STATE" in
+            max9x)
+		# query max9x
+		db_input critical intel-mipi-gmsl-dkms/max9x || true
+	        if db_go; then
+		    db_set intel-mipi-gmsl-dkms/acpi-ssdt-camera grub_ssdt_overlay
+		    STATE="serdes"
+		else
+		    db_set intel-mipi-gmsl-dkms/acpi-ssdt-camera ipu_acpi_pdata
+		    STATE="done"
+		fi
+		;;
+            serdes)
+		# query serdes
+		db_get intel-mipi-gmsl-dkms/max9x 
+	        if [ "$RET" = "maxim-serdes" ]; then
+		    STATE="board"
+		else
+		    STATE="done"
+		fi
+		;;
+            board)
+		# query ipu pciid
+		PCI_ID=$(lspci | grep "Multimedia controller: Intel Corporation Device" | cut -d " " -f 1)
+		DESC=$(lspci -s $PCI_ID -nnmmv | grep ^Device)
+		case "$DESC" in
+		    #drivers/media/pci/intel/ipu7/ipu7.h
+		    *d719*)
+			IPU=ipu8
+			;;
+		    #drivers/media/pci/intel/ipu7/ipu7.h
+		    *645d*|*b05d*)
+			IPU=ipu7
+			;;
+		    #drivers/media/pci/intel/ipu.h
+		    *7d19*|*a75d*|*462e*|*465d*|*4e19*|*9a19*)
+			NIC_TYPE=ipu6
+			;;
+		    *)
+			NIC_TYPE=@defaultipu@
+			;;
+		esac
+		db_set intel-mipi-gmsl-dkms/ipu ${IPU}
+
+		# query board
+		db_subst intel-mipi-gmsl-dkms/board ipuextended "${IPU}"
+		db_subst intel-mipi-gmsl-dkms/board boardlist "${BOARDS[${IPU}]}"
+		db_input critical intel-mipi-gmsl-dkms/board || true
+		if db_go; then
+		    db_get intel-mipi-gmsl-dkms/board
+	            if [ "$RET" = "custom-board" ]; then
+			STATE="done"
+		    else
+			STATE="sensor"
+		    fi
+		else
+                    STATE="quit"
+		fi
+		;;
+            sensor)
+		db_get intel-mipi-gmsl-dkms/ipu
+		IPU=${RET}
+		db_get intel-mipi-gmsl-dkms/board
+		BOARD=${RET}
+		db_subst intel-mipi-gmsl-dkms/sensor boardextended "${BOARD}"
+		db_subst intel-mipi-gmsl-dkms/sensor sensorlist "${SCENARIOS[${IPU}_${BOARD}]}"
+		db_input critical intel-mipi-gmsl-dkms/sensor || true
+		if db_go; then
+                    STATE="done"
+		else
+                    STATE="board"
+		fi
+		;;
+    esac
+done

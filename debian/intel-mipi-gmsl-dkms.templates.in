@@ -1,0 +1,31 @@
+Template: intel-mipi-gmsl-dkms/max9x
+Type: select
+Choices: @marchlist@
+Default: @marchdefault@
+Description: Select  GMSL2 Serializer-Deserializer ACPI type [defaut:@marchdefault@]
+ probe GMSL2 kernel drivers on Camera ACPI device either for @marchlist@.
+
+Template: intel-mipi-gmsl-dkms/acpi-ssdt-camera
+Type: select
+Choices: @pdatalist@
+Default: @pdatadefault@
+Description: Select ACPI Camera Platform Data (PDATA) type [defaut:@pdatadefault@]
+ with compile options either for @pdatalist@.
+
+Template: intel-mipi-gmsl-dkms/ipu
+Type: select
+Choices: @ipulist@
+Default: @defaultipu@
+Description: Select Intel IPU [defaut:@defaultipu@] SSDT-overlays.
+
+Template: intel-mipi-gmsl-dkms/board
+Type: select
+Choices: ${boardlist}
+Default: @defaultmaximserdes@
+Description: Select ${ipuextended}-to-deserializer [defaut:@defaultmaximserdes@] ACPI devices SSDT-overlays.
+
+Template: intel-mipi-gmsl-dkms/sensor
+Type: select
+Choices: ${sensorlist}
+Default: @defaultsensor@
+Description: Select ${boardextended}-to-sensor [defaut:@defaultsensor@] ACPI devices SSDT-overlays.

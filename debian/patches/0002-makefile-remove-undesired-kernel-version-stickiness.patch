@@ -1,0 +1,65 @@
+From f358022f5facc75883fbacdb000b17aebfc774ed Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Thu, 12 Feb 2026 02:07:09 -0700
+Subject: [PATCH 2/2] makefile : remove undesired kernel version stickiness
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ Makefile | 27 ++-------------------------
+ 1 file changed, 2 insertions(+), 25 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 7e55115..ec40d71 100644
+--- a/Makefile
++++ b/Makefile
+@@ -3,7 +3,8 @@
+ 
+ KERNELRELEASE ?= $(shell uname -r)
+ KERNEL_SRC ?= /lib/modules/$(KERNELRELEASE)/build
+-KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
++# Select extracted kernel tree based on running kernel
++KERNEL_MEDIA_TREE := $(shell echo $(KERNELRELEASE) | cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
+ BUILD_EXCLUSIVE_KERNEL="^(6\.(1[278])\.)"
+ 
+ MODSRC := $(shell pwd)
+@@ -102,15 +103,6 @@ obj-$(CONFIG_VIDEO_INTEL_IPU7) += ipu7-drivers/drivers/media/pci/intel/ipu7/
+ # Build IPU6 drivers from submodule
+ obj-$(CONFIG_VIDEO_INTEL_IPU6) += ipu6-drivers/drivers/media/pci/intel/ipu6/
+ 
+-# Select extracted kernel tree based on running kernel
+-ifeq ($(KERNEL_EQ_7_0),1)
+-KERNEL_MEDIA_TREE := 7.0.0
+-else ifeq ($(KERNEL_EQ_6_18),1)
+-KERNEL_MEDIA_TREE := 6.18.0
+-else
+-KERNEL_MEDIA_TREE := 6.17.0
+-endif
+-
+ # Build V4L2 core module
+ obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/v4l2-core/
+ obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/mc/
+@@ -119,21 +111,6 @@ LINUXINCLUDE := -I$(src)/$(KERNEL_MEDIA_TREE)/include/uapi -I$(src)/$(KERNEL_MED
+ # Build ipu-bridge module
+ obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/pci/intel/
+ 
+-else ifeq ($(KERNEL_EQ_6_12),1)
+-# IPU6 driver configs
+-export CONFIG_VIDEO_INTEL_IPU6=m
+-export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
+-
+-subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU6
+-
+-# Build IPU6 drivers from submodule
+-obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
+-
+-# Build ipu-bridge module
+-obj-m += 6.12.0/drivers/media/pci/intel/
+-
+-endif
+-
+ obj-y += drivers/media/platform/intel/
+ obj-m += drivers/media/i2c/
+ 
+-- 
+2.43.0
+

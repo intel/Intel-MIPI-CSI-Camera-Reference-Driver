@@ -1,0 +1,48 @@
+From 85d71058372a3f8951f88addc745f04fb491e131 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Thu, 12 Feb 2026 01:59:58 -0700
+Subject: [PATCH 1/2] makefile : ignore lt6911* make from dpkg build
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ Makefile                   | 3 ---
+ drivers/media/i2c/Makefile | 5 +----
+ 2 files changed, 1 insertion(+), 7 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 4a9c514..7e55115 100644
+--- a/Makefile
++++ b/Makefile
+@@ -44,9 +44,6 @@ export CONFIG_VIDEO_ISX031=m
+ export CONFIG_VIDEO_IMX415=m
+ export CONFIG_VIDEO_IMX586=m
+ export CONFIG_VIDEO_MAX9X=m
+-export CONFIG_VIDEO_LT6911UXE=m
+-export CONFIG_VIDEO_LT6911UXC=m
+-export CONFIG_VIDEO_LT6911GXD=m
+ # Build IPU6 on supported kernels including 7.0.
+ export CONFIG_VIDEO_INTEL_IPU6=m
+ export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
+diff --git a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
+index ec9d78b..4b9ae5d 100644
+--- a/drivers/media/i2c/Makefile
++++ b/drivers/media/i2c/Makefile
+@@ -12,13 +12,10 @@ obj-$(CONFIG_VIDEO_AR0234) += ar0234.o
+ obj-$(CONFIG_VIDEO_AR0820) += ar0820.o
+ obj-$(CONFIG_VIDEO_AR0830) += ar0830.o
+ obj-$(CONFIG_VIDEO_ISX031) += isx031.o
+-obj-$(CONFIG_VIDEO_LT6911UXC) += lt6911uxc.o
+-obj-$(CONFIG_VIDEO_LT6911UXE) += lt6911uxe.o
+-obj-$(CONFIG_VIDEO_LT6911GXD) += lt6911gxd.o
+ obj-$(CONFIG_VIDEO_IMX415) += imx415.o
+ 
+ subdir-ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+ obj-$(CONFIG_VIDEO_MAX9X) += max9x/
+ obj-$(CONFIG_VIDEO_IMX586) += imx586.o
+ obj-$(CONFIG_VIDEO_MAXIM_SERDES) += maxim-serdes/
+-obj-$(CONFIG_VIDEO_D4XX) += d4xx.o
+\ No newline at end of file
++obj-$(CONFIG_VIDEO_D4XX) += d4xx.o
+-- 
+2.43.0
+
