@@ -7,10 +7,10 @@ SUBSYSTEM=="video4linux", ATTR{name}=="i2c-ar0234-*", RUN+="/bin/bash -c '/usr/s
 
 # TEMPORARY : Device rules for Intel RealSense MIPI devices.
 # DFU rules
-# SUBSYSTEM=="d4xx-class", KERNEL=="d4xx-dfu*", GROUP="video", MODE="0660"
+SUBSYSTEM=="d4xx-class", KERNEL=="d4xx-dfu*", GROUP="video", MODE="0660"
 
 # video links for SDK, binding for ipu7
-#SUBSYSTEM=="video4linux", ATTR{name}=="DS5 mux *", RUN+="/bin/bash -c '/usr/share/camera/rs_ipu_d457_bind.sh -n > /dev/kmsg; /usr/share/camera/rs-enum-ipu.sh -n -q > /dev/kmsg'"
+SUBSYSTEM=="video4linux", ATTR{name}=="DS5 mux *", RUN+="/bin/bash -c '/usr/share/camera/rs_ipu_d457_bind.sh -n > /dev/kmsg; /usr/share/camera/rs-enum-ipu.sh -n -q > /dev/kmsg'"
 
 # default max96724 gmsl link_freq override for PTL ipu7 DWC DPHY
 #  (e.g .used udevadm info -a -p $(udevadm info -q path -n $(media-ctl -e "i2c-isx031-a-0")) )
