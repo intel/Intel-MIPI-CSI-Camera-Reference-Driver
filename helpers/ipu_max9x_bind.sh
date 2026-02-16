@@ -124,7 +124,7 @@ declare -A media_mux_capture_pad=(
 )
 
 # all available   ISX031/IMX390/AR0234 max9x entity, each one represent physically connected camera.
-# muxes prefix a, b, c, d referes to max96724 or max9292 aggregated link cameras
+# muxes prefix a, b, c, d referes to max96724 or max9296 aggregated link cameras
 # muxes suffix 0, 1, 2, 3, 4, 5 is referes to csi2 mipi port mapping
 mux_list=${mux_param:-'a-0 b-0 c-0 d-0 a-1 b-1 c-1 d-1 a-2 b-2 c-2 d-2 a-3 b-3 c-3 d-3 a-4 b-4 c-4 d-4 a-5 b-5 c-5 d-5'}
 
@@ -149,14 +149,23 @@ media-ctl -r # <- this can be used to clean-up all bindings from media controlle
 # cache media-ctl output
 dot=$($media_ctl_cmd --print-dot)
 
+des_route=""
+csi_route=""
+des_suffix="a"
+streamid=0
 # loop over all available IMX390/ISX031/AR0234 max9x, each one represent physically connected camera.
 for camera in $mux_list; do
 	e="$(sen_node ${camera})" 
 	if [ -z "${e}" ]; then
 		continue;
 	fi
+	d="$(des_node ${camera})"
+	if [ "${des_suffix}" != "${d:6:1}" ]; then
+		des_suffix="${d:6:1}"
+		streamid=0
+	fi
 
-	[[ $quiet -eq 0 ]] && echo "Bind $cap_prefix to ${sensor} ${camera} through max9x serdes .. " >&2
+	[[ $quiet -eq 0 ]] && echo "Bind $cap_prefix to ${sensor} ${camera} through max9x ${des_suffix}  .. " >&2
 
 	csi2="$((${camera:2:1}))"
 	mux=${camera:0:1}
@@ -164,25 +173,52 @@ for camera in $mux_list; do
 	# mapping for MAX9x mux entity to IPU7|IPU6 ISYS matching entity.
 	cap_pad="${media_mux_capture_pad[${mux}]}"
 	isys_cap="$((${media_mux_capture_link[${csi2}]}+${cap_pad}))"
-	vc_id=$((${cap_pad} % 4))
 
 	out $media_ctl_cmd -l "$(des_src_pad ${camera}) -> \"Intel ${cap_prefix} CSI2 ${csi2}\":0[1]"
 	out $media_ctl_cmd -l "\"Intel ${cap_prefix} CSI2 ${csi2}\":$((${cap_pad}+1)) -> \"Intel ${cap_prefix} ISYS Capture ${isys_cap}\":0[1]"
 
 	# subdev entity '['pad-number '/' stream-number '->' pad-number '/' stream-number '[' route-flags ']' ']' ;
-	out $media_ctl_cmd -R "\"$(des_node ${camera})\"[4/0->0/0[1], 5/1->0/1[1], 6/2->0/2[1], 7/3->0/3[1]]"
-	out $media_ctl_cmd -R "\"Intel ${cap_prefix} CSI2 ${csi2}\"[0/0->1/0[1], 0/1->2/1[1], 0/2->3/2[1], 0/3->4/3[1]]"
+	if [ $streamid -eq 0 ]; then
+		des_route="$((${cap_pad} + 4))/${streamid}->0/${streamid}[1]"
+		csi_route="0/${streamid}->$((${cap_pad} + 1))/${streamid}[1]"
+	else
+		des_route=${des_route}",$((${cap_pad} + 4))/${streamid}->0/${streamid}[1]"
+		csi_route=${csi_route}",0/${streamid}->$((${cap_pad} + 1))/${streamid}[1]"
+	fi
+	out $media_ctl_cmd -R "\"$(ser_node ${camera})\"[0/0->2/${streamid}[1]]"
+	out $media_ctl_cmd -R "\"$(des_node ${camera})\"[${des_route}]"
+	out $media_ctl_cmd -R "\"Intel ${cap_prefix} CSI2 ${csi2}\"[${csi_route}]"
 
 	out $media_ctl_cmd -V "$(sen_src_pad ${camera}) ${fmt}"
 	out $media_ctl_cmd -V "$(ser_sink_pad ${camera}) ${fmt}"
-	out $media_ctl_cmd -V "$(ser_src_pad ${camera}) ${fmt}"
-	out $media_ctl_cmd -V "$(des_sink_pad ${camera})/${vc_id} ${fmt}"
-	out $media_ctl_cmd -V "$(des_src_pad ${camera})/${vc_id} ${fmt}"
+	out $media_ctl_cmd -V "$(ser_src_pad ${camera})/${streamid} ${fmt}"
+	out $media_ctl_cmd -V "$(des_sink_pad ${camera})/${streamid} ${fmt}"
+	out $media_ctl_cmd -V "$(des_src_pad ${camera})/${streamid} ${fmt}"
 
-	out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/${vc_id} ${fmt}"
-	out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":$((${cap_pad}+1))/${vc_id} ${fmt}"
+	out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/${streamid} ${fmt}"
+	out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":$((${cap_pad}+1))/${streamid} ${fmt}"
 
 	cap_dev=$($media_ctl_cmd -e "Intel ${cap_prefix} ISYS Capture ${isys_cap}")
-	out ln -snf ${cap_dev} /dev/video-${sensor}-${camera}
+	dev_ln="/dev/video-${sensor}-${camera}"
+	out ln -snf ${cap_dev} ${dev_ln}
 
+	# set default v4l2 fmt value
+if [ ${sensor} = "isx031" ]; then
+	out ${v4l2_util} -d ${dev_ln} --set-fmt-video=width=1920,height=1536,pixelformat=UYVY
+elif [ ${sensor} = "imx390" ]; then
+	out ${v4l2_util} -d ${dev_ln} --set-fmt-video=width=1920,height=1200,pixelformat=NV12
+elif [ ${sensor} = "ar0234" ]; then
+	out ${v4l2_util} -d ${dev_ln} --set-fmt-video=width=1280,height=960,pixelformat=NV12
+fi
+	# disable ipu link enumeration feature
+	out ${v4l2_util} -d $dev_ln -c enumerate_graph_link=0
+
+	# change group
+	out chown root:video $cap_dev
+
+	# WA: must repeat all the v4l2 set-fmt on Intel IPU7 CSI2 2 v4l2 subdev pad 0
+	if [ $streamid -gt 0 ]; then
+		for i in $(seq 0 $streamid); do out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/$((${i})) ${fmt}"; done
+	fi
+	streamid=$(($streamid + 1))
 done
