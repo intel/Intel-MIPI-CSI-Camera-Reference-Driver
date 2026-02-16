@@ -1584,11 +1584,36 @@ static int max9x_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 
 		struct media_pad *remote_pad = media_pad_remote_pad_first(
 			&common->v4l.pads[route->sink_pad]);
+		if (!remote_pad)
+			continue;
+
 		struct v4l2_mbus_frame_desc source_desc;
 
-		ret = v4l2_subdev_call(
-			media_entity_to_v4l2_subdev(remote_pad->entity), pad,
-			get_frame_desc, remote_pad->index, &source_desc);
+		/* v4l2_subdev_call doesn't call, access directly
+		*/
+		struct v4l2_subdev *remote_sd = media_entity_to_v4l2_subdev(remote_pad->entity);
+		if (remote_sd && remote_sd->ops && remote_sd->ops->pad && remote_sd->ops->pad->get_frame_desc) {
+			ret = v4l2_subdev_call(remote_sd, pad,
+					       get_frame_desc, remote_pad->index, &source_desc);
+			if (ret) {
+				dev_warn(common->dev, "%s: sink_pad %u remote %s pad->ops->get_frame_desc failed!",
+					 __func__,
+					 route->sink_pad,
+					 remote_sd->name);
+				continue;
+			} else {
+				dev_dbg(common->dev, "%s: Retrieved sink_pad %u remote %s frame desc (num_entries:%u)",
+					__func__,
+					route->sink_pad,
+					remote_sd->name,
+					source_desc.num_entries);
+			}
+		} else {
+			dev_warn(common->dev, "%s: sink_pad %u has no remote subdev!",
+				 __func__,
+				 route->sink_pad);
+			continue;
+		}
 		if (ret) {
 			dev_err(common->dev,
 				"Failed to get sink pad %u remote frame desc!",
@@ -1622,6 +1647,15 @@ static int max9x_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 				route->sink_pad - common->num_csi_links;
 		desc->entry[desc->num_entries].bus.csi2.dt =
 			source_desc_entry->bus.csi2.dt;
+
+		dev_dbg(common->dev, "%s: %s remote pad/stream:%u/%u frame desc[%u]:vc=%u,dt=0x%x",
+			__func__,
+			remote_sd->name,
+			route->source_pad, route->source_stream,
+			desc->num_entries,
+			desc->entry[desc->num_entries].bus.csi2.vc,
+			desc->entry[desc->num_entries].bus.csi2.dt);
+
 		desc->num_entries++;
 	}
 
