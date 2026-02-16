@@ -700,10 +700,12 @@ static int set_serdes_subdev(struct ipu_isys_subdev_info **serdes_sd,
 				serdes_sdinfo[i].aggregated_link = 0;
 				serdes_suffix = (*pdata)->suffix;
 			}
+			snprintf(serdes_sdinfo[i].suffix, sizeof(serdes_sdinfo[i].suffix), "%c-%d",
+				 SUFFIX_BASE + i + (*pdata)->des_port , port);
 		} else {
 			if (i >= 1) {
 				serdes_sdinfo[i].aggregated_link = i;
-				serdes_suffix = (*pdata)->suffix + SUFFIX_BASE_OFFSET + i;
+				serdes_suffix = (*pdata)->suffix + i;
 				pr_info("IPU ACPI: Add %s %cnamespacing on aggregated-link sensors %d",
 					sensor_name,
 					serdes_suffix,
@@ -712,10 +714,9 @@ static int set_serdes_subdev(struct ipu_isys_subdev_info **serdes_sd,
 				serdes_sdinfo[i].aggregated_link = 0;
 				serdes_suffix = (*pdata)->suffix;
 			}
+			snprintf(serdes_sdinfo[i].suffix, sizeof(serdes_sdinfo[i].suffix), "%c-%d",
+				 SUFFIX_BASE + i, port);
 		}
-	        snprintf(serdes_sdinfo[i].suffix, sizeof(serdes_sdinfo[i].suffix), "%c-%d",
-			 SUFFIX_BASE + i + (*pdata)->des_port , port);
-
 #else
 	        snprintf(serdes_sdinfo[i].suffix, sizeof(serdes_sdinfo[i].suffix), "%c-%d",
 			 SUFFIX_BASE + i, port);
