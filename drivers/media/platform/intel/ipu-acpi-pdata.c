@@ -721,7 +721,10 @@ static int set_serdes_subdev(struct ipu_isys_subdev_info **serdes_sd,
 	        snprintf(serdes_sdinfo[i].suffix, sizeof(serdes_sdinfo[i].suffix), "%c-%d",
 			 SUFFIX_BASE + i, port);
 #endif
-		serdes_sdinfo[i].ser_phys_addr = 0x40;
+		if (!strcmp(hid_name, "OBISX031"))
+			serdes_sdinfo[i].ser_phys_addr = 0x62;
+		else
+			serdes_sdinfo[i].ser_phys_addr = 0x40;
 		serdes_sdinfo[i].sensor_dt = 0x1e;
 	}
 

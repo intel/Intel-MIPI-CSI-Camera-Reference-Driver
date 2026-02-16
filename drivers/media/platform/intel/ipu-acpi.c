@@ -62,6 +62,8 @@ static const struct ipu_acpi_devices supported_devices[] = {
 #if IS_ENABLED(CONFIG_VIDEO_ISX031)
 	{ "INTC031M", ISX031_NAME, get_sensor_pdata, NULL, 0, TYPE_SERDES, "max9x",
 		ISX031_I2C_ADDRESS, 1600 },	// D3 ISX031 HID
+	{ "OBISX031", ISX031_NAME, get_sensor_pdata, NULL, 0, TYPE_SERDES, "max9x",
+		ISX031_I2C_ADDRESS, 1600 },	// OTOCAM269 ISX031 HID
 #endif
 #endif
 #if IS_ENABLED(CONFIG_VIDEO_D4XX)
@@ -92,6 +94,7 @@ static const struct acpi_device_id ipu_acpi_match[] = {
 #if IS_ENABLED(CONFIG_VIDEO_ISX031)
 	{ "INTC1031", 0 },	// ISX031 HID
 	{ "INTC031M", 0 },	// D3CMC68N-115-084 ISX031 HID
+	{ "OBISX031", 0 },	// OTOCAM269 ISX031 HID
 #endif
 #if IS_ENABLED(CONFIG_VIDEO_D4XX)
 	{ "INTC10CD", 0 },	// D457 HID
