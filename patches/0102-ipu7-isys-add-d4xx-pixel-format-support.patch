@@ -1,0 +1,137 @@
+From 0343b38d731c33798a8b2ae1cc321d4984b09174 Mon Sep 17 00:00:00 2001
+From: Florent Pirou <florent.pirou@intel.com>
+Date: Sat, 17 Jan 2026 02:08:28 -0700
+Subject: [PATCH 102/104] ipu7-isys : add d4xx pixel format support
+
+Signed-off-by: Florent Pirou <florent.pirou@intel.com>
+---
+ .../media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h       |  1 +
+ .../drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c     |  3 +++
+ .../drivers/media/pci/intel/ipu7/ipu7-isys-subdev.c   |  5 ++++-
+ .../drivers/media/pci/intel/ipu7/ipu7-isys-video.c    | 11 +++++++++++
+ ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h |  4 ++--
+ 5 files changed, 21 insertions(+), 3 deletions(-)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
+index dc63449..9abf8d1 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
+@@ -125,6 +125,7 @@ enum ipu7_insys_frame_format_type {
+ 	IPU_INSYS_FRAME_FORMAT_ARGB888 = 31,
+ 	IPU_INSYS_FRAME_FORMAT_BGRA888 = 32,
+ 	IPU_INSYS_FRAME_FORMAT_ABGR888 = 33,
++	IPU_INSYS_FRAME_FORMAT_VYUY = 34,
+ 	N_IPU_INSYS_FRAME_FORMAT
+ };
+ 
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
+index 0c931a7..88b12f5 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
+@@ -28,11 +28,13 @@
+ #include "ipu7-isys-csi-phy.h"
+ 
+ static const u32 csi2_supported_codes[] = {
++	MEDIA_BUS_FMT_Y8_1X8,
+ 	MEDIA_BUS_FMT_Y10_1X10,
+ 	MEDIA_BUS_FMT_RGB565_1X16,
+ 	MEDIA_BUS_FMT_RGB888_1X24,
+ 	MEDIA_BUS_FMT_UYVY8_1X16,
+ 	MEDIA_BUS_FMT_YUYV8_1X16,
++	MEDIA_BUS_FMT_VYUY8_1X16,
+ 	MEDIA_BUS_FMT_YUYV10_1X20,
+ 	MEDIA_BUS_FMT_SBGGR10_1X10,
+ 	MEDIA_BUS_FMT_SGBRG10_1X10,
+@@ -46,6 +48,7 @@ static const u32 csi2_supported_codes[] = {
+ 	MEDIA_BUS_FMT_SGBRG8_1X8,
+ 	MEDIA_BUS_FMT_SGRBG8_1X8,
+ 	MEDIA_BUS_FMT_SRGGB8_1X8,
++	MEDIA_BUS_FMT_FIXED,
+ 	0,
+ };
+ 
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-subdev.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-subdev.c
+index 98b6ef6..45be983 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-subdev.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-subdev.c
+@@ -19,6 +19,7 @@
+ #include "ipu7-isys.h"
+ #include "ipu7-isys-subdev.h"
+ 
++
+ unsigned int ipu7_isys_mbus_code_to_mipi(u32 code)
+ {
+ 	switch (code) {
+@@ -30,13 +31,14 @@ unsigned int ipu7_isys_mbus_code_to_mipi(u32 code)
+ 		return MIPI_CSI2_DT_YUV422_10B;
+ 	case MEDIA_BUS_FMT_UYVY8_1X16:
+ 	case MEDIA_BUS_FMT_YUYV8_1X16:
++	case MEDIA_BUS_FMT_Y10_1X10:
++	case MEDIA_BUS_FMT_VYUY8_1X16:
+ 		return MIPI_CSI2_DT_YUV422_8B;
+ 	case MEDIA_BUS_FMT_SBGGR12_1X12:
+ 	case MEDIA_BUS_FMT_SGBRG12_1X12:
+ 	case MEDIA_BUS_FMT_SGRBG12_1X12:
+ 	case MEDIA_BUS_FMT_SRGGB12_1X12:
+ 		return MIPI_CSI2_DT_RAW12;
+-	case MEDIA_BUS_FMT_Y10_1X10:
+ 	case MEDIA_BUS_FMT_SBGGR10_1X10:
+ 	case MEDIA_BUS_FMT_SGBRG10_1X10:
+ 	case MEDIA_BUS_FMT_SGRBG10_1X10:
+@@ -46,6 +48,7 @@ unsigned int ipu7_isys_mbus_code_to_mipi(u32 code)
+ 	case MEDIA_BUS_FMT_SGBRG8_1X8:
+ 	case MEDIA_BUS_FMT_SGRBG8_1X8:
+ 	case MEDIA_BUS_FMT_SRGGB8_1X8:
++	case MEDIA_BUS_FMT_Y8_1X8:
+ 		return MIPI_CSI2_DT_RAW8;
+ 	default:
+ 		WARN_ON(1);
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
+index de3ebf9..5526074 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
+@@ -41,6 +41,14 @@
+ #include "ipu7-platform-regs.h"
+ 
+ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
++	{ V4L2_PIX_FMT_GREY, 8, 8, MEDIA_BUS_FMT_Y8_1X8,
++	 IPU_INSYS_FRAME_FORMAT_RAW8 },
++	{ V4L2_PIX_FMT_Y10, 16, 10, MEDIA_BUS_FMT_Y10_1X10,
++	 IPU_INSYS_FRAME_FORMAT_RAW16 },
++	{ V4L2_PIX_FMT_Y8I, 16, 16, MEDIA_BUS_FMT_VYUY8_1X16,
++	 IPU_INSYS_FRAME_FORMAT_YUYV},
++	{ V4L2_PIX_FMT_Z16, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
++	 IPU_INSYS_FRAME_FORMAT_UYVY},
+ 	{V4L2_PIX_FMT_SBGGR12, 16, 12, MEDIA_BUS_FMT_SBGGR12_1X12,
+ 	 IPU_INSYS_FRAME_FORMAT_RAW16},
+ 	{V4L2_PIX_FMT_SGBRG12, 16, 12, MEDIA_BUS_FMT_SGBRG12_1X12,
+@@ -87,8 +95,11 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
+ 	 IPU_INSYS_FRAME_FORMAT_YUYV},
+ 	{V4L2_PIX_FMT_RGB565, 16, 16, MEDIA_BUS_FMT_RGB565_1X16,
+ 	 IPU_INSYS_FRAME_FORMAT_RGB565},
++	{V4L2_PIX_FMT_Y12I, 32, 24, MEDIA_BUS_FMT_RGB888_1X24,
++	 IPU_INSYS_FRAME_FORMAT_RGBA888},
+ 	{V4L2_PIX_FMT_BGR24, 24, 24, MEDIA_BUS_FMT_RGB888_1X24,
+ 	 IPU_INSYS_FRAME_FORMAT_RGBA888},
++	{V4L2_META_FMT_D4XX, 8, 8, MEDIA_BUS_FMT_FIXED, 0},
+ };
+ 
+ static int video_open(struct file *file)
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
+index 2e45258..19eea94 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
+@@ -43,8 +43,8 @@ struct dentry;
+ #define IPU_ISYS_SIZE_SEND_QUEUE	40U
+ #define IPU_ISYS_NUM_RECV_QUEUE		1U
+ 
+-#define IPU_ISYS_MIN_WIDTH		2U
+-#define IPU_ISYS_MIN_HEIGHT		2U
++#define IPU_ISYS_MIN_WIDTH		1U
++#define IPU_ISYS_MIN_HEIGHT		1U
+ #define IPU_ISYS_MAX_WIDTH		8160U
+ #define IPU_ISYS_MAX_HEIGHT		8190U
+ 
+-- 
+2.43.0
+
