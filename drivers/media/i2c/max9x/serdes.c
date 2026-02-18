@@ -377,6 +377,12 @@ static void *parse_serdes_pdata(struct device *dev)
 	do {
 		struct max9x_csi_link_pdata *csi_link = &des_pdata->csi_links[0];
 
+		dev_dbg(dev, "%s: DESERIALIZER CSI link %u enable %s x%u-lanes map",
+			__func__,
+			csi_port,
+			serdes_pdata->bus_type == V4L2_MBUS_CSI2_CPHY ? "CPHY" : "DPHY",
+			serdes_pdata->deser_nlanes);
+
 		csi_link->link_id = csi_port;
 		csi_link->bus_type = serdes_pdata->bus_type;
 		csi_link->num_lanes = serdes_pdata->deser_nlanes;
@@ -2440,6 +2446,15 @@ static int max9x_parse_csi_link_pdata(struct max9x_common *common,
 	if (csi_link->config.auto_init_deskew_enabled)
 		csi_link->config.initial_deskew_width = csi_link_pdata->initial_deskew_width;
 	csi_link->config.auto_start = csi_link_pdata->auto_start;
+
+	dev_dbg(common->dev, "%s: CSI link %u (%s x%u-lanes) to des_pdata[0..3]=%u, %u, %u, %u", __func__,
+		csi_link_id,
+		csi_link->config.bus_type == V4L2_MBUS_CSI2_CPHY ? "CPHY" : "DPHY",
+		csi_link_pdata->num_lanes,
+		(&common->csi_link[0])->config.num_lanes,
+		(&common->csi_link[1])->config.num_lanes,
+		(&common->csi_link[2])->config.num_lanes,
+		(&common->csi_link[3])->config.num_lanes);
 
 	return 0;
 }
