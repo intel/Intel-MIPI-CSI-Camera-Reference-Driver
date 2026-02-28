@@ -43,6 +43,7 @@ export CONFIG_VIDEO_MAXIM_SERDES=m
 export CONFIG_VIDEO_MAX96717=m
 export CONFIG_VIDEO_MAX96724=m
 export CONFIG_VIDEO_MAX9296A=m
+export CONFIG_MEDIA_CONTROLLER=m
 
 # Define config macros for conditional compilation in ipu-acpi.c
 # IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE
@@ -89,6 +90,8 @@ endif
 
 # Build V4L2 core module
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/v4l2-core/
+obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/mc/
+LINUXINCLUDE := -I$(src)/$(KERNEL_MEDIA_TREE)/include/uapi -I$(src)/$(KERNEL_MEDIA_TREE)/include $(LINUXINCLUDE)
 
 # Build ipu-bridge module
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/pci/intel/
