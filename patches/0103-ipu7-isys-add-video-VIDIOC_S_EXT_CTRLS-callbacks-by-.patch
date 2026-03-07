@@ -1,4 +1,4 @@
-From 5c8d152497817a55b4e2903a90ce7f821f77bea8 Mon Sep 17 00:00:00 2001
+From 56b14f395661f923b759f42c4ffbaa708e2205d6 Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Sat, 17 Jan 2026 02:09:32 -0700
 Subject: [PATCH 103/104] ipu7-isys: add video VIDIOC_S_EXT_CTRLS callbacks by
@@ -7,19 +7,190 @@ Subject: [PATCH 103/104] ipu7-isys: add video VIDIOC_S_EXT_CTRLS callbacks by
 * isys-video: add video VIDIOC_S_EXT_CTRLS callbacks by streamid
 * isys-csi: add graph walk subdev to get frame desc by streamid
 * isys-csi: add graph walk subdev to enable/disable streams by streamid
+* isys-csi-phy: add graph walk subdev to enable/disable streams by streamid
 
 Signed-off-by: florent pirou <florent.pirou@intel.com>
 ---
- .../media/pci/intel/ipu7/ipu7-isys-csi2.c     | 314 ++++++++-
- .../media/pci/intel/ipu7/ipu7-isys-csi2.h     |   7 +
- .../pci/intel/ipu7/ipu7-isys-video-ext.h      |  41 ++
+ .../media/pci/intel/ipu7/ipu7-isys-csi-phy.c  |  85 ++-
+ .../media/pci/intel/ipu7/ipu7-isys-csi-phy.h  |   4 +
+ .../media/pci/intel/ipu7/ipu7-isys-csi2.c     | 481 +++++++++++++-
+ .../media/pci/intel/ipu7/ipu7-isys-csi2.h     |  11 +
+ .../pci/intel/ipu7/ipu7-isys-video-ext.h      |  44 ++
  .../media/pci/intel/ipu7/ipu7-isys-video.c    | 624 +++++++++++++++++-
  .../media/pci/intel/ipu7/ipu7-isys-video.h    |   4 +
- 5 files changed, 980 insertions(+), 10 deletions(-)
+ 7 files changed, 1239 insertions(+), 14 deletions(-)
  create mode 100644 ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video-ext.h
 
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c
+index 97cd47d..cc6f57f 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c
+@@ -22,6 +22,9 @@
+ #include "ipu7-isys-csi2-regs.h"
+ #include "ipu7-platform-regs.h"
+ #include "ipu7-isys-csi-phy.h"
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++#include "ipu7-isys-video-ext.h"
++#endif
+ 
+ #define PORT_A		0U
+ #define PORT_B		1U
+@@ -276,6 +279,10 @@ static int __dids_config(struct ipu7_isys_csi2 *csi2, u32 id, u8 vc, u8 dt)
+ 
+ 	dwc_csi_write(isys, id, VC_EXTENSION, 0x0);
+ 	n = find_first_zero_bit(data_ids, N_DATA_IDS);
++
++	dev_dbg(&isys->adev->auxdev.dev, "config CSI-%u with n/data_ids:%u/%p\n",
++		id, n, data_ids);
++
+ 	if (n == N_DATA_IDS)
+ 		return -ENOSPC;
+ 
+@@ -296,7 +303,17 @@ static int __dids_config(struct ipu7_isys_csi2 *csi2, u32 id, u8 vc, u8 dt)
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++/*
++ * Maximum stream ID is 63 for now, as we use u64 bitmask to represent a set
++ * of streams.
++ */
++#define CSI2_SUBDEV_MAX_STREAM_ID 63
++static int ipu7_isys_csi_ctrl_dids_config(struct ipu7_isys_csi2 *csi2, u32 id,
++					  struct v4l2_subdev_state *state, u64 streams_mask)
++#else
+ static int ipu7_isys_csi_ctrl_dids_config(struct ipu7_isys_csi2 *csi2, u32 id)
++#endif
+ {
+ 	struct v4l2_mbus_frame_desc_entry *desc_entry = NULL;
+ 	struct device *dev = &csi2->isys->adev->auxdev.dev;
+@@ -308,9 +325,52 @@ static int ipu7_isys_csi_ctrl_dids_config(struct ipu7_isys_csi2 *csi2, u32 id)
+ 
+ 	pad = media_entity_remote_source_pad_unique(&csi2->asd.sd.entity);
+ 	if (IS_ERR(pad)) {
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++		ret = ipu7_isys_csi2_walk_unique_remote_desc(state, csi2,
++							     &csi2->asd.sd.entity,
++							     &desc);
++		if (!ret) {
++
++			ret = -EINVAL;
++			for (i = 0; i < desc.num_entries; i++) {
++				desc_entry = &desc.entry[i];
++
++				dev_dbg(dev, "%s: stream:%u, mbus:%x, vc/dt:%u/%x\n",
++					__func__,
++					desc_entry->stream,
++					desc_entry->pixelcode,
++					desc_entry->bus.csi2.vc,
++					desc_entry->bus.csi2.dt);
++
++				if (desc_entry->bus.csi2.vc < IPU7_NR_OF_CSI2_VC) {
++
++					ret = __dids_config(csi2, id, desc_entry->bus.csi2.vc,
++							    desc_entry->bus.csi2.dt);
++					if (ret) {
++						dev_warn(dev, "failed to set frame descriptor: %d\n", ret);
++						continue;
++					}
++				}
++			}
++		}
++
++		if (!ret)
++			return ret;
++
++fallback:
++		pad = media_pad_remote_pad_first(&csi2->asd.sd.entity.pads[IPU7_CSI2_PAD_SINK]);
++		dev_warn(dev, "fallback on %s first remote pad\n",
++			 csi2->asd.sd.name);
++		if (IS_ERR(pad)) {
++			dev_warn(dev, "can't get first remote pad of %s (%ld)\n",
++				 csi2->asd.sd.name, PTR_ERR(pad));
++			return PTR_ERR(pad);
++		}
++#else
+ 		dev_warn(dev, "can't get remote source pad of %s (%ld)\n",
+ 			 csi2->asd.sd.name, PTR_ERR(pad));
+ 		return PTR_ERR(pad);
++#endif
+ 	}
+ 
+ 	ext_sd = media_entity_to_v4l2_subdev(pad->entity);
+@@ -329,11 +389,21 @@ static int ipu7_isys_csi_ctrl_dids_config(struct ipu7_isys_csi2 *csi2, u32 id)
+ 
+ 	for (i = 0; i < desc.num_entries; i++) {
+ 		desc_entry = &desc.entry[i];
++
++		dev_dbg(dev, "%s: stream:%u, mbus:%x, vc/dt:%u/%x\n",
++			__func__,
++			desc_entry->stream,
++			desc_entry->pixelcode,
++			desc_entry->bus.csi2.vc,
++			desc_entry->bus.csi2.dt);
++
+ 		if (desc_entry->bus.csi2.vc < IPU7_NR_OF_CSI2_VC) {
+ 			ret = __dids_config(csi2, id, desc_entry->bus.csi2.vc,
+ 					    desc_entry->bus.csi2.dt);
+-			if (ret)
++			if (ret) {
++				dev_warn(dev, "failed to set frame descriptor: %d\n", ret);
+ 				return ret;
++			}
+ 		}
+ 	}
+ 
+@@ -957,7 +1027,12 @@ static int ipu7_isys_phy_config(struct ipu7_isys *isys, u8 id, u8 lanes,
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++int ipu7_isys_csi_phy_powerup(struct ipu7_isys_csi2 *csi2,
++			      struct v4l2_subdev_state *state, u64 streams_mask)
++#else
+ int ipu7_isys_csi_phy_powerup(struct ipu7_isys_csi2 *csi2)
++#endif
+ {
+ 	struct ipu7_isys *isys = csi2->isys;
+ 	u32 lanes = csi2->nlanes;
+@@ -989,7 +1064,11 @@ int ipu7_isys_csi_phy_powerup(struct ipu7_isys_csi2 *csi2)
+ 	}
+ 
+ 	ipu7_isys_csi_ctrl_cfg(csi2);
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++	ipu7_isys_csi_ctrl_dids_config(csi2, id, state, streams_mask);
++#else
+ 	ipu7_isys_csi_ctrl_dids_config(csi2, id);
++#endif
+ 
+ 	ret = ipu7_isys_phy_config(isys, id, lanes, aggregation);
+ 	if (ret < 0)
+@@ -1038,4 +1117,8 @@ void ipu7_isys_csi_phy_powerdown(struct ipu7_isys_csi2 *csi2)
+ 	if (!is_ipu7(isys->adev->isp->hw_ver) &&
+ 	    csi2->nlanes > 2U && csi2->port == PORT_A)
+ 		ipu7_isys_csi_phy_reset(isys, PORT_B);
++
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++	bitmap_clear(data_ids, 0, N_DATA_IDS);
++#endif
+ }
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.h
+index dfdcb61..7e36837 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.h
+@@ -11,6 +11,10 @@ struct ipu7_isys;
+ #define PHY_MODE_DPHY		0U
+ #define PHY_MODE_CPHY		1U
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++int ipu7_isys_csi_phy_powerup(struct ipu7_isys_csi2 *csi2, struct v4l2_subdev_state *state, u64 streams_mask);
++#else
+ int ipu7_isys_csi_phy_powerup(struct ipu7_isys_csi2 *csi2);
++#endif
+ void ipu7_isys_csi_phy_powerdown(struct ipu7_isys_csi2 *csi2);
+ #endif
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
-index 75be4a7..64e24fa 100644
+index 88b12f5..fc60f73 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
 @@ -26,6 +26,9 @@
@@ -32,7 +203,7 @@ index 75be4a7..64e24fa 100644
  
  static const u32 csi2_supported_codes[] = {
  	MEDIA_BUS_FMT_Y8_1X8,
-@@ -56,15 +59,29 @@ static const u32 csi2_supported_codes[] = {
+@@ -56,39 +59,65 @@ static const u32 csi2_supported_codes[] = {
  s64 ipu7_isys_csi2_get_link_freq(struct ipu7_isys_csi2 *csi2)
  {
  	struct media_pad *src_pad;
@@ -67,16 +238,72 @@ index 75be4a7..64e24fa 100644
  	return v4l2_get_link_freq(src_pad, 0, 0);
  }
  #else
-@@ -78,7 +95,7 @@ s64 ipu7_isys_csi2_get_link_freq(struct ipu7_isys_csi2 *csi2)
+ s64 ipu7_isys_csi2_get_link_freq(struct ipu7_isys_csi2 *csi2)
+ {
+ 	struct media_pad *src_pad;
++	struct v4l2_subdev_state *s_state;
+ 	struct v4l2_subdev *ext_sd;
+ 	struct device *dev;
++	int ret = -EPIPE;
+ 
+ 	if (!csi2)
  		return -EINVAL;
  
++	s_state = v4l2_subdev_get_unlocked_active_state(&csi2->asd.sd);
++	if (!s_state)
++		return ret;
++
  	dev = &csi2->isys->adev->auxdev.dev;
 -	src_pad = media_entity_remote_source_pad_unique(&csi2->asd.sd.entity);
-+	//src_pad = media_entity_remote_source_pad_unique(&csi2->asd.sd.entity);
++	src_pad = media_pad_remote_pad_first(&csi2->asd.sd.entity.pads[IPU7_CSI2_PAD_SINK]);
  	if (IS_ERR(src_pad)) {
- 		dev_err(dev, "can't get source pad of %s (%ld)\n",
- 			csi2->asd.sd.name, PTR_ERR(src_pad));
-@@ -309,6 +326,146 @@ static int ipu7_isys_csi2_get_sel(struct v4l2_subdev *sd,
+-		dev_err(dev, "can't get source pad of %s (%ld)\n",
+-			csi2->asd.sd.name, PTR_ERR(src_pad));
+-		return PTR_ERR(src_pad);
++		dev_err(&csi2->isys->adev->auxdev.dev,
++			"can't get source pad of %s\n",
++			csi2->asd.sd.name);
++		return -EINVAL;
+ 	}
+ 
+ 	ext_sd = media_entity_to_v4l2_subdev(src_pad->entity);
+ 	if (WARN(!ext_sd, "Failed to get subdev for %s\n", csi2->asd.sd.name))
+ 		return -ENODEV;
+ 
++	dev_dbg(&csi2->isys->adev->auxdev.dev,
++		"%s:%u ->  %s:%u\n",
++		csi2->asd.sd.name, IPU7_CSI2_PAD_SINK,
++		ext_sd->name, src_pad->index);
++
+ 	return v4l2_get_link_freq(ext_sd->ctrl_handler, 0, 0);
+ }
+ #endif
+@@ -182,7 +211,12 @@ static void ipu7_isys_csi2_disable_stream(struct ipu7_isys_csi2 *csi2)
+ 	csi2_irq_disable(csi2);
+ }
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++static int ipu7_isys_csi2_enable_stream(struct ipu7_isys_csi2 *csi2,
++					struct v4l2_subdev_state *state, u64 streams_mask)
++#else
+ static int ipu7_isys_csi2_enable_stream(struct ipu7_isys_csi2 *csi2)
++#endif
+ {
+ 	struct ipu7_isys *isys = csi2->isys;
+ 	struct device *dev = &isys->adev->auxdev.dev;
+@@ -208,7 +242,11 @@ static int ipu7_isys_csi2_enable_stream(struct ipu7_isys_csi2 *csi2)
+ 	writel(CSI_SENSOR_INPUT, isys_base + offset + CSI2_ADPL_INPUT_MODE);
+ 	writel(1, isys_base + offset + CSI2_ADPL_CSI_RX_ERR_IRQ_CLEAR_EN);
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++	ret = ipu7_isys_csi_phy_powerup(csi2, state, streams_mask);
++#else
+ 	ret = ipu7_isys_csi_phy_powerup(csi2);
++#endif
+ 	if (ret) {
+ 		dev_err(dev, "CSI-%d PHY power up failed %d\n", port, ret);
+ 		return ret;
+@@ -309,6 +347,146 @@ static int ipu7_isys_csi2_get_sel(struct v4l2_subdev *sd,
  	return ret;
  }
  
@@ -115,8 +342,8 @@ index 75be4a7..64e24fa 100644
 +	return 0;
 +}
 +
-+static int ipu7_isys_csi2_streams_by_sources(struct ipu7_isys_csi2 *csi2,
-+						    u32 pad, u32 stream, bool on)
++int ipu7_isys_csi2_streams_by_sources(struct ipu7_isys_csi2 *csi2,
++				      u32 pad, u32 stream, bool on)
 +{
 +	struct media_entity *entity = &csi2->asd.sd.entity;
 +	struct media_device *mdev = entity->graph_obj.mdev;
@@ -223,7 +450,19 @@ index 75be4a7..64e24fa 100644
  /*
   * Maximum stream ID is 63 for now, as we use u64 bitmask to represent a set
   * of streams.
-@@ -345,6 +502,14 @@ static int ipu7_isys_csi2_enable_streams(struct v4l2_subdev *sd,
+@@ -330,7 +508,11 @@ static int ipu7_isys_csi2_enable_streams(struct v4l2_subdev *sd,
+ 		dev_dbg(&csi2->isys->adev->auxdev.dev,
+ 			"stream on CSI2-%u with %u lanes\n", csi2->port,
+ 			csi2->nlanes);
++#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
++		ret = ipu7_isys_csi2_enable_stream(csi2, state, streams_mask);
++#else
+ 		ret = ipu7_isys_csi2_enable_stream(csi2);
++#endif
+ 		if (ret)
+ 			return ret;
+ 	}
+@@ -345,6 +527,14 @@ static int ipu7_isys_csi2_enable_streams(struct v4l2_subdev *sd,
  	if (ret)
  		return ret;
  
@@ -238,7 +477,7 @@ index 75be4a7..64e24fa 100644
  	rp = media_pad_remote_pad_first(&sd->entity.pads[IPU7_CSI2_PAD_SINK]);
  	r_sd = media_entity_to_v4l2_subdev(rp->entity);
  
-@@ -382,6 +547,15 @@ static int ipu7_isys_csi2_disable_streams(struct v4l2_subdev *sd,
+@@ -382,6 +572,15 @@ static int ipu7_isys_csi2_disable_streams(struct v4l2_subdev *sd,
  	if (ret)
  		return ret;
  
@@ -254,7 +493,7 @@ index 75be4a7..64e24fa 100644
  	rp = media_pad_remote_pad_first(&sd->entity.pads[IPU7_CSI2_PAD_SINK]);
  	r_sd = media_entity_to_v4l2_subdev(rp->entity);
  
-@@ -389,7 +563,7 @@ static int ipu7_isys_csi2_disable_streams(struct v4l2_subdev *sd,
+@@ -389,7 +588,7 @@ static int ipu7_isys_csi2_disable_streams(struct v4l2_subdev *sd,
  
  	if (--csi2->stream_count)
  		return 0;
@@ -263,7 +502,7 @@ index 75be4a7..64e24fa 100644
  	dev_dbg(&csi2->isys->adev->auxdev.dev,
  		"stream off CSI2-%u with %u lanes\n", csi2->port, csi2->nlanes);
  
-@@ -415,7 +589,11 @@ static const struct v4l2_subdev_ops csi2_sd_ops = {
+@@ -415,7 +614,11 @@ static const struct v4l2_subdev_ops csi2_sd_ops = {
  };
  
  static const struct media_entity_operations csi2_entity_ops = {
@@ -275,17 +514,17 @@ index 75be4a7..64e24fa 100644
  	.has_pad_interdep = v4l2_subdev_has_pad_interdep,
  };
  
-@@ -571,3 +749,125 @@ int ipu7_isys_csi2_get_remote_desc(u32 source_stream,
+@@ -571,3 +774,261 @@ int ipu7_isys_csi2_get_remote_desc(u32 source_stream,
  
  	return 0;
  }
 +
 +#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
-+int ipu7_isys_csi2_walk_remote_desc(u32 source_stream,
-+				   struct ipu7_isys_csi2 *csi2,
-+				   struct media_entity *source_entity,
-+				   struct v4l2_mbus_frame_desc_entry *entry,
-+				   int *nr_queues)
++int ipu7_isys_csi2_walk_remote_desc_by_stream(u32 source_stream,
++					      struct ipu7_isys_csi2 *csi2,
++					      struct media_entity *source_entity,
++					      struct v4l2_mbus_frame_desc_entry *entry,
++					      int *nr_queues)
 +{
 +	struct v4l2_mbus_frame_desc_entry *desc_entry = NULL;
 +	struct device *dev = &csi2->isys->adev->auxdev.dev;
@@ -400,29 +639,169 @@ index 75be4a7..64e24fa 100644
 +error_graph_walk_source:
 +	return ret;
 +}
++
++int ipu7_isys_csi2_walk_unique_remote_desc(struct v4l2_subdev_state *state,
++					   struct ipu7_isys_csi2 *csi2,
++					   struct media_entity *source_entity,
++					   struct v4l2_mbus_frame_desc *desc)
++{
++	struct v4l2_mbus_frame_desc_entry *desc_entry = NULL;
++	struct device *dev = &csi2->isys->adev->auxdev.dev;
++	struct v4l2_mbus_frame_desc _desc;
++	struct v4l2_subdev *source;
++	struct media_pad *pad;
++	struct media_graph graph;
++	struct media_entity *entity;
++	struct media_device *mdev;
++	struct v4l2_subdev *sd;
++	struct v4l2_subdev_route *routes;
++	unsigned int pad_id;
++	unsigned int i, j;
++	int ret, skip = 0;
++
++	if (!desc)
++		return -EPIPE;
++
++	source = media_entity_to_v4l2_subdev(source_entity);
++	if (!source)
++		return -EPIPE;
++
++	pad = media_pad_remote_pad_first(&csi2->asd.pad[IPU7_CSI2_PAD_SINK]);
++	if (!pad)
++		return -EPIPE;
++
++	pad_id = pad->index;
++	entity = source_entity;
++	mdev = entity->graph_obj.mdev;
++	if (!mdev) {
++		ret = -EPIPE;
++		goto error_graph_walk_source;
++	}
++
++	mutex_lock(&mdev->graph_mutex);
++	ret = media_graph_walk_init(&graph, mdev);
++	if (ret)
++		goto error_graph_walk_start_enum;
++
++	media_graph_walk_start(&graph, entity);
++	while ((entity = media_graph_walk_next(&graph))) {
++		dev_dbg(dev,
++			"%s: walk entity name: %s, type:%x, func:%x\n",
++			__func__,
++			entity->name,
++			entity->obj_type,
++			entity->function);
++
++		sd = (entity->obj_type == MEDIA_ENTITY_TYPE_V4L2_SUBDEV && \
++		      entity->function == MEDIA_ENT_F_VID_MUX)	\
++		  ? media_entity_to_v4l2_subdev(entity) : NULL;
++
++		if (!sd)
++			continue;
++		if (!strlen(sd->name))
++			continue;
++
++		/* pre-filter sub-devices  */
++		if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS))
++			continue;
++
++		/* access only subdevices with get_frame_desc callback */
++		if (!sd->ops || !sd->ops->pad || !sd->ops->pad->get_frame_desc)
++			continue;
++
++		/* v4l2_subdev_call doesn't call, access directly */
++		ret = sd->ops->pad->get_frame_desc(sd, pad_id, &_desc);
++		if (ret)
++			continue;
++
++		if (_desc.type != V4L2_MBUS_FRAME_DESC_TYPE_CSI2)
++			continue;
++
++		routes = state->routing.routes;
++		for (i = 0; i < _desc.num_entries; i++) {
++
++			desc_entry = &_desc.entry[i];
++
++			skip = 0;
++			for (j = 0; j < state->routing.num_routes; j++) {
++
++				/* ignore inactive routes */
++				if (routes[j].source_stream == desc_entry->stream &&
++				    routes[j].flags != V4L2_SUBDEV_ROUTE_FL_ACTIVE) {
++					skip = 1;
++					break;
++				}
++			}
++			if (skip)
++				continue;
++
++			for (j = 0; j < desc->num_entries; j++) {
++
++				/* ignore duplicates frame desc */
++				if (desc_entry->pixelcode == desc->entry[j].pixelcode &&
++				    desc_entry->bus.csi2.vc == desc->entry[j].bus.csi2.vc &&
++				    desc_entry->bus.csi2.dt == desc->entry[j].bus.csi2.dt) {
++					skip = 1;
++					break;
++				}
++			}
++			if (skip)
++				continue;
++
++			/* don't exceed v4l2 api */
++			if (desc->num_entries >= V4L2_FRAME_DESC_ENTRY_MAX)
++				continue;
++
++			dev_dbg(dev, "%s: found frame desc stream:%u vc/dt:%u/0x%x\n", __func__,
++				desc_entry->stream,
++				desc_entry->bus.csi2.vc,
++				desc_entry->bus.csi2.dt);
++
++			desc->entry[desc->num_entries] = *desc_entry;
++			desc->num_entries++;
++		}
++	}
++
++	desc->type = V4L2_MBUS_FRAME_DESC_TYPE_CSI2;
++
++	if (desc->num_entries)
++		ret = 0;
++	else
++		ret = -EINVAL;
++
++error_graph_walk_start_enum:
++	media_graph_walk_cleanup(&graph);
++	mutex_unlock(&mdev->graph_mutex);
++error_graph_walk_source:
++	return ret;
++}
 +#endif
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h
-index dfca0d2..fee10b8 100644
+index dfca0d2..7397de2 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.h
-@@ -61,4 +61,11 @@ int ipu7_isys_csi2_get_remote_desc(u32 source_stream,
+@@ -61,4 +61,15 @@ int ipu7_isys_csi2_get_remote_desc(u32 source_stream,
  				   struct media_entity *source_entity,
  				   struct v4l2_mbus_frame_desc_entry *entry,
  				   int *nr_queues);
 +#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
-+int ipu7_isys_csi2_walk_remote_desc(u32 source_stream,
++int ipu7_isys_csi2_walk_remote_desc_by_stream(u32 source_stream,
 +				    struct ipu7_isys_csi2 *csi2,
 +				    struct media_entity *source_entity,
 +				    struct v4l2_mbus_frame_desc_entry *entry,
 +				    int *nr_queues);
++int ipu7_isys_csi2_walk_unique_remote_desc(struct v4l2_subdev_state *state,
++					   struct ipu7_isys_csi2 *csi2,
++					   struct media_entity *source_entity,
++					   struct v4l2_mbus_frame_desc *desc);
 +#endif
  #endif /* IPU7_ISYS_CSI2_H */
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video-ext.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video-ext.h
 new file mode 100644
-index 0000000..91b2eca
+index 0000000..ef168a3
 --- /dev/null
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video-ext.h
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,44 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Copyright (C) 2013 - 2025 Intel Corporation
@@ -464,8 +843,11 @@ index 0000000..91b2eca
 +					struct v4l2_subdev *sd,
 +					void *data),
 +		void *data);
++
++extern int ipu7_isys_csi2_streams_by_sources(struct ipu7_isys_csi2 *csi2,
++					     u32 pad, u32 stream, bool on);
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
-index 2cae3e4..7935974 100644
+index 2f437ed..6c68bb8 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 @@ -38,6 +38,9 @@
@@ -870,7 +1252,7 @@ index 2cae3e4..7935974 100644
  	return 0;
  unlock:
  	v4l2_subdev_unlock_state(s_state);
-@@ -957,6 +1279,266 @@ out_media_entity_stop_streaming_firmware:
+@@ -959,6 +1281,266 @@ out_media_entity_stop_streaming_firmware:
  	return ret;
  }
  
@@ -1137,7 +1519,7 @@ index 2cae3e4..7935974 100644
  static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
  	.vidioc_querycap = ipu7_isys_vidioc_querycap,
  	.vidioc_enum_fmt_vid_cap = ipu7_isys_vidioc_enum_fmt,
-@@ -973,6 +1555,11 @@ static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
+@@ -975,6 +1557,11 @@ static const struct v4l2_ioctl_ops ipu7_v4l2_ioctl_ops = {
  	.vidioc_streamon = vb2_ioctl_streamon,
  	.vidioc_streamoff = vb2_ioctl_streamoff,
  	.vidioc_expbuf = vb2_ioctl_expbuf,
@@ -1149,22 +1531,22 @@ index 2cae3e4..7935974 100644
  };
  
  static const struct media_entity_operations entity_ops = {
-@@ -1120,6 +1707,14 @@ int ipu7_isys_setup_video(struct ipu7_isys_video *av,
+@@ -1122,6 +1709,14 @@ int ipu7_isys_setup_video(struct ipu7_isys_video *av,
  
  	v4l2_subdev_unlock_state(state);
  
 +#ifdef CONFIG_VIDEO_INTEL_IPU7_EXT_CTRLS
 +	if (av->enum_link_state == IPU7_ISYS_LINK_STATE_DONE)
-+		ret = ipu7_isys_csi2_walk_remote_desc(route->sink_stream,
-+						     to_ipu7_isys_csi2(asd),
-+						     *source_entity, &entry,
-+						     nr_queues);
++		ret = ipu7_isys_csi2_walk_remote_desc_by_stream(route->sink_stream,
++								to_ipu7_isys_csi2(asd),
++								*source_entity, &entry,
++								nr_queues);
 +	else
 +#endif
  	ret = ipu7_isys_csi2_get_remote_desc(route->sink_stream,
  					     to_ipu7_isys_csi2(asd),
  					     *source_entity, &entry,
-@@ -1217,7 +1812,27 @@ int ipu7_isys_video_init(struct ipu7_isys_video *av)
+@@ -1219,7 +1814,27 @@ int ipu7_isys_video_init(struct ipu7_isys_video *av)
  	if (ret)
  		goto out_media_entity_cleanup;
  
@@ -1192,7 +1574,7 @@ index 2cae3e4..7935974 100644
  
  out_media_entity_cleanup:
  	vb2_video_unregister_device(&av->vdev);
-@@ -1234,6 +1849,9 @@ out_mutex_destroy:
+@@ -1236,6 +1851,9 @@ out_mutex_destroy:
  
  void ipu7_isys_video_cleanup(struct ipu7_isys_video *av)
  {

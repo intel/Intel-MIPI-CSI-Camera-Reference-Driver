@@ -1,31 +1,18 @@
-From 0343b38d731c33798a8b2ae1cc321d4984b09174 Mon Sep 17 00:00:00 2001
+From 3e00d5a6f4356c4057821f591a8abd84d53d76c4 Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Sat, 17 Jan 2026 02:08:28 -0700
 Subject: [PATCH 102/104] ipu7-isys : add d4xx pixel format support
 
 Signed-off-by: Florent Pirou <florent.pirou@intel.com>
 ---
- .../media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h       |  1 +
- .../drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c     |  3 +++
- .../drivers/media/pci/intel/ipu7/ipu7-isys-subdev.c   |  5 ++++-
- .../drivers/media/pci/intel/ipu7/ipu7-isys-video.c    | 11 +++++++++++
- ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h |  4 ++--
- 5 files changed, 21 insertions(+), 3 deletions(-)
+ .../drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c   |  3 +++
+ .../drivers/media/pci/intel/ipu7/ipu7-isys-subdev.c |  5 ++++-
+ .../drivers/media/pci/intel/ipu7/ipu7-isys-video.c  | 13 +++++++++++++
+ .../drivers/media/pci/intel/ipu7/ipu7-isys.h        |  4 ++--
+ 4 files changed, 22 insertions(+), 3 deletions(-)
 
-diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
-index dc63449..9abf8d1 100644
---- a/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
-+++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/abi/ipu7_fw_isys_abi.h
-@@ -125,6 +125,7 @@ enum ipu7_insys_frame_format_type {
- 	IPU_INSYS_FRAME_FORMAT_ARGB888 = 31,
- 	IPU_INSYS_FRAME_FORMAT_BGRA888 = 32,
- 	IPU_INSYS_FRAME_FORMAT_ABGR888 = 33,
-+	IPU_INSYS_FRAME_FORMAT_VYUY = 34,
- 	N_IPU_INSYS_FRAME_FORMAT
- };
- 
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
-index 0c931a7..88b12f5 100644
+index 6ba21c3..75be4a7 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2.c
 @@ -28,11 +28,13 @@
@@ -87,10 +74,10 @@ index 98b6ef6..45be983 100644
  	default:
  		WARN_ON(1);
 diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
-index de3ebf9..5526074 100644
+index f69e7a6..dc0d80f 100644
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
-@@ -41,6 +41,14 @@
+@@ -41,6 +41,16 @@
  #include "ipu7-platform-regs.h"
  
  const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
@@ -98,14 +85,16 @@ index de3ebf9..5526074 100644
 +	 IPU_INSYS_FRAME_FORMAT_RAW8 },
 +	{ V4L2_PIX_FMT_Y10, 16, 10, MEDIA_BUS_FMT_Y10_1X10,
 +	 IPU_INSYS_FRAME_FORMAT_RAW16 },
++	{V4L2_PIX_FMT_YUYV, 16, 16, MEDIA_BUS_FMT_YUYV8_1X16,
++	 IPU_INSYS_FRAME_FORMAT_UYVY},
 +	{ V4L2_PIX_FMT_Y8I, 16, 16, MEDIA_BUS_FMT_VYUY8_1X16,
-+	 IPU_INSYS_FRAME_FORMAT_YUYV},
++	 IPU_INSYS_FRAME_FORMAT_UYVY},
 +	{ V4L2_PIX_FMT_Z16, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
 +	 IPU_INSYS_FRAME_FORMAT_UYVY},
  	{V4L2_PIX_FMT_SBGGR12, 16, 12, MEDIA_BUS_FMT_SBGGR12_1X12,
  	 IPU_INSYS_FRAME_FORMAT_RAW16},
  	{V4L2_PIX_FMT_SGBRG12, 16, 12, MEDIA_BUS_FMT_SGBRG12_1X12,
-@@ -87,8 +95,11 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
+@@ -87,8 +97,11 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
  	 IPU_INSYS_FRAME_FORMAT_YUYV},
  	{V4L2_PIX_FMT_RGB565, 16, 16, MEDIA_BUS_FMT_RGB565_1X16,
  	 IPU_INSYS_FRAME_FORMAT_RGB565},

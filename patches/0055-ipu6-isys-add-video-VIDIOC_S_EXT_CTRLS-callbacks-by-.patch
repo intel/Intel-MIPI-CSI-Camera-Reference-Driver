@@ -1,4 +1,4 @@
-From 29489c2157d0fe6f726d26f386991202abf5ca05 Mon Sep 17 00:00:00 2001
+From bdf4349654accb45d7a3aa8964ac8978d9cb23f8 Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Fri, 23 Jan 2026 18:42:59 -0700
 Subject: [PATCH 55/56] ipu6-isys: add video VIDIOC_S_EXT_CTRLS callbacks by
@@ -6,22 +6,263 @@ Subject: [PATCH 55/56] ipu6-isys: add video VIDIOC_S_EXT_CTRLS callbacks by
 
 * isys-video: add video VIDIOC_S_EXT_CTRLS callbacks by streamid
 * isys-csi: add graph walk subdev to get frame desc by streamid
+* ipu6-csi: add multi spource csi link freq and link validate support
 
 Signed-off-by: florent pirou <florent.pirou@intel.com>
 ---
- .../media/pci/intel/ipu6/ipu6-isys-csi2.c     | 131 ++++
+ .../media/pci/intel/ipu6/ipu6-isys-csi2.c     | 314 ++++++++-
  .../media/pci/intel/ipu6/ipu6-isys-csi2.h     |   8 +-
  .../pci/intel/ipu6/ipu6-isys-video-ext.h      |  41 ++
  .../media/pci/intel/ipu6/ipu6-isys-video.c    | 622 +++++++++++++++++-
  .../media/pci/intel/ipu6/ipu6-isys-video.h    |   4 +
- 5 files changed, 803 insertions(+), 3 deletions(-)
+ 5 files changed, 981 insertions(+), 8 deletions(-)
  create mode 100644 ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video-ext.h
 
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
-index 27a5368..c7aaff8 100644
+index 27a5368..f4d024e 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
 +++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
-@@ -698,3 +698,134 @@ int ipu6_isys_csi2_get_remote_desc(u32 source_stream,
+@@ -84,24 +84,36 @@ static const struct ipu6_csi2_error dphy_rx_errors[] = {
+ s64 ipu6_isys_csi2_get_link_freq(struct ipu6_isys_csi2 *csi2)
+ {
+ 	struct media_pad *src_pad;
++	struct v4l2_subdev_state *s_state;
+ 	struct v4l2_subdev *ext_sd;
+ 	struct device *dev;
++	int ret = -EPIPE;
+ 
+ 	if (!csi2)
+ 		return -EINVAL;
+ 
++	s_state = v4l2_subdev_get_unlocked_active_state(&csi2->asd.sd);
++	if (!s_state)
++		return ret;
++
+ 	dev = &csi2->isys->adev->auxdev.dev;
+-	src_pad = media_entity_remote_source_pad_unique(&csi2->asd.sd.entity);
++	src_pad = media_pad_remote_pad_first(&csi2->asd.sd.entity.pads[CSI2_PAD_SINK]);
+ 	if (IS_ERR(src_pad)) {
+-		dev_err(dev, "can't get source pad of %s (%ld)\n",
+-			csi2->asd.sd.name, PTR_ERR(src_pad));
+-		return PTR_ERR(src_pad);
++		dev_err(dev,
++			"can't get source pad of %s\n",
++			csi2->asd.sd.name);
++		return -EINVAL;
+ 	}
+ 
+ 	ext_sd = media_entity_to_v4l2_subdev(src_pad->entity);
+ 	if (WARN(!ext_sd, "Failed to get subdev for %s\n", csi2->asd.sd.name))
+ 		return -ENODEV;
+ 
++	dev_dbg(dev,
++		"%s:%u ->  %s:%u\n",
++		csi2->asd.sd.name, CSI2_PAD_SINK,
++		ext_sd->name, src_pad->index);
++
+ 	return v4l2_get_link_freq(ext_sd->ctrl_handler, 0, 0);
+ }
+ 
+@@ -349,6 +361,146 @@ static int ipu6_isys_csi2_set_stream(struct v4l2_subdev *sd,
+ 	return ret;
+ }
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU6_EXT_CTRLS
++static int ipu6_isys_csi2_link_validate(struct media_link *link)
++{
++
++	struct v4l2_subdev *sd =
++		media_entity_to_v4l2_subdev(link->sink->entity);
++	struct device *dev = sd->entity.graph_obj.mdev->dev;
++	struct ipu6_isys_subdev *asd;
++	struct ipu6_isys_csi2 *csi2;
++	struct v4l2_subdev_state *s_state;
++	struct v4l2_mbus_framefmt *s_fmt;
++	struct v4l2_subdev *s_sd;
++	struct media_pad *s_pad;
++	u32 s_stream, code;
++	int ret = -EPIPE;
++
++	if (!link->source->entity)
++		return ret;
++
++	asd = to_ipu6_isys_subdev(sd);
++	csi2 = to_ipu6_isys_csi2(asd);
++	dev = &asd->isys->adev->auxdev.dev;
++
++	s_sd = media_entity_to_v4l2_subdev(link->source->entity);
++	s_state = v4l2_subdev_get_unlocked_active_state(s_sd);
++	if (!s_state)
++		return ret;
++
++	dev_dbg(dev, "%s: validating link \"%s\":%u -> \"%s\"\n",__func__,
++		link->source->entity->name, link->source->index,
++		link->sink->entity->name);
++
++	return 0;
++}
++
++static int ipu6_isys_csi2_streams_by_sources(struct ipu6_isys_csi2 *csi2,
++						    u32 pad, u32 stream, bool on)
++{
++	struct media_entity *entity = &csi2->asd.sd.entity;
++	struct media_device *mdev = entity->graph_obj.mdev;
++	struct device *dev = &csi2->isys->adev->auxdev.dev;
++	struct v4l2_subdev *sd = NULL;
++	struct v4l2_subdev_state *v4l2_state;
++	struct media_graph graph;
++	struct v4l2_mbus_frame_desc_entry *desc_entry = NULL;
++	struct v4l2_mbus_frame_desc desc;
++	unsigned int i;
++	int ret;
++
++	if (!mdev)
++		return -EPIPE;
++
++	mutex_lock(&mdev->graph_mutex);
++	if (media_graph_walk_init(&graph, mdev))
++		goto error_graph_walk_start_enum;
++
++	media_graph_walk_start(&graph, entity);
++	while ((entity = media_graph_walk_next(&graph))) {
++		dev_dbg(dev,
++			"%s: walk entity name: %s, type:%x, func:%x\n",
++			__func__,
++			entity->name,
++			entity->obj_type,
++			entity->function);
++
++		sd = (entity->obj_type == MEDIA_ENTITY_TYPE_V4L2_SUBDEV && \
++		      entity->function == MEDIA_ENT_F_VID_MUX)	\
++		  ? media_entity_to_v4l2_subdev(entity) : NULL;
++
++		if (!sd)
++			continue;
++		if (!strlen(sd->name))
++			continue;
++
++		/* pre-filter sub-devices  */
++		if (!(sd->flags & V4L2_SUBDEV_FL_STREAMS))
++			continue;
++
++		/* access only subdevices with get_frame_desc callback */
++		if (!sd->ops || !sd->ops->pad || !sd->ops->pad->get_frame_desc)
++			continue;
++
++		/* v4l2_subdev_call doesn't call, access directly */
++		ret = sd->ops->pad->get_frame_desc(sd, pad, &desc);
++		if (ret)
++			continue;
++
++		if (desc.type != V4L2_MBUS_FRAME_DESC_TYPE_CSI2)
++			continue;
++
++		for (i = 0; i < desc.num_entries; i++) {
++			if (stream == desc.entry[i].stream) {
++				desc_entry = &desc.entry[i];
++				break;
++			}
++		}
++
++		if (!desc_entry)
++			continue;
++
++		if (desc_entry->bus.csi2.vc >= NR_OF_CSI2_VC)
++			continue;
++
++
++		dev_dbg(dev, "%s: found %s subdev stream:%u vc/dt:%u/0x%x\n", __func__,
++			sd->name,
++			desc_entry->stream,
++			desc_entry->bus.csi2.vc,
++			desc_entry->bus.csi2.dt);
++
++		/* access only subdevices with get_frame_desc callback */
++		if (!sd->ops || !sd->ops->pad || !sd->ops->pad->disable_streams || !sd->ops->pad->enable_streams)
++			break;
++
++		v4l2_state = v4l2_subdev_get_unlocked_active_state(sd);
++		if (!v4l2_state)
++			break;
++
++		/* v4l2_subdev_call doesn't call, access directly */
++		if (on)
++			ret = sd->ops->pad->enable_streams(sd, v4l2_state, pad, BIT_ULL(stream));
++		else
++			ret = sd->ops->pad->disable_streams(sd, v4l2_state, pad, BIT_ULL(stream));
++		if (ret)
++			break;
++
++		media_graph_walk_cleanup(&graph);
++		mutex_unlock(&mdev->graph_mutex);
++		return 0;
++	}
++
++error_graph_walk_start_enum:
++	media_graph_walk_cleanup(&graph);
++	mutex_unlock(&mdev->graph_mutex);
++
++error_graph_walk_source:
++	return -EINVAL;
++}
++#endif
++
+ /*
+  * Maximum stream ID is 63 for now, as we use u64 bitmask to represent a set
+  * of streams.
+@@ -388,6 +540,14 @@ static int ipu6_isys_csi2_enable_streams(struct v4l2_subdev *sd,
+ 	if (ret)
+ 		return ret;
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU6_EXT_CTRLS
++	if (!ipu6_isys_csi2_streams_by_sources(csi2, sink_pad, sink_stream, true)) {
++		csi2->stream_count++;
++		return 0;
++	}
++	dev_dbg(&csi2->isys->adev->auxdev.dev,
++		"remote stream on fallback\n");
++#endif
+ 	r_pad = media_pad_remote_pad_first(&sd->entity.pads[CSI2_PAD_SINK]);
+ 	r_sd = media_entity_to_v4l2_subdev(r_pad->entity);
+ 
+@@ -425,6 +585,15 @@ static int ipu6_isys_csi2_disable_streams(struct v4l2_subdev *sd,
+ 	if (ret)
+ 		return ret;
+ 
++#ifdef CONFIG_VIDEO_INTEL_IPU6_EXT_CTRLS
++	if (!ipu6_isys_csi2_streams_by_sources(csi2, sink_pad, sink_stream, false)) {
++		if (--csi2->stream_count)
++			return 0;
++		goto ret;
++	}
++	dev_dbg(&csi2->isys->adev->auxdev.dev,
++		"remote stream off fallback\n");
++#endif
+ 	r_pad = media_pad_remote_pad_first(&sd->entity.pads[CSI2_PAD_SINK]);
+ 	r_sd = media_entity_to_v4l2_subdev(r_pad->entity);
+ 
+@@ -432,7 +601,7 @@ static int ipu6_isys_csi2_disable_streams(struct v4l2_subdev *sd,
+ 
+ 	if (--csi2->stream_count)
+ 		return 0;
+-
++ret:
+ 	dev_dbg(&csi2->isys->adev->auxdev.dev,
+ 		"stream off CSI2-%u with %u lanes\n", csi2->port, csi2->nlanes);
+ 
+@@ -548,7 +717,11 @@ static const struct v4l2_subdev_ops csi2_sd_ops = {
+ };
+ 
+ static const struct media_entity_operations csi2_entity_ops = {
++#ifdef CONFIG_VIDEO_INTEL_IPU6_EXT_CTRLS
++	.link_validate = ipu6_isys_csi2_link_validate,
++#else
+ 	.link_validate = v4l2_subdev_link_validate,
++#endif
+ 	.has_pad_interdep = v4l2_subdev_has_pad_interdep,
+ };
+ 
+@@ -698,3 +871,134 @@ int ipu6_isys_csi2_get_remote_desc(u32 source_stream,
  #endif
  	return 0;
  }

@@ -1,29 +1,16 @@
-From fd99cf0044547cb8d0e2219a56f48aeb1749c4c8 Mon Sep 17 00:00:00 2001
+From 06f7ffcb45603f7543fe3c86a7c8ac2d3057f258 Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Fri, 23 Jan 2026 16:24:42 -0700
-Subject: [PATCH 53/55] ipu6-isys : add d4xx pixel format support
+Subject: [PATCH 53/56] ipu6-isys : add d4xx pixel format support
 
 Signed-off-by: florent pirou <florent.pirou@intel.com>
 ---
- .../drivers/media/pci/intel/ipu6/ipu6-fw-isys.h       |  1 +
  .../drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c     |  4 ++++
  .../drivers/media/pci/intel/ipu6/ipu6-isys-subdev.c   |  6 ++++++
  .../drivers/media/pci/intel/ipu6/ipu6-isys-video.c    | 11 +++++++++++
  ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.h |  4 ++--
- 5 files changed, 24 insertions(+), 2 deletions(-)
+ 4 files changed, 23 insertions(+), 2 deletions(-)
 
-diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
-index 545180c..0ec08ee 100644
---- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
-+++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
-@@ -209,6 +209,7 @@ enum ipu6_fw_isys_frame_format_type {
- 	IPU6_FW_ISYS_FRAME_FORMAT_RGBA888, /* 32 bit RGBA, 1 plane, A=Alpha */
- 	IPU6_FW_ISYS_FRAME_FORMAT_QPLANE6, /* Internal, for advanced ISP */
- 	IPU6_FW_ISYS_FRAME_FORMAT_BINARY_8, /* byte stream, used for jpeg. */
-+	IPU6_FW_ISYS_FRAME_FORMAT_VYUY,	/* 16 bit YUV 422, VYUY interleaved */
- 	N_IPU6_FW_ISYS_FRAME_FORMAT
- };
- 
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
 index 5f2f836..27a5368 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
@@ -89,7 +76,7 @@ index 0a06de5..76c7e43 100644
  	default:
  		/* return unavailable MIPI data type - 0x3f */
 diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
-index 927d92e..46c0222 100644
+index 927d92e..bd886f5 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
 +++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
 @@ -40,6 +40,14 @@
@@ -101,7 +88,7 @@ index 927d92e..46c0222 100644
 +	{ V4L2_PIX_FMT_Y10, 16, 10, MEDIA_BUS_FMT_Y10_1X10,
 +	  IPU6_FW_ISYS_FRAME_FORMAT_RAW16 },
 +	{ V4L2_PIX_FMT_Y8I, 16, 16, MEDIA_BUS_FMT_VYUY8_1X16,
-+	  IPU6_FW_ISYS_FRAME_FORMAT_YUYV},
++	  IPU6_FW_ISYS_FRAME_FORMAT_UYVY},
 +	{ V4L2_PIX_FMT_Z16, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
 +	  IPU6_FW_ISYS_FRAME_FORMAT_UYVY},
  	{ V4L2_PIX_FMT_SBGGR12, 16, 12, MEDIA_BUS_FMT_SBGGR12_1X12,
