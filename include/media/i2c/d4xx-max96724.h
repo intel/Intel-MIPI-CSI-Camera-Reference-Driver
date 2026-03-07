@@ -38,11 +38,11 @@ struct max96724_pdata {
 	__u32 csi_out;
 };
 
-int max96724_get_available_pipe_id(struct device *dev, int vc_id);
+int max96724_get_available_pipe_id(struct device *dev, int vc_id, u32 src_link);
 int max96724_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
-		     u8 data_type2, u32 vc_id);
+		     u8 data_type2, u32 vc_id, u32 src_link);
 int max96724_release_pipe(struct device *dev, int pipe_id);
-void max96724_reset_oneshot(struct device *dev);
+void max96724_reset_oneshot(struct device *dev, u32 src_link);
 
 /**
  * Puts a deserializer device in single exclusive link mode, so link-specific
@@ -131,7 +131,7 @@ void max96724_power_off(struct device *dev);
 
 int max96724_init_settings(struct device *dev);
 int max96724_set_mfp(struct device *dev, int pin, int val);
-int max96724_check_status(struct device *dev);
+int max96724_check_status(struct device *dev, u32 src_link);
 int max96724_switch_link_channel(struct device *dev);
 /** @} */
 
