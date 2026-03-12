@@ -39,6 +39,10 @@ export CONFIG_VIDEO_LT6911GXD=m
 export CONFIG_VIDEO_INTEL_IPU6=m
 export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
 export CONFIG_INTEL_IPU_ACPI=m
+export CONFIG_VIDEO_MAXIM_SERDES=m
+export CONFIG_VIDEO_MAX96717=m
+export CONFIG_VIDEO_MAX96724=m
+export CONFIG_VIDEO_MAX9296A=m
 
 # Define config macros for conditional compilation in ipu-acpi.c
 # IS_ENABLED() checks for CONFIG_XXX or CONFIG_XXX_MODULE
