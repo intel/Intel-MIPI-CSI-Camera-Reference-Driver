@@ -6,6 +6,7 @@
  */
 
 #include <linux/delay.h>
+#include <linux/acpi.h>
 #include <linux/i2c-atr.h>
 #include <linux/i2c-mux.h>
 #include <linux/module.h>
@@ -1866,6 +1867,11 @@ int max_ser_probe(struct i2c_client *client, struct max_ser *ser)
 	if (ret)
 		return ret;
 
+#ifdef CONFIG_ACPI
+	if (!acpi_disabled)
+		acpi_dev_clear_dependencies(ACPI_COMPANION(dev));
+#endif
+	
 	ret = max_ser_v4l2_register(priv);
 	if (ret)
 		goto err_i2c_adapter_deinit;
