@@ -7,6 +7,7 @@ if [ -z ${v4l2_util} ]; then
 	echo "v4l2-ctl not found, install with: sudo apt install v4l-utils"
 	exit 1
 fi
+quiet=0
 while [[ $# -gt 0 ]]; do
 	case $1 in
 		-q|--quiet)
@@ -32,7 +33,6 @@ while [[ $# -gt 0 ]]; do
 			shift
 			;;
 		*)
-			quiet=0
 			shift
 		;;
 		esac
@@ -139,13 +139,13 @@ cap_prefix=$(${v4l2_util} --list-devices | grep ipu | grep PCI | sed 's/^\(ipu[6
 [[ -z "${cap_prefix}" ]] && exit 0
 
 out() {
-	echo -n "${@}    " >&2
-	"${@}"
-	echo "        RET=$?" >&2
+  [[ $quiet -eq 0 ]] && echo -n "${@}    " >&2
+  "${@}"
+  [[ $quiet -eq 0 ]] && echo "        RET=$?" >&2
 }
 
 media_ctl_cmd="${media_util} -d ${mdev}"
-media-ctl -r # <- this can be used to clean-up all bindings from media controller
+out media-ctl -r # <- this can be used to clean-up all bindings from media controller
 # cache media-ctl output
 dot=$($media_ctl_cmd --print-dot)
 
@@ -165,7 +165,7 @@ for camera in $mux_list; do
 		streamid=0
 	fi
 
-	[[ $quiet -eq 0 ]] && echo "Bind $cap_prefix to ${sensor} ${camera} through max9x ${des_suffix}  .. " >&2
+	echo "Bind $cap_prefix to ${sensor} ${camera} through max9x ${des_suffix}  .. " >&2
 
 	csi2="$((${camera:2:1}))"
 	mux=${camera:0:1}
@@ -189,8 +189,8 @@ for camera in $mux_list; do
 	out $media_ctl_cmd -R "\"$(des_node ${camera})\"[${des_route}]"
 	out $media_ctl_cmd -R "\"Intel ${cap_prefix} CSI2 ${csi2}\"[${csi_route}]"
 
-	out $media_ctl_cmd -V "$(sen_src_pad ${camera}) ${fmt}"
-	out $media_ctl_cmd -V "$(ser_sink_pad ${camera}) ${fmt}"
+	out $media_ctl_cmd -V "$(sen_src_pad ${camera})/0 ${fmt}"
+	out $media_ctl_cmd -V "$(ser_sink_pad ${camera})/0 ${fmt}"
 	out $media_ctl_cmd -V "$(ser_src_pad ${camera})/${streamid} ${fmt}"
 	out $media_ctl_cmd -V "$(des_sink_pad ${camera})/${streamid} ${fmt}"
 	out $media_ctl_cmd -V "$(des_src_pad ${camera})/${streamid} ${fmt}"
