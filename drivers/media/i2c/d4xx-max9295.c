@@ -805,8 +805,13 @@ static int __max9295_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_type
 
 	map_pipe_control[0].val = 0x40 | data_type1;
 	map_pipe_control[1].val = 0x40 | data_type2;
+#if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
+	map_pipe_control[2].val = vc_id > 7 ? 0x00 : 1 << (vc_id & 0x07);
+	map_pipe_control[3].val = vc_id > 7 ? 1 << (vc_id & 0x07) : 0x00;
+#else
 	map_pipe_control[2].val = 1 << vc_id;
 	map_pipe_control[3].val = 0x00;
+#endif
 	map_pipe_control[4].val = bpp;
 	map_pipe_control[5].val = 0x0E;
 
@@ -832,7 +837,7 @@ int max9295_init_settings(struct device *dev)
 	struct reg_pair map_pipe_opt[] = {
 		// Enable all pipes
 		{MAX9295_PIPE_EN_ADDR, 0xF3},
-		// Write 0x33 for 4 lanes
+		// Write 0x33 for 4 lanes - Extended VC Disabled
 		{MAX9295_MIPI_RX1_ADDR, 0x11},
 		// All pipes pull clock from port B
 		{MAX9295_CSI_PORT_SEL_ADDR, 0x6F},
