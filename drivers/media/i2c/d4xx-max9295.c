@@ -745,8 +745,13 @@ static int __max9295_set_pipe(struct device *dev, int pipe_id, u8 data_type1,
 
 	map_pipe_control[0].val = 0x40 | data_type1;
 	map_pipe_control[1].val = 0x40 | data_type2;
-	map_pipe_control[2].val = 1 << vc_id;
+#if (defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)) && defined(CONFIG_VIDEO_D4XX_MAX9295_VC_EXT)
+	map_pipe_control[2].val = vc_id > 7 ? 0x00 : 1 << (vc_id & 0x07);
+	map_pipe_control[3].val = vc_id > 7 ? 1 << (vc_id & 0x07) : 0x00;
+#else
+	map_pipe_control[2].val = 1 << (vc_id % MAX9295_MAX_PIPES);
 	map_pipe_control[3].val = 0x00;
+#endif
 
 	if (pipe_id == 0)
 		pipe_x_val = map_pipe_control[1].val;
@@ -805,11 +810,11 @@ static int __max9295_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_type
 
 	map_pipe_control[0].val = 0x40 | data_type1;
 	map_pipe_control[1].val = 0x40 | data_type2;
-#if defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)
+#if (defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)) && defined(CONFIG_VIDEO_D4XX_MAX9295_VC_EXT)
 	map_pipe_control[2].val = vc_id > 7 ? 0x00 : 1 << (vc_id & 0x07);
 	map_pipe_control[3].val = vc_id > 7 ? 1 << (vc_id & 0x07) : 0x00;
 #else
-	map_pipe_control[2].val = 1 << vc_id;
+	map_pipe_control[2].val = 1 << (vc_id % MAX9295_MAX_PIPES);
 	map_pipe_control[3].val = 0x00;
 #endif
 	map_pipe_control[4].val = bpp;
@@ -837,8 +842,13 @@ int max9295_init_settings(struct device *dev)
 	struct reg_pair map_pipe_opt[] = {
 		// Enable all pipes
 		{MAX9295_PIPE_EN_ADDR, 0xF3},
+#if (defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)) && defined(CONFIG_VIDEO_D4XX_MAX9295_VC_EXT)
+		// Write 0xBB for 4 lanes - Extended VC Enabled
+		{MAX9295_MIPI_RX1_ADDR, 0x99},
+#else
 		// Write 0x33 for 4 lanes - Extended VC Disabled
 		{MAX9295_MIPI_RX1_ADDR, 0x11},
+#endif
 		// All pipes pull clock from port B
 		{MAX9295_CSI_PORT_SEL_ADDR, 0x6F},
 		// All pipes pull data from port B
@@ -944,9 +954,13 @@ int max9295_set_pipe(struct device *dev, int pipe_id,
 			 __func__, pipe_id);
 		return -EINVAL;
 	}
-
-	dev_dbg(dev, "%s pipe_id %d, data_type1 %u, data_type2 %u, vc_id %u\n",
+#if (defined(CONFIG_VIDEO_D4XX_MAX96724) || defined(CONFIG_VIDEO_D4XX_MAX96712)) && defined(CONFIG_VIDEO_D4XX_MAX9295_VC_EXT)
+	dev_info(dev, "%s pipe_id %d, data_type1 %u, data_type2 %u, vc_ext_id %u\n",
 		__func__, pipe_id, data_type1, data_type2, vc_id);
+#else
+	dev_info(dev, "%s pipe_id %d, data_type1 %u, data_type2 %u, vc_id %u\n",
+		__func__, pipe_id, data_type1, data_type2, (vc_id % MAX9295_MAX_PIPES));
+#endif
 
 	mutex_lock(&priv->lock);
 
