@@ -227,7 +227,7 @@ for camera in ${mux_list}; do
 	  csi_route=${csi_route}", "${route_no_md}
 
 	  #WA: disable prior IR and IMU if 4 camera are used
-	  if [ "${mux}" \= "d" ] && [ $ir_active -eq 0 ]; then
+	  if [ "${mux}" \= "d" ] && [ $count -gt 3 ] && [ $ir_active -eq 0 ]; then
 	      csi_route=$(echo $(sed 's|\/4\[1|\/4[0|g' <<< $csi_route))
 	      csi_route=$(echo $(sed 's|\/5\[1|\/5[0|g' <<< $csi_route))
 	  fi
