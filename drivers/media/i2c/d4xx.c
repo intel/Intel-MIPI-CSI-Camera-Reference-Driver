@@ -4506,12 +4506,6 @@ static int ds5_sensor_v4l_init(struct i2c_client *client, struct ds5 *ds5,
 	struct media_pad *pad = &sensor->pad;
 	dev_t *dev_num = &ds5->client->dev.devt;
 
-	char suffix[5];
-	if (ds5->suffix)
-		strcpy(suffix, ds5->suffix);
-	else
-		strcpy(suffix, "a");
-
 	v4l2_i2c_subdev_init(sd, client, ops);
 	// Set owner to NULL so we can unload the driver module
 	sd->owner = NULL;
@@ -4529,7 +4523,8 @@ static int ds5_sensor_v4l_init(struct i2c_client *client, struct ds5 *ds5,
 		suffix += 6;
 	snprintf(sd->name, sizeof(sd->name), "D4XX %s %c", name, suffix);
 	*/
-	snprintf(sd->name, sizeof(sd->name), "D4XX %s %s", name, suffix);
+	snprintf(sd->name, sizeof(sd->name), "D4XX %s %d-%04x",
+		 name, i2c_adapter_id(client->adapter), client->addr);
 #else
 	snprintf(sd->name, sizeof(sd->name), "D4XX %s %d-%04x",
 		 name, i2c_adapter_id(client->adapter), client->addr);
@@ -4648,11 +4643,6 @@ static int ds5_mux_init(struct i2c_client *client, struct ds5 *ds5)
 	int ret;
 	char suffix[5];
 
-	if (ds5->suffix)
-		strcpy(suffix, ds5->suffix);
-	else
-		strcpy(suffix, "a");
-
 	v4l2_i2c_subdev_init(sd, client, &ds5_mux_subdev_ops);
 	// Set owner to NULL so we can unload the driver module
 	sd->owner = NULL;
@@ -4665,7 +4655,8 @@ static int ds5_mux_init(struct i2c_client *client, struct ds5 *ds5)
 		suffix += 6;
 	snprintf(sd->name, sizeof(sd->name), "DS5 mux %c", suffix);
 	*/
-	snprintf(sd->name, sizeof(sd->name), "DS5 mux %s", suffix);
+	snprintf(sd->name, sizeof(sd->name), "DS5 mux %d-%04x",
+		 i2c_adapter_id(client->adapter), client->addr);
 
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | V4L2_SUBDEV_FL_STREAMS;
 	entity->obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
@@ -5119,11 +5110,6 @@ static int ds5_chrdev_init(struct i2c_client *client, struct ds5 *ds5)
 	dev_t *dev_num = &client->dev.devt;
 	int ret;
 
-	if (ds5->suffix)
-		strcpy(suffix, ds5->suffix);
-	else
-		strcpy(suffix, "a");
-
 	dev_dbg(&client->dev, "%s()\n", __func__);
 	/* Request the kernel for N_MINOR devices */
 	ret = alloc_chrdev_region(dev_num, 0, 1, DS5_DRIVER_NAME_DFU);
@@ -5166,8 +5152,8 @@ static int ds5_chrdev_init(struct i2c_client *client, struct ds5 *ds5)
 	int count = 0;
 	do {
 		char temp_name[sizeof(DS5_DRIVER_NAME_DFU) + 8];
-		snprintf(temp_name, sizeof(temp_name), "%s-%s",
-			DS5_DRIVER_NAME_DFU, suffix);
+		snprintf (dev_name, sizeof(dev_name), "%s-%d-%04x",
+			DS5_DRIVER_NAME_DFU, i2c_adapter_id(client->adapter), client->addr);
 		struct device *exist = class_find_device_by_name(*ds5_class, temp_name);
 		if (exist) {
 			put_device(exist);
@@ -5179,8 +5165,8 @@ static int ds5_chrdev_init(struct i2c_client *client, struct ds5 *ds5)
 		} else
 			proceed = true;
 	} while(!proceed);
-	snprintf (dev_name, sizeof(dev_name), "%s-%s",
-			DS5_DRIVER_NAME_DFU, suffix);
+	snprintf (dev_name, sizeof(dev_name), "%s-%d-%04x",
+			DS5_DRIVER_NAME_DFU, i2c_adapter_id(client->adapter), client->addr);
 #else
 	snprintf (dev_name, sizeof(dev_name), "%s-%d-%04x",
 			DS5_DRIVER_NAME_DFU, i2c_adapter_id(client->adapter), client->addr);
@@ -5494,12 +5480,10 @@ static int ds5_probe(struct i2c_client *client)
 
 	ds5->client = client;
 	ds5->platform_data = client->dev.platform_data;
-	if (ds5->platform_data == NULL)
+	if (ds5->platform_data == NULL) {
 		dev_warn(&client->dev, "no platform data provided\n");
-	else {
+	} else {
 		dev_info(&client->dev, "platform data provided\n");
-		if (ds5->platform_data->suffix)
-			strcpy(ds5->suffix, ds5->platform_data->suffix);
 	}
 
 	ds5->regmap = devm_regmap_init_i2c(client, &ds5_regmap_config);
