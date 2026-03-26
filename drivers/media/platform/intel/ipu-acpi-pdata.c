@@ -828,26 +828,29 @@ void set_serdes_info(struct device *dev, const char *sensor_name,
 	serdes_info.i2c_num = cam_data->i2c_num;
 
 	i = 1;
+
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+	/* prior serializer mapped addr */
+	serdes_info.ser_map_addr_2 = serdes_info.ser_map_addr;
+#endif
 	/* serializer mapped addr */
 	serdes_info.ser_map_addr = cam_data->i2c[i++].addr;
+
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+	/* prior serializer mapped addr */
+	serdes_info.sensor_map_addr_2 = serdes_info.sensor_map_addr;
+#endif
 	/* sensor mapped addr */
 	serdes_info.sensor_map_addr = cam_data->i2c[i++].addr;
 
 #if IS_ENABLED(CONFIG_VIDEO_D4XX)
-	/* serializer mapped addr */
-	if ( serdes_info.deser_num > 0 )
-		serdes_info.ser_map_addr_2 = serdes_info.ser_map_addr;
-	serdes_info.ser_map_addr = cam_data->i2c[cam_data->i2c_num - 2].addr;
-
 	/* deserializer mapped addr */
-	if ( serdes_info.deser_num > 0 )
-		serdes_info.des_map_addr_2 = serdes_info.des_map_addr;
+	serdes_info.des_map_addr_2 = serdes_info.des_map_addr;
 	serdes_info.des_map_addr = cam_data->i2c[cam_data->i2c_num - 3].addr;
 
 	/* serdes mapped i2c-adapter */
-	if ( serdes_info.deser_num > 0 )
-		strscpy(&serdes_info.i2c_adapter_bdf_2[0], serdes_info.i2c_adapter_bdf,
-			sizeof(serdes_info.i2c_adapter_bdf_2));
+	strscpy(&serdes_info.i2c_adapter_bdf_2[0], serdes_info.i2c_adapter_bdf,
+		sizeof(serdes_info.i2c_adapter_bdf_2));
 	strscpy(&serdes_info.i2c_adapter_bdf[0], cam_data->i2c[cam_data->i2c_num - 1].bdf,
 		sizeof(serdes_info.i2c_adapter_bdf));
 #endif
