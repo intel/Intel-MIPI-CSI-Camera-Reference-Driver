@@ -226,16 +226,44 @@ for camera in ${mux_list}; do
       else
 	  csi_route=${csi_route}", "${route_no_md}
 
-	  #WA: disable prior IR and IMU if 4 camera are used
+	  #WA: enable IR and IMU if 2 camera are used
+	  if [ "${mux}" \= "b" ] && [ $count -lt 3 ] && [ $ir_active -eq 0 ]; then
+	      csi_route=$(echo $(sed 's|\/10\[0|\/10[1|g' <<< $csi_route))
+	      csi_route=$(echo $(sed 's|\/11\[0|\/11[1|g' <<< $csi_route))
+	  fi
+
+	  if [ "${mux}" \= "c" ] && [ $count -lt 3 ] && [ $ir_active -eq 0 ]; then
+	      csi_route=$(echo $(sed 's|\/12\[0|\/12[1|g' <<< $csi_route))
+	      csi_route=$(echo $(sed 's|\/13\[0|\/13[1|g' <<< $csi_route))
+	  fi
+
+	  if [ "${mux}" \= "d" ] && [ $count -lt 3 ] && [ $ir_active -eq 0 ]; then
+	      csi_route=$(echo $(sed 's|\/14\[0|\/14[1|g' <<< $csi_route))
+	      csi_route=$(echo $(sed 's|\/15\[0|\/15[1|g' <<< $csi_route))
+	  fi
+
+	  #WA: disable prior GMSL B or C IR and IMU if 3 or 4 camera are used
+	  if [ "${mux}" \= "c" ] && [ $count -gt 2 ] && [ $ir_active -eq 0 ]; then
+	      csi_route=$(echo $(sed 's|\/10\[1|\/10[0|g' <<< $csi_route))
+	      csi_route=$(echo $(sed 's|\/11\[1|\/11[0|g' <<< $csi_route))
+	  fi
+
+	  if [ "${mux}" \= "d" ] && [ $count -gt 2 ] && [ $ir_active -eq 0 ]; then
+	      csi_route=$(echo $(sed 's|\/12\[1|\/12[0|g' <<< $csi_route))
+	      csi_route=$(echo $(sed 's|\/13\[1|\/13[0|g' <<< $csi_route))
+	  fi
+
+	  #WA: disable prior GMSL A IR and IMU if 4 camera are used
 	  if [ "${mux}" \= "d" ] && [ $count -gt 3 ] && [ $ir_active -eq 0 ]; then
 	      csi_route=$(echo $(sed 's|\/4\[1|\/4[0|g' <<< $csi_route))
 	      csi_route=$(echo $(sed 's|\/5\[1|\/5[0|g' <<< $csi_route))
 	  fi
+
       fi
   fi
 
   # example:  /usr/bin/media-ctl -d /dev/media0 -R "'Intel ${cap_prefix} CSI2 2'[0/1->3/1,0/0->1/0]"
-  out $media_ctl_cmd -R "\"DS5 mux ${camera}\"[1/${stream_id_depth}->0/${stream_id_depth}[1], 2/${stream_id_rgb}->0/${stream_id_rgb}[1], 3/${stream_id_ir}->0/${stream_id_ir}[${ir_active}], 4/${stream_id_imu}->0/${stream_id_imu}[${imu_active}]]"
+  out $media_ctl_cmd -R "\"DS5 mux ${camera}\"[1/${stream_id_depth}->0/${stream_id_depth}[1], 2/${stream_id_rgb}->0/${stream_id_rgb}[1], 3/${stream_id_ir}->0/${stream_id_ir}[1], 4/${stream_id_imu}->0/${stream_id_imu}[1]]"
   out $media_ctl_cmd -R "\"Intel ${cap_prefix} CSI2 ${csi2}\"[${csi_route}]"
 
   # DEPTH default media bus format
