@@ -1,0 +1,9 @@
+alias pci:v00008086d0000645Dsv*sd*bc*sc*i* intel-ipu7
+alias pci:v00008086d0000B05Dsv*sd*bc*sc*i* intel-ipu7
+alias pci:v00008086d0000D719sv*sd*bc*sc*i* intel-ipu7
+alias pci:v00008086d0000462Esv*sd*bc*sc*i* intel-ipu6-psys
+alias pci:v00008086d0000465Dsv*sd*bc*sc*i* intel-ipu6-psys
+alias pci:v00008086d00004E19sv*sd*bc*sc*i* intel-ipu6-psys
+alias pci:v00008086d00007D19sv*sd*bc*sc*i* intel-ipu6-psys
+alias pci:v00008086d00009A19sv*sd*bc*sc*i* intel-ipu6-psys
+alias pci:v00008086d0000A75Dsv*sd*bc*sc*i* intel-ipu6-psys

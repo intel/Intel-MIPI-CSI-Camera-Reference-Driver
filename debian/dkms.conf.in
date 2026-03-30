@@ -1,0 +1,190 @@
+PACKAGE_NAME="intel-mipi-gmsl-dkms"
+PACKAGE_VERSION="@DKMS_PACKAGE_VERSION@"
+BUILD_EXCLUSIVE_KERNEL="^(6\.(1[278])\.)|^6\.(1[27])rt-intel|^6\.(1[27])-intel"
+VERSION_SUFFIX="${PACKAGE_VERSION}"
+
+KBASE=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build
+#Extract kernel version substring that is used to identify source directory for kernel modules
+# i.e 6.12.8-intel-ese-experimental-lts-rt ==>  6.12.0
+# i.e 6.17.0-oem-1011 ==>  6.17.0
+# i.e 6.17rt-intel ==>  6.17.0
+# i.e 6.18.6-intel-ese-experimental-lts-rt ==>  6.18.0
+SELECTED_KERNEL=$(echo $kernelver | cut -d- -f1 | sed -r 's/([0-9]+\.[0-9]+).*/\1.0/g')
+KERNEL_VER=$(echo $kernelver | cut -d. -f1)
+KERNEL_PATCH=$(echo $kernelver | cut -d. -f2 | cut -d- -f1)
+
+RUNTIME_KERNEL_VER=$(uname -r)
+
+#This variable is required to address includes from videodev.ko
+srctree=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build
+
+#We will invoke multiple make directives to build all the required kernel modules, then manually copy them to the staged directory for dkms install rule
+MAKE="	if [ -d ${KBASE}/drivers/media/v4l2-core ]; then rmdir ${KBASE}/drivers/media/v4l2-core ; fi &&\
+		 make V=1 -C ${kernel_source_dir} M=${KBASE}/${SELECTED_KERNEL}/drivers/media/v4l2-core videodev.ko DRIVER_VERSION_SUFFIX='${VERSION_SUFFIX}' &&\
+		 mkdir -p ${KBASE}/drivers/media/v4l2-core/ && cp ${KBASE}/${SELECTED_KERNEL}/drivers/media/v4l2-core/videodev.ko \
+		 ${KBASE}/drivers/media/v4l2-core/ && \
+	if [ '${RUNTIME_KERNEL_VER}' == '${kernelver}' ] && [ -f $kernel_source_dir/tools/bpf/resolve_btfids/resolve_btfids ] && [ -f /sys/kernel/btf/vmlinux ]; then ln -s /sys/kernel/btf/vmlinux $kernel_source_dir/vmlinux; fi ;make V=1 KERNELRELEASE=$kernelver DRIVER_VERSION_SUFFIX='${VERSION_SUFFIX}' CFLAGS_MODULE=\"$(echo $MAKE_OPTS)\" KERNEL_SRC=$kernel_source_dir"
+
+MAKE_MATCH[1]="^(6.1[278])"
+
+CLEAN="if [ -f $kernel_source_dir/vmlinux ]; then rm $kernel_source_dir/vmlinux; fi;make V=1 KERNELRELEASE=$kernelver KERNEL_SRC=$kernel_source_dir clean && \
+	    make -C ${kernel_source_dir} M=${KBASE}/${SELECTED_KERNEL}/drivers/media/v4l2-core clean"
+
+AUTOINSTALL="yes"
+BUILD_EXCLUSIVE_CONFIG="CONFIG_VIDEO_V4L2_I2C"
+
+MODULE_PATH="drivers/media/i2c"
+MODULE_DEST="/kernel/drivers/media/i2c/"
+
+j=0
+
+# Make IPU V4L2-CORE out-of-tree
+# kernel patches for Linux 6.12
+PATCH[$j]="0001-ipu6-dkms-v4l2-core-makefile-adaptation-6.12.patch"
+PATCH_MATCH[$j]="^(6.1[2])"
+PATCH[$((++j))]="0002-drivers-media-set-v4l2_subdev_enable_streams_api-tru.patch"
+PATCH_MATCH[$j]="^(6.1[2])"
+PATCH[$((++j))]="0003-media-v4l2-core-set-v4l2-cci-i2c-support.patch"
+PATCH_MATCH[$j]="^(6.1[2])"
+# kernel patches for Linux 6.17
+PATCH[$((++j))]="0004-ipu7-dkms-v4l2-core-makefile-adaptation-6.17.patch"
+PATCH_MATCH[$j]="^(6.1[7])"
+PATCH[$((++j))]="0005-drivers-media-set-v4l2_subdev_enable_streams_api-tru.patch"
+PATCH_MATCH[$j]="^(6.1[7])"
+# kernel patches for Linux 6.18
+PATCH[$((++j))]="0006-ipu7-dkms-v4l2-core-makefile-adaptation-6.18.patch"
+PATCH_MATCH[$j]="^(6.1[8])"
+PATCH[$((++j))]="0007-drivers-media-set-v4l2_subdev_enable_streams_api-tru.patch"
+PATCH_MATCH[$j]="^(6.1[8])"
+PATCH[$((++j))]="0008-Revert-media-v4l2-subdev-Make-struct-v4l2_subdev_str.patch"
+PATCH_MATCH[$j]="^(6.1[8])"
+
+# Make IPU6 ISYS+PSYS out-of-tree
+PATCH[$((++j))]="0050-ipu6-dkms-add-isys-makefile-adaptation-6.12.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0051-Revert-ipu6-isys-lt6911uxc-2-pads-linked-to-ipu-2-po.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0052-module-Convert-symbol-namespace-to-string-literal.patch"
+PATCH_MATCH[$j]="^(6.1[78])"
+PATCH[$((++j))]="0053-ipu6-isys-add-d4xx-pixel-format-support.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0054-ipu6-isys-allow-virtual-channels-on-16-csi2-input-vi.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0055-ipu6-isys-add-video-VIDIOC_S_EXT_CTRLS-callbacks-by-.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0056-isys-video-let-v4l2-set-default-colorspace.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0057-ipu6-isys-video-force-START-then-CAPTURE-distinct-st.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+
+# Make IPU7 ISYS+PSYS out-of-tree patch from PTL release for iot on 2025-12-10
+PATCH[$((++j))]="0100-ipu7-isys-make-modules-suffix-versioning-same-as-dkm.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0101-ipu7-isys-allow-virtual-channels-on-16-csi2-input-vi.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0102-ipu7-isys-add-d4xx-pixel-format-support.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0103-ipu7-isys-add-video-VIDIOC_S_EXT_CTRLS-callbacks-by-.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0104-isys-video-let-v4l2-set-default-colorspace.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
+
+i=0
+
+BUILT_MODULE_NAME[$i]="videodev"
+BUILT_MODULE_LOCATION[$i]="drivers/media/v4l2-core/"
+DEST_MODULE_NAME[$i]="videodev"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="ipu-acpi"
+BUILT_MODULE_LOCATION[$i]="drivers/media/platform/intel"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="ipu-acpi-pdata"
+BUILT_MODULE_LOCATION[$i]="drivers/media/platform/intel"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="ipu-acpi-common"
+BUILT_MODULE_LOCATION[$i]="drivers/media/platform/intel"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="ar0234"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="ar0820"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="ipu-bridge"
+BUILT_MODULE_LOCATION[$i]="drivers/media/pci/intel"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="d4xx-max9295"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="d4xx-max9296"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="d4xx-max96724"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="d4xx"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="isx031"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="max9x"
+BUILT_MODULE_LOCATION[$i]="drivers/media/i2c/max9x"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+# IPU6 drivers from submodule
+BUILT_MODULE_NAME[$((++i))]="intel-ipu6"
+BUILT_MODULE_LOCATION[$i]="ipu6-drivers/drivers/media/pci/intel/ipu6"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="intel-ipu6-isys"
+BUILT_MODULE_LOCATION[$i]="ipu6-drivers/drivers/media/pci/intel/ipu6"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="intel-ipu6-psys"
+BUILT_MODULE_LOCATION[$i]="ipu6-drivers/drivers/media/pci/intel/ipu6/psys"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+# IPU7 drivers from submodule
+BUILT_MODULE_NAME[$((++i))]="intel-ipu7"
+BUILT_MODULE_LOCATION[$i]="ipu7-drivers/drivers/media/pci/intel/ipu7"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="intel-ipu7-isys"
+BUILT_MODULE_LOCATION[$i]="ipu7-drivers/drivers/media/pci/intel/ipu7"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no
+
+BUILT_MODULE_NAME[$((++i))]="intel-ipu7-psys"
+BUILT_MODULE_LOCATION[$i]="ipu7-drivers/drivers/media/pci/intel/ipu7/psys"
+DEST_MODULE_LOCATION[$i]="/updates"
+STRIP[$i]=no

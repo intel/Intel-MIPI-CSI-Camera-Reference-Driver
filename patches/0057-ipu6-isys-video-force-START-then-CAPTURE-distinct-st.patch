@@ -1,0 +1,274 @@
+From 8a0f2952439a2d87a696a3b8c50150bf39bfce4c Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Mon, 23 Mar 2026 04:43:04 -0700
+Subject: [PATCH 57/57] ipu6-isys: video: force START then CAPTURE distinct
+ start_stream_firmware commands
+
+Change introduced at [start_stream_firmware](https://github.com/intel/ipu6-drivers/commit/f310264660de132ed7dd7634cca8c03714a774ad#diff-5d8bb31c30c9393a0d7b5d59f0389db65f8189d9270aea922df3564c0614cb25R1907)
+hands-up sending multiple concurrent/overlapping stream_capture commands
+to the IPU6 firmware at several point in time.
+.e.g. STREAM_CAPTURE_ACK to STREAM_CAPTURE_DONE overlaps
+in the STREAM_START_AND_CAPTURE_ACK to STREAM_START_AND_CAPTURE_DONE interval.
+
+Reverting the start_stream_firmware to a 2-phase approach
+limit this stream_capture accumulation to max two commands
+sent the IPU6 firmware at any given point of time.
+
+* isys-video : remove START_AND_CAPTURE to avoid multi streams start race-conditions
+* isys-video: add stream stop and close state message transition
+* isys-video : add timeout on initial STREAM_CAPTURE
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ .../media/pci/intel/ipu6/ipu6-fw-isys.h       |  1 +
+ .../media/pci/intel/ipu6/ipu6-isys-video.c    | 97 +++++++++++--------
+ .../media/pci/intel/ipu6/ipu6-isys-video.h    |  1 +
+ .../drivers/media/pci/intel/ipu6/ipu6-isys.c  |  2 +
+ 4 files changed, 60 insertions(+), 41 deletions(-)
+
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
+index 0ec08ee..e08b239 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-fw-isys.h
+@@ -65,6 +65,7 @@ struct ipu6_isys;
+  */
+ #define IPU6_ISYS_OPEN_RETRY			2000
+ #define IPU6_ISYS_CLOSE_RETRY			2000
++#define IPU6_ISYS_CAPTURE_TIMEOUT_JIFFIES 	msecs_to_jiffies(2)
+ #define IPU6_FW_CALL_TIMEOUT_JIFFIES		msecs_to_jiffies(2000)
+ #ifdef CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
+ #define IPU6_LIB_CALL_TIMEOUT_JIFFIES_RESET	msecs_to_jiffies(200)
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+index 8d8a7d1..4a75853 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+@@ -886,7 +886,7 @@ bool is_support_vc(struct ipu6_isys_video *av)
+ }
+ 
+ #endif
+-static int start_stream_firmware(struct ipu6_isys_video *av,
++int start_stream_firmware(struct ipu6_isys_video *av,
+ 				 struct ipu6_isys_buffer_list *bl)
+ {
+ 	struct ipu6_fw_isys_stream_cfg_data_abi *stream_cfg;
+@@ -966,23 +966,11 @@ static int start_stream_firmware(struct ipu6_isys_video *av,
+ 	}
+ 
+ 	reinit_completion(&stream->stream_start_completion);
+-#ifdef CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
+-	if(bl && is_support_vc(av)) {
+-#else
+-	if (bl) {
+-#endif
+-		send_type = IPU6_FW_ISYS_SEND_TYPE_STREAM_START_AND_CAPTURE;
+-		ipu6_fw_isys_dump_frame_buff_set(dev, buf,
+-						 stream_cfg->nof_output_pins);
+-		ret = ipu6_fw_isys_complex_cmd(av->isys, stream->stream_handle,
+-					       buf, msg->dma_addr,
+-					       sizeof(*buf), send_type);
+-	} else {
+-		send_type = IPU6_FW_ISYS_SEND_TYPE_STREAM_START;
+-		ret = ipu6_fw_isys_simple_cmd(av->isys, stream->stream_handle,
+-					      send_type);
+-	}
++	dev_dbg(dev, "start stream: start\n");
+ 
++	send_type = IPU6_FW_ISYS_SEND_TYPE_STREAM_START;
++	ret = ipu6_fw_isys_simple_cmd(av->isys, stream->stream_handle,
++					      send_type);
+ 	if (ret < 0) {
+ 		dev_err(dev, "can't start streaming (%d)\n", ret);
+ 		goto out_stream_close;
+@@ -1002,7 +990,11 @@ static int start_stream_firmware(struct ipu6_isys_video *av,
+ 	}
+ #ifdef CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
+ 	if (bl && !is_support_vc(av)) {
+-				dev_dbg(dev, "start stream: capture\n");
++#else
++	if (bl) {
++#endif
++				reinit_completion(&stream->stream_initialcapture_completion);
++				dev_dbg(dev, "start stream: initial capture\n");
+ 				send_type = IPU6_FW_ISYS_SEND_TYPE_STREAM_CAPTURE;
+ 				ipu6_fw_isys_dump_frame_buff_set(dev, buf, stream_cfg->nof_output_pins);
+ 				ret = ipu6_fw_isys_complex_cmd(av->isys, stream->stream_handle,
+@@ -1014,14 +1006,21 @@ static int start_stream_firmware(struct ipu6_isys_video *av,
+ 						dev_err(dev, "can't queue buffers (%d)\n", ret);
+ 						goto out_stream_close;
+ 				}
++
++				tout = wait_for_completion_timeout(&stream->stream_initialcapture_completion,
++								   IPU6_ISYS_CAPTURE_TIMEOUT_JIFFIES);
++				if (!tout) {
++					dev_warn(dev, "start initial capture time out\n");
++				} else if (stream->error) {
++					dev_warn(dev, "start initial capture error: %d\n", stream->error);
++				} else {
++					dev_dbg(dev, "start initial capture : complete\n");
++				}
++				ret = 0;
+ 	}
+ 	else
+ 		dev_dbg(dev, "start stream: complete\n");
+ 
+-#else
+-	dev_dbg(dev, "start stream: complete\n");
+-#endif
+-
+ 	return 0;
+ 
+ out_stream_close:
+@@ -1050,7 +1049,7 @@ out_put_stream_opened:
+ 	return ret;
+ }
+ 
+-static void stop_streaming_firmware(struct ipu6_isys_video *av)
++int stop_streaming_firmware(struct ipu6_isys_video *av)
+ {
+ 	struct device *dev = &av->isys->adev->auxdev.dev;
+ 	struct ipu6_isys_stream *stream = av->stream;
+@@ -1063,7 +1062,7 @@ static void stop_streaming_firmware(struct ipu6_isys_video *av)
+ 
+ 	if (ret < 0) {
+ 		dev_err(dev, "can't stop stream (%d)\n", ret);
+-		return;
++		return -EIO;
+ 	}
+ 
+ 	tout = wait_for_completion_timeout(&stream->stream_stop_completion,
+@@ -1072,15 +1071,23 @@ static void stop_streaming_firmware(struct ipu6_isys_video *av)
+ #else
+ 					   IPU6_FW_CALL_TIMEOUT_JIFFIES);
+ #endif
+-	if (!tout)
+-		dev_warn(dev, "stream stop time out\n");
+-	else if (stream->error)
+-		dev_warn(dev, "stream stop error: %d\n", stream->error);
+-	else
+-		dev_dbg(dev, "stop stream: complete\n");
++	if (!tout) {
++		dev_err(dev, "stream stop time out for entity %s\n",
++			av->vdev.entity.name);
++		ret = -ETIMEDOUT;
++	} else if (stream->error) {
++		dev_err(dev, "stream stop failed for entity %s with error %d\n",
++			av->vdev.entity.name, stream->error);
++		ret = -EIO;
++	} else {
++		dev_dbg(dev, "stop stream complete for entity %s\n",
++			av->vdev.entity.name);
++		ret = 0;
++	}
++	return ret;
+ }
+ 
+-static void close_streaming_firmware(struct ipu6_isys_video *av)
++int close_streaming_firmware(struct ipu6_isys_video *av)
+ {
+ 	struct ipu6_isys_stream *stream = av->stream;
+ 	struct device *dev = &av->isys->adev->auxdev.dev;
+@@ -1092,7 +1099,7 @@ static void close_streaming_firmware(struct ipu6_isys_video *av)
+ 				      IPU6_FW_ISYS_SEND_TYPE_STREAM_CLOSE);
+ 	if (ret < 0) {
+ 		dev_err(dev, "can't close stream (%d)\n", ret);
+-		return;
++		return -EIO;
+ 	}
+ 
+ 	tout = wait_for_completion_timeout(&stream->stream_close_completion,
+@@ -1101,12 +1108,19 @@ static void close_streaming_firmware(struct ipu6_isys_video *av)
+ #else
+ 					   IPU6_FW_CALL_TIMEOUT_JIFFIES);
+ #endif
+-	if (!tout)
+-		dev_warn(dev, "stream close time out\n");
+-	else if (stream->error)
+-		dev_warn(dev, "stream close error: %d\n", stream->error);
+-	else
+-		dev_dbg(dev, "close stream: complete\n");
++	if (!tout) {
++		dev_err(dev, "stream close time out for entity %s\n",
++			av->vdev.entity.name);
++		ret = -ETIMEDOUT;
++	} else if (stream->error) {
++		dev_err(dev, "stream close failed for entity %s with error %d\n",
++			av->vdev.entity.name, stream->error);
++		ret = -EIO;
++	} else {
++		dev_dbg(dev, "close stream complete for entity %s\n",
++			av->vdev.entity.name);
++		ret = 0;
++	}
+ 
+ #ifdef CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
+ 		stream->last_sequence = atomic_read(&stream->sequence);
+@@ -1115,6 +1129,7 @@ static void close_streaming_firmware(struct ipu6_isys_video *av)
+ 
+ #endif
+ 	put_stream_opened(av);
++	return ret;
+ }
+ 
+ int ipu6_isys_video_prepare_stream(struct ipu6_isys_video *av,
+@@ -1428,7 +1443,7 @@ int ipu6_isys_video_set_streaming(struct ipu6_isys_video *av, int state,
+ 	r_pad = media_pad_remote_pad_first(&av->pad);
+ 	r_stream = get_remote_pad_stream(r_pad);
+ 	if (!state) {
+-		stop_streaming_firmware(av);
++		ret = stop_streaming_firmware(av);
+ 
+ 		/* stop sub-device which connects with video */
+ 		dev_dbg(dev, "disable streams %s pad:%d mask:0x%llx for %s\n",
+@@ -1442,7 +1457,7 @@ int ipu6_isys_video_set_streaming(struct ipu6_isys_video *av, int state,
+ 			return ret;
+ 		}
+ 
+-		close_streaming_firmware(av);
++		ret = close_streaming_firmware(av);
+ 	} else {
+ 		ret = start_stream_firmware(av, bl);
+ 		if (ret) {
+@@ -1468,7 +1483,7 @@ int ipu6_isys_video_set_streaming(struct ipu6_isys_video *av, int state,
+ 	return 0;
+ 
+ out_media_entity_stop_streaming_firmware:
+-	stop_streaming_firmware(av);
++	ret = stop_streaming_firmware(av);
+ 
+ 	return ret;
+ }
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.h b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.h
+index 7999e79..01009a6 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.h
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.h
+@@ -68,6 +68,7 @@ struct ipu6_isys_stream {
+ 	struct completion stream_open_completion;
+ 	struct completion stream_close_completion;
+ 	struct completion stream_start_completion;
++	struct completion stream_initialcapture_completion;
+ 	struct completion stream_stop_completion;
+ 	struct ipu6_isys *isys;
+ 
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+index 79780d3..bec778f 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+@@ -349,6 +349,7 @@ static void isys_stream_init(struct ipu6_isys *isys)
+ 		mutex_init(&isys->streams[i].mutex);
+ 		init_completion(&isys->streams[i].stream_open_completion);
+ 		init_completion(&isys->streams[i].stream_close_completion);
++		init_completion(&isys->streams[i].stream_initialcapture_completion);
+ 		init_completion(&isys->streams[i].stream_start_completion);
+ 		init_completion(&isys->streams[i].stream_stop_completion);
+ 		INIT_LIST_HEAD(&isys->streams[i].queues);
+@@ -1684,6 +1685,7 @@ static int isys_isr_one(struct ipu6_bus_device *adev)
+ 
+ 		break;
+ 	case IPU6_FW_ISYS_RESP_TYPE_STREAM_CAPTURE_ACK:
++		complete(&stream->stream_initialcapture_completion);
+ 		break;
+ 	case IPU6_FW_ISYS_RESP_TYPE_STREAM_START_AND_CAPTURE_DONE:
+ 	case IPU6_FW_ISYS_RESP_TYPE_STREAM_CAPTURE_DONE:
+-- 
+2.43.0
+

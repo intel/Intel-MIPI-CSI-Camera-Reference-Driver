@@ -1,0 +1,21 @@
+# Device rules for 3rd party GMSL2 ISX031 IMX390 and AR0234 camera modules.
+# video links for SDK, binding for ipu7 or ipu6
+
+SUBSYSTEM=="video4linux", ATTR{name}=="i2c-isx031-*", RUN+="/bin/bash -c '/usr/share/camera/ipu_max9x_bind.sh -s isx031 -n > /dev/kmsg'"
+SUBSYSTEM=="video4linux", ATTR{name}=="i2c-imx390-*", RUN+="/bin/bash -c '/usr/share/camera/ipu_max9x_bind.sh -s imx390 -n > /dev/kmsg'"
+SUBSYSTEM=="video4linux", ATTR{name}=="i2c-ar0234-*", RUN+="/bin/bash -c '/usr/share/camera/ipu_max9x_bind.sh -s ar0234 -n > /dev/kmsg'"
+
+# TEMPORARY : Device rules for Intel RealSense MIPI devices.
+# DFU rules
+SUBSYSTEM=="d4xx-class", KERNEL=="d4xx-dfu*", GROUP="video", MODE="0660"
+
+# video links for SDK, binding for ipu7
+SUBSYSTEM=="video4linux", ATTR{name}=="DS5 mux *", RUN+="/bin/bash -c '/usr/share/camera/rs_ipu_d457_bind.sh -n > /dev/kmsg; /usr/share/camera/rs-enum-ipu.sh -n -q > /dev/kmsg'"
+
+# default max96724 gmsl link_freq override for PTL ipu7 DWC DPHY
+#  (e.g .used udevadm info -a -p $(udevadm info -q path -n $(media-ctl -e "i2c-isx031-a-0")) )
+#SUBSYSTEM=="video4linux", ATTR{name}=="i2c-isx031-*", RUN+="/usr/bin/v4l2-ctl --set-ctrl v4l2_cid_link_freq=1 -d '%E{DEVNAME}'"
+#SUBSYSTEM=="video4linux", ATTR{name}=="i2c-imx390-*", RUN+="/usr/bin/v4l2-ctl --set-ctrl v4l2_cid_link_freq=1 -d '%E{DEVNAME}'"
+#SUBSYSTEM=="video4linux", ATTR{name}=="i2c-ar0234-*", RUN+="/usr/bin/v4l2-ctl --set-ctrl v4l2_cid_link_freq=1 -d '%E{DEVNAME}'"
+#  (e.g .used udevadm info -a -p $(udevadm info -q path -n $(media-ctl -e "DS5 mux a-0")) )
+#SUBSYSTEM=="video4linux", ATTR{name}=="DS5 mux *", RUN+="/usr/bin/v4l2-ctl --set-ctrl v4l2_cid_link_freq=1 -d '%E{DEVNAME}'"
