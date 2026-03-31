@@ -1,0 +1,38 @@
+From: Yew, Chang Ching <chang.ching.yew@intel.com>
+Date: Tue, 3 Mar 2026 17:30:00 +0800
+Subject: [PATCH] ipu-bridge: Add scaling direct MIPI HIDS
+
+Signed-off-by: Yew, Chang Ching <chang.ching.yew@intel.com>
+---
+ 6.17.0/drivers/media/pci/intel/Kconfig      |   5 -
+ 6.17.0/drivers/media/pci/intel/Makefile     |   5 +-
+ 3 files changed, 173 insertions(+), 10 deletions(-)
+
+diff --git b/6.17.0/drivers/media/pci/intel/Kconfig a/6.17.0/drivers/media/pci/intel/Kconfig
+index d9fcddc..3fa2b72 100644
+--- b/6.17.0/drivers/media/pci/intel/Kconfig
++++ a/6.17.0/drivers/media/pci/intel/Kconfig
+@@ -1,9 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+-
+-source "drivers/media/pci/intel/ipu3/Kconfig"
+-source "drivers/media/pci/intel/ipu6/Kconfig"
+-source "drivers/media/pci/intel/ivsc/Kconfig"
+-
+ config IPU_BRIDGE
+ 	tristate "Intel IPU Bridge"
+ 	depends on ACPI || COMPILE_TEST
+diff --git b/6.17.0/drivers/media/pci/intel/Makefile a/6.17.0/drivers/media/pci/intel/Makefile
+index 3a2cc65..16dc2d2 100644
+--- b/6.17.0/drivers/media/pci/intel/Makefile
++++ a/6.17.0/drivers/media/pci/intel/Makefile
+@@ -2,7 +2,4 @@
+ #
+ # Makefile for the IPU drivers
+ #
+-obj-$(CONFIG_IPU_BRIDGE) += ipu-bridge.o
+-obj-y	+= ipu3/
+-obj-y	+= ivsc/
+-obj-$(CONFIG_VIDEO_INTEL_IPU6)	+= ipu6/
++obj-$(CONFIG_IPU_BRIDGE) += ipu-bridge.o
+\ No newline at end of file

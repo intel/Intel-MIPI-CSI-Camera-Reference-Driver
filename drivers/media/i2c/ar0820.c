@@ -23,6 +23,8 @@
 #endif
 #define to_ar0820(_sd)                  container_of(_sd, struct ar0820, sd)
 
+#define AR0820_PM_RETRY_TIMEOUT		10
+#define AR0820_REG_SLEEP_200MS		200	/* 200ms */
 
 struct ar0820_reg {
         enum {
@@ -71,7 +73,7 @@ struct ar0820 {
         /* i2c client */
         struct i2c_client *client;
 
-        struct ar0820_platform_data *platform_data;
+        ar0820_platform_data *platform_data;
         struct gpio_desc *reset_gpio;
 	struct gpio_desc *fsin_gpio;
 
@@ -202,12 +204,76 @@ static int ar0820_disable_streams(struct v4l2_subdev *subdev,
 
 static int __maybe_unused ar0820_suspend(struct device *dev)
 {
+	struct i2c_client *client = to_i2c_client(dev);
+	struct v4l2_subdev *sd = i2c_get_clientdata(client);
+	struct ar0820 *ar0820 = to_ar0820(sd);
+
+	mutex_lock(&ar0820->mutex);
+
+	if (ar0820->streaming)
+		ar0820_stop_streaming(ar0820);
+
+	mutex_unlock(&ar0820->mutex);
+
+	/* Active low gpio reset, set 1 to power off sensor */
+	if (ar0820->reset_gpio)
+		gpiod_set_value_cansleep(ar0820->reset_gpio, 1);
+
 	return 0;
 }
 
 static int __maybe_unused ar0820_resume(struct device *dev)
 {
-	return 0;
+        struct i2c_client *client = to_i2c_client(dev);
+        struct v4l2_subdev *sd = i2c_get_clientdata(client);
+        struct ar0820 *ar0820 = to_ar0820(sd);
+        int ret, count;
+
+        mutex_lock(&ar0820->mutex);
+
+        /* Active low gpio reset, set 0 to power on sensor,
+         * sensor must be on before resume
+         */
+        if (ar0820->reset_gpio) {
+                for (count = 0; count < AR0820_PM_RETRY_TIMEOUT; count++) {
+                        gpiod_set_value_cansleep(ar0820->reset_gpio, 0);
+                        msleep(AR0820_REG_SLEEP_200MS);
+
+                        ret = gpiod_get_value_cansleep(ar0820->reset_gpio);
+                        if (ret == 0)
+                                break;
+                }
+
+                if (ret != 0) {
+                        dev_err(&client->dev, "Failed to power on sensor in pm resume\n");
+                        mutex_unlock(&ar0820->mutex);
+                        return -ETIMEDOUT;
+                }
+        }
+        /* S4 will clear the GPIO BIAS and CONFIG
+         * set fsin gpio output to trigger set_direction and set_config
+         * then set fsin to 0 to turn GPIO active */
+        if (ar0820->fsin_gpio) {
+                gpiod_direction_output(ar0820->fsin_gpio, 0);
+
+                for (count = 0; count < AR0820_PM_RETRY_TIMEOUT; count++) {
+                        gpiod_set_value_cansleep(ar0820->fsin_gpio, 0);
+                        msleep(AR0820_REG_SLEEP_200MS);
+
+                        ret = gpiod_get_value_cansleep(ar0820->fsin_gpio);
+                        if (ret == 0)
+                                break;
+                }
+
+                if (ret != 0) {
+                        dev_err(&client->dev, "Failed to turn on fsin in pm resume\n");
+                        mutex_unlock(&ar0820->mutex);
+                        return -ETIMEDOUT;
+                }
+        }
+unlock:
+        mutex_unlock(&ar0820->mutex);
+        return 0;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
@@ -440,6 +506,9 @@ static int ar0820_probe(struct i2c_client *client)
                 dev_warn(&client->dev, "Reset GPIO not found");
         else {
                 dev_dbg(&client->dev, "Found reset GPIO");
+                gpiod_set_value_cansleep(ar0820->reset_gpio, 1);
+                msleep(500);
+                gpiod_set_value_cansleep(ar0820->reset_gpio, 0);
         }
 
         ar0820->fsin_gpio = devm_gpiod_get_optional(&client->dev, "fsin",
@@ -451,6 +520,9 @@ static int ar0820_probe(struct i2c_client *client)
                 dev_warn(&client->dev, "FSIN GPIO not found");
         else {
                 dev_dbg(&client->dev, "Found FSIN GPIO");
+                gpiod_set_value_cansleep(ar0820->fsin_gpio, 1);
+                msleep(500);
+                gpiod_set_value_cansleep(ar0820->fsin_gpio, 0);
         }
 	
         /* initialize subdevice */
@@ -480,8 +552,8 @@ static int ar0820_probe(struct i2c_client *client)
                 return ret;
         }
 
-        if (ar0820->platform_data && ar0820->platform_data->suffix)
-                snprintf(ar0820->sd.name, sizeof(ar0820->sd.name), "ar0820 %c",
+        if (ar0820->platform_data && ar0820->platform_data->suffix[0])
+                snprintf(ar0820->sd.name, sizeof(ar0820->sd.name), "ar0820 %s",
                          ar0820->platform_data->suffix);
 
         mutex_init(&ar0820->mutex);
