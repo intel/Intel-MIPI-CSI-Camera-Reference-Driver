@@ -1,0 +1,43 @@
+{
+  "CameraSettings": {
+    "Sensor": [
+      {
+        "name": "ar0830-1",
+        "description": "AR0830 MIPI CSI-2 Sensor 1",
+        "MediaCtlConfig": [
+          {
+            "id": 0,
+            "configMode": "AUTO",
+            "output": [3840, 2160],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "formats": [
+              { "name": "ar0830 1-003c", "pad": 0, "width": 3840, "height": 2160, "format": "V4L2_MBUS_FMT_UYVY8_1X16", "stream": 0 },
+              { "name": "Intel IPU7 CSI2 0", "pad": 0, "width": 3840, "height": 2160, "format": "V4L2_MBUS_FMT_UYVY8_1X16", "stream": 0 },
+              { "name": "Intel IPU7 ISYS Capture 0", "pad": 0, "width": 3840, "height": 2160, "format": "V4L2_MBUS_FMT_UYVY8_1X16", "stream": 0  }
+            ],
+            "link": [
+              { "srcName": "ar0830 1-003c", "srcPad": 0, "sinkName": "Intel IPU7 CSI2 0", "sinkPad": 0, "enable": true },
+              { "srcName": "Intel IPU7 CSI2 0", "srcPad": 1, "sinkName": "Intel IPU7 ISYS Capture 0", "sinkPad": 0, "enable": true }
+            ],
+            "videonode": [
+              { "name": "Intel IPU7 ISYS Capture 0", "videoNodeType": "VIDEO_GENERIC" },
+              { "name": "Intel IPU7 CSI2 0", "videoNodeType": "VIDEO_ISYS_RECEIVER" },
+              { "name": "ar0830 1-003c", "videoNodeType": "VIDEO_PIXEL_ARRAY" }
+            ]
+          }
+        ],
+
+        "StaticMetadata": {
+          "supportedStreamConfig": [
+            { "format": "V4L2_PIX_FMT_UYVY", "size": [3840, 2160], "field": 0, "mcId": 0 }
+          ]
+        },
+
+        "supportedISysSizes": [[3840, 2160]],
+        "supportedISysFormat": ["V4L2_PIX_FMT_UYVY"],
+        "enableAIQ": false,
+        "usePSysProcessor": false
+      }
+    ]
+  }
+}

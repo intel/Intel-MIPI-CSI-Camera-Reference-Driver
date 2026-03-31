@@ -1,0 +1,43 @@
+Subject: [PATCH] ipu6: isys: disable src_pad validation for dkms
+
+src_pad field is added by VTG to support UXC use case in BKC kernel.
+Hence, this patch is only applicable to BKC kernel header file.
+
+Signed-off-by: Khai Wen, Ng <khai.wen.ng@intel.com>
+---
+ .../drivers/media/pci/intel/ipu6/ipu6-isys.c  | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+index 415ff067e..f4bc8ca12 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+@@ -175,7 +175,7 @@ isys_complete_ext_device_registration(struct ipu6_isys *isys,
+ 		ret = -ENOENT;
+ 		goto unregister_subdev;
+ 	}
+-
++#if 0
+ 	if (src_pad >= 0)
+ 		i = (unsigned int)src_pad;
+ 
+@@ -186,7 +186,7 @@ isys_complete_ext_device_registration(struct ipu6_isys *isys,
+ 		ret = -ENOENT;
+ 		goto unregister_subdev;
+ 	}
+-
++#endif
+ 	ret = media_create_pad_link(&sd->entity, i,
+ 				    &isys->csi2[csi2->port].asd.sd.entity,
+ 				    0, MEDIA_LNK_FL_ENABLED |
+@@ -1009,7 +1009,7 @@ static int isys_notifier_bound(struct v4l2_async_notifier *notifier,
+ 	dev_dbg(&isys->adev->auxdev.dev, "bind %s nlanes is %d port is %d\n",
+ 		sd->name, s_asd->csi2.nlanes, s_asd->csi2.port);
+ 	ret = isys_complete_ext_device_registration(isys, sd,
+-						    asc->match.src_pad,
++						    -1,
+ 						    &s_asd->csi2);
+ 	if (ret)
+ 		return ret;
+-- 
+2.43.0
