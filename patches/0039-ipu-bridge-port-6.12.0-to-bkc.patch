@@ -1,0 +1,15 @@
+ 6.12.0/drivers/media/pci/intel/ipu-bridge.c | 2 ++
+ 1 file changed, 2 insertions(+)
+diff --git b/6.12.0/drivers/media/pci/intel/ipu-bridge.c a/6.12.0/drivers/media/pci/intel/ipu-bridge.c
+index a0e9a71..4e921c7 100644
+--- b/6.12.0/drivers/media/pci/intel/ipu-bridge.c
++++ a/6.12.0/drivers/media/pci/intel/ipu-bridge.c
+@@ -59,6 +59,8 @@ static const struct ipu_sensor_config ipu_supported_sensors[] = {
+ 	IPU_SENSOR_CONFIG("INT33BE", 1, 419200000),
+ 	/* Omnivision OV2740 */
+ 	IPU_SENSOR_CONFIG("INT3474", 1, 180000000),
++	/* Omnivision OV5670 */
++	IPU_SENSOR_CONFIG("INT3479", 1, 422400000),
+ 	/* Omnivision OV8865 */
+ 	IPU_SENSOR_CONFIG("INT347A", 1, 360000000),
+ 	/* Omnivision OV7251 */

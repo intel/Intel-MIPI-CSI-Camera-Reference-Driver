@@ -105,7 +105,7 @@ struct isx031 {
 	struct v4l2_subdev sd;
 	struct v4l2_ctrl_handler ctrls;
 
-	struct isx031_platform_data *platform_data;
+	isx031_platform_data *platform_data;
 	struct i2c_client *client;
 
 	struct gpio_desc *reset_gpio;
@@ -733,6 +733,27 @@ static int __maybe_unused isx031_resume(struct device *dev)
 
 		if (ret != 0) {
 			dev_err(&client->dev, "Failed to power on sensor in pm resume\n");
+			mutex_unlock(&isx031_mutex);
+			return -ETIMEDOUT;
+		}
+	}
+	/* S4 will clear the GPIO BIAS and CONFIG
+	 * set fsin gpio output to trigger set_direction and set_config
+	 * then set fsin to 0 to turn GPIO active */
+	if (isx031->fsin_gpio) {
+		gpiod_direction_output(isx031->fsin_gpio, 0);
+
+		for (count = 0; count < ISX031_PM_RETRY_TIMEOUT; count++) {
+			gpiod_set_value_cansleep(isx031->fsin_gpio, 0);
+			msleep(ISX031_REG_SLEEP_200MS);
+
+			ret = gpiod_get_value_cansleep(isx031->fsin_gpio);
+			if (ret == 0)
+				break;
+		}
+
+		if (ret != 0) {
+			dev_err(&client->dev, "Failed to turn on fsin in pm resume\n");
 			mutex_unlock(&isx031_mutex);
 			return -ETIMEDOUT;
 		}

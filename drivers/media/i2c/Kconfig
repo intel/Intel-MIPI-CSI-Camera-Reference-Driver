@@ -10,6 +10,18 @@ config VIDEO_ISX031
           To compile this driver as a module, choose M here: the
           module will be called isx031.
 
+config VIDEO_AR0233
+	tristate "ON Semiconductor AR0233 sensor with GW5300 ISP support"
+	depends on VIDEO_DEV && I2C
+	select VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CAMERA_SUPPORT
+	help
+	  This is a Video4Linux2 sensor driver for the ON Semiconductor
+	  AR0233 camera with GW5300 ISP.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ar0233.
+
 config VIDEO_AR0234
 	tristate "ON Semiconductor AR0234 sensor support"
 	depends on VIDEO_DEV && I2C
@@ -23,13 +35,67 @@ config VIDEO_AR0234
 	  module will be called ar0234.
 
 config VIDEO_AR0820
-	tristate "ON Semiconductor AR0820 sensor support"
+	tristate "ON Semiconductor AR0820 sensor with GW5300 ISP support"
 	depends on VIDEO_DEV && I2C
 	select VIDEO_V4L2_SUBDEV_API
 	depends on MEDIA_CAMERA_SUPPORT
 	help
 	  This is a Video4Linux2 sensor driver for the ON Semiconductor
-	  AR0820 camera.
+	  AR0820 camera with GW5300.
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ar0820.
+
+config VIDEO_AR0830
+	tristate "ON Semiconductor AR0830 sensor support"
+	depends on VIDEO_DEV && I2C
+	select VIDEO_V4L2_SUBDEV_API
+	depends on MEDIA_CAMERA_SUPPORT
+	help
+	  This is a Video4Linux2 sensor driver for the ON Semiconductor
+	  AR0830 camera.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ar0830.
+
+config VIDEO_LT6911UXC
+        tristate "Lontium LT6911UXC decoder"
+        depends on VIDEO_DEV && I2C
+        select VIDEO_V4L2_SUBDEV_API
+        help
+          This is a Video4Linux2 sensor-level driver for the Lontium
+          LT6911UXC HDMI to MIPI CSI-2 bridge.
+
+          To compile this driver as a module, choose M here: the
+          module will be called lt6911uxc.
+
+config VIDEO_LT6911UXE
+        tristate "Lontium LT6911UXE decoder"
+        depends on VIDEO_DEV && I2C
+        select VIDEO_V4L2_SUBDEV_API
+        help
+          This is a Video4Linux2 sensor-level driver for the Lontium
+          LT6911UXE HDMI to MIPI CSI-2 bridge.
+
+          To compile this driver as a module, choose M here: the
+          module will be called lt6911uxe.
+
+config VIDEO_LT6911GXD
+        tristate "Lontium LT6911GXD decoder"
+		depends on ACPI || COMPILE_TEST
+        select V4L2_CCI_I2C
+        help
+          This is a Video4Linux2 sensor-level driver for the Lontium
+          LT6911GXD HDMI to MIPI CSI-2 bridge.
+
+          To compile this driver as a module, choose M here: the
+          module will be called lt6911gxd.
+
+config VIDEO_MAX9X
+        tristate "MAX9X serdes support"
+        depends on VIDEO_DEV && I2C
+        select VIDEO_V4L2_SUBDEV_API
+        depends on MEDIA_CAMERA_SUPPORT
+        help
+          This is a Video4Linux2 sensor-level driver for MAX9X serdes.
+

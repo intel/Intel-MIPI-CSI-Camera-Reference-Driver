@@ -5,20 +5,12 @@
 #define __ISX031_H
 
 #include <linux/types.h>
+#include <media/ipu-acpi-pdata.h>
 
 #define ISX031_NAME "isx031"
 
 #define ISX031_I2C_ADDRESS 0x1a
 
-struct isx031_platform_data {
-	unsigned int port;
-	unsigned int lanes;
-	uint32_t i2c_slave_address;
-	int irq_pin;
-	unsigned int irq_pin_flags;
-	char irq_pin_name[16];
-	char suffix[5];
-	int gpios[4];
-};
+typedef struct sensor_platform_data isx031_platform_data;
 
 #endif /* __ISX031_H  */
