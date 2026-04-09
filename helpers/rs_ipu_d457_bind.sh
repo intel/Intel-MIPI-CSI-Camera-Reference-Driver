@@ -39,12 +39,18 @@ while [[ $# -gt 0 ]]; do
       echo "-n OR -n -m <specific d4xx suffix ex: a-2>"
       exit 1
     ;;
+    -f)
+	fmt="$2"
+	shift
+    ;;
     *)
       quiet=0
       shift
     ;;
     esac
 done
+
+fmt="${fmt:-640x480@1/30}"
 
 # mapping for DS5 mux entity to IPU6 CSI-2 entity matching.
 declare -A media_mux_capture_link=( [0]=0 [1]=16 [2]=32 [3]=48 [4]=64 [5]=80)
@@ -96,16 +102,26 @@ media_ctl_cmd="${media_util} -d ${mdev}"
 # cache media-ctl output
 dot=$($media_ctl_cmd --print-dot)
 
-fmt_depth="${fmt:-[fmt:UYVY8_1X16/640x480 field:none]}"
-fmt_rgb="${fmt:-[fmt:YUYV8_1X16/640x480 field:none]}"
-fmt_ir="${fmt:-[fmt:VYUY8_1X16/640x480 field:none]}"
+fmt_rgb="[fmt:YUYV8_1X16/$fmt field:none]"
+csi_fmt_rgb="[fmt:YUYV8_1X16/${fmt%@*} field:none]"
+
+#WA make sure depth and rgb don't exceed
+if [ "${fmt%@*}" == "1280x800" ]; then
+    fmt="1280x720@${fmt#*@}"
+fi
+fmt_depth="[fmt:UYVY8_1X16/$fmt field:none]"
+fmt_ir="[fmt:VYUY8_1X16/$fmt field:none]"
+csi_fmt_depth="[fmt:UYVY8_1X16/${fmt%@*} field:none]"
+csi_fmt_ir="[fmt:VYUY8_1X16/${fmt%@*} field:none]"
+
 # For fimware version starting from: 5.16,
 # IMU will have 32bit axis values.
 # 5.16.x.y = firmware version: 0x0510
 # state->fw_version < 0x510
-#fmt_imu="${fmt:-[fmt:Y8_1X8/32x1 field:none]}"
+#fmt_imu="[fmt:Y8_1X8/32x1 field:none]"
 # state->fw_version >= 0x510
-fmt_imu="${fmt:-[fmt:Y8_1X8/38x1 field:none]}"
+fmt_imu="[fmt:Y8_1X8/38x1@1/30 field:none]"
+csi_fmt_imu="[fmt:Y8_1X8/38x1 field:none]"
 
 count=0
 pre_csi2=0
@@ -226,6 +242,16 @@ for camera in ${mux_list}; do
       else
 	  csi_route=${csi_route}", "${route_no_md}
 
+	  #WA: disable prior IR and IMU if 4 camera are used
+	  if [ "${mux}" \= "d" ] && [ $count -gt 3 ] && [ $ir_active -eq 0 ]; then
+	      csi_route=$(echo $(sed 's|\/4\[1|\/4[0|g' <<< $csi_route))
+	      csi_route=$(echo $(sed 's|\/5\[1|\/5[0|g' <<< $csi_route))
+	  fi
+	  #WA: disable prior IR and IMU if 3 camera are used
+	  if [ "${mux}" \= "d" ] && [ $count -gt 2 ] && [ $ir_active -eq 0 ]; then
+	      csi_route=$(echo $(sed 's|\/12\[1|\/12[0|g' <<< $csi_route))
+	      csi_route=$(echo $(sed 's|\/13\[1|\/13[0|g' <<< $csi_route))
+	  fi
 	  #WA: enable IR and IMU if 2 camera are used
 	  if [ "${mux}" \= "b" ] && [ $count -lt 3 ] && [ $ir_active -eq 0 ]; then
 	      csi_route=$(echo $(sed 's|\/10\[0|\/10[1|g' <<< $csi_route))
@@ -267,25 +293,25 @@ for camera in ${mux_list}; do
   out $media_ctl_cmd -R "\"Intel ${cap_prefix} CSI2 ${csi2}\"[${csi_route}]"
 
   # DEPTH default media bus format
-  out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_depth}/${stream_id_depth} ${fmt_depth}"
+  out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_depth}/${stream_id_depth} ${csi_fmt_depth}"
   out $media_ctl_cmd -V "\"DS5 mux ${camera}\":0/${stream_id_depth} ${fmt_depth}"
   out $media_ctl_cmd -V "\"DS5 mux ${camera}\":1/${stream_id_depth} ${fmt_depth}"
   out $media_ctl_cmd -V "\"D4XX depth ${camera}\":0/${stream_id_depth} ${fmt_depth}"
   # RGB default media bus format
-  out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_rgb}/${stream_id_rgb} ${fmt_rgb}"
+  out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_rgb}/${stream_id_rgb} ${csi_fmt_rgb}"
   out $media_ctl_cmd -V "\"DS5 mux ${camera}\":0/${stream_id_rgb} ${fmt_rgb}"
   out $media_ctl_cmd -V "\"DS5 mux ${camera}\":2/${stream_id_rgb} ${fmt_rgb}"
   out $media_ctl_cmd -V "\"D4XX rgb ${camera}\":0/${stream_id_rgb} ${fmt_rgb}"
   # IR default media bus format
   if [[ $ir_active -eq 1 ]]; then
-      out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_ir}/${stream_id_ir} ${fmt_ir}"
+      out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_ir}/${stream_id_ir} ${csi_fmt_ir}"
       out $media_ctl_cmd -V "\"DS5 mux ${camera}\":0/${stream_id_ir} ${fmt_ir}"
       out $media_ctl_cmd -V "\"DS5 mux ${camera}\":3/${stream_id_ir} ${fmt_ir}"
   fi
   out $media_ctl_cmd -V "\"D4XX ir ${camera}\":0/${stream_id_ir} ${fmt_ir}"
   # IMU default media bus format
   if [[ $imu_active -eq 1 ]]; then
-      out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_imu}/${stream_id_imu} ${fmt_imu}"
+      out $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":${isys_pad_imu}/${stream_id_imu} ${csi_fmt_imu}"
       out $media_ctl_cmd -V "\"DS5 mux ${camera}\":0/${stream_id_imu} ${fmt_imu}"
       out $media_ctl_cmd -V "\"DS5 mux ${camera}\":4/${stream_id_imu} ${fmt_imu}"
   fi
@@ -293,25 +319,25 @@ for camera in ${mux_list}; do
 
   # WA: must repeat all the v4l2 set-fmt on Intel IPU7/IPU6 CSI2 2 v4l2 subdev pad 0
   if [ ${count} -gt 1 ]; then
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/0 ${fmt_depth}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/2 ${fmt_rgb}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/4 ${fmt_ir}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/5 ${fmt_imu}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/0 ${csi_fmt_depth}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/2 ${csi_fmt_rgb}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/4 ${csi_fmt_ir}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/5 ${csi_fmt_imu}" 1>/dev/null
 
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/6 ${fmt_depth}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/8 ${fmt_rgb}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/10 ${fmt_ir}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/11 ${fmt_imu}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/6 ${csi_fmt_depth}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/8 ${csi_fmt_rgb}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/10 ${csi_fmt_ir}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/11 ${csi_fmt_imu}" 1>/dev/null
 
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/1 ${fmt_depth}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/3 ${fmt_rgb}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/12 ${fmt_ir}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/13 ${fmt_imu}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/1 ${csi_fmt_depth}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/3 ${csi_fmt_rgb}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/12 ${csi_fmt_ir}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/13 ${csi_fmt_imu}" 1>/dev/null
 
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/7 ${fmt_depth}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/9 ${fmt_rgb}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/14 ${fmt_ir}" 1>/dev/null
-      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/15 ${fmt_imu}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/7 ${csi_fmt_depth}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/9 ${csi_fmt_rgb}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/14 ${csi_fmt_ir}" 1>/dev/null
+      $media_ctl_cmd -V "\"Intel ${cap_prefix} CSI2 ${csi2}\":0/15 ${csi_fmt_imu}" 1>/dev/null
   fi
   pre_csi2=$csi2
 

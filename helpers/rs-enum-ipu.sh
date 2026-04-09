@@ -149,8 +149,10 @@ for camera in $mux_list; do
     fi
     mux_nd=$(echo "${dot}" | grep -w "$d4xx_sens_mux:port1" | awk '{print $3}' | awk -F':' '{print $1}')
     dev_mux=$(echo "${dot}" | grep "${mux_nd}" | grep subdev | tr '\\n' '\n' | grep subdev | awk -F'"' '{print $1}' | awk -F'|' '{print $1}')
-    
-    [[ $quiet -eq 0 ]] && printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$dev_name" ${camera} ${camera_names["${sens}"]} $link_state $vid $dev_ln
+    d4xx_subdev_mux=$(echo "${dot}" | grep $d4xx_sens | grep label  | tr '\\n' '\n' | grep subdev | awk -F'"' '{print $1}' | awk -F'|' '{print $1}')
+    csi2_fmt=$(${v4l2_util} -d ${d4xx_subdev_mux} --get-subdev-fmt pad=0,stream=${csi2_stream} | grep "Width" | awk -F': ' '{print $2}' )
+
+    [[ $quiet -eq 0 ]] && printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$dev_name" ${camera} ${camera_names["${sens}"]} $link_state $vid $dev_ln [$csi2_fmt]
 
     # create link only in case we choose not only to show it
     if [[ $info -eq 0 ]]; then
@@ -162,16 +164,11 @@ for camera in $mux_list; do
 
       # enable ipu7 link enumeration feature
       ${v4l2_util} -d $dev_ln -c enumerate_graph_link=1
-      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'depth' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=640,height=480,pixelformat='Z16 '
-      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'color' ]] && ${v4l2_util} -d $dev_ln  --set-fmt-video=width=640,height=480,pixelformat='YUYV'
-      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'ir' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=640,height=480,pixelformat='Y8I '
-      # For fimware version starting from: 5.16,
-      # IMU will have 32bit axis values.
-      # 5.16.x.y = firmware version: 0x0510
-      # state->fw_version < 0x510
-      #[[ -e $dev_ln && ${camera_names["${sens}"]} == 'imu' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=32,height=1,pixelformat='GREY'
-      # state->fw_version >= 0x510
-      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'imu' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=38,height=1,pixelformat='GREY'
+      #echo "--set-fmt-video=width=${csi2_fmt%/*},height=${csi2_fmt#*/}"
+      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'depth' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=${csi2_fmt%/*},height=${csi2_fmt#*/},pixelformat='Z16 '
+      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'color' ]] && ${v4l2_util} -d $dev_ln  --set-fmt-video=width=${csi2_fmt%/*},height=${csi2_fmt#*/},pixelformat='YUYV'
+      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'ir' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=${csi2_fmt%/*},height=${csi2_fmt#*/},pixelformat='Y8I '
+      [[ -e $dev_ln && ${camera_names["${sens}"]} == 'imu' ]] && ${v4l2_util} -d $dev_ln --set-fmt-video=width=${csi2_fmt%/*},height=${csi2_fmt#*/},pixelformat='GREY'
     fi
 
     update_mux_link_freq=1 # will update link freq for camera
