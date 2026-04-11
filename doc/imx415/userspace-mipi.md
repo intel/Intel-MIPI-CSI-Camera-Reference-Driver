@@ -24,7 +24,7 @@ This document details the configuration settings for the IMX415 MIPI CSI-2 senso
 |                            | Camera1 Link options | Camera2 Link options |
 |---                         |---                   | ---                  |
 | Sensor Model               | User Custom          | User Custom          |
-| Custom HID                 | LIIMX415             | LIIMX415             |
+| Custom HID                 | IMXSN415             | IMXSN415             |
 | Lanes Clock division       | 4 4 2 2              | 4 4 2 2              |
 | CRD Version                | CRD-D                | CRD-D                |
 | GPIO control               | Control Logic 1      | Control Logic 2      |
@@ -43,7 +43,7 @@ This document details the configuration settings for the IMX415 MIPI CSI-2 senso
 | Number of I2C Components   | 1                    | 1                    |
 | I2C Channel                | I2C1                 | I2C0                 |
 | Device 0                   |                      |                      |
-| I2C Address                | 10                   | 10                   |
+| I2C Address                | 1A                   | 1A                   |
 | Device Type                | Sensor               | Sensor               |
 | Customize Device ID List   |                      |                      |
 | Customize Device ID Number | 17                   | 17                   |
