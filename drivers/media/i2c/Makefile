@@ -15,6 +15,7 @@ obj-$(CONFIG_VIDEO_ISX031) += isx031.o
 obj-$(CONFIG_VIDEO_LT6911UXC) += lt6911uxc.o
 obj-$(CONFIG_VIDEO_LT6911UXE) += lt6911uxe.o
 obj-$(CONFIG_VIDEO_LT6911GXD) += lt6911gxd.o
+obj-$(CONFIG_VIDEO_IMX415) += imx415.o
 
 subdir-ccflags-y := -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
 obj-$(CONFIG_VIDEO_MAX9X) += max9x/
