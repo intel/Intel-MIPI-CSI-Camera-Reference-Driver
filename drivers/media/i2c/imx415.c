@@ -784,8 +784,10 @@ static int imx415_s_ctrl(struct v4l2_ctrl *ctrl)
 		ret = imx415_set_testpattern(sensor, ctrl->val);
 		break;
 
+	/* libcamhal sets digital gain per-frame, 
+	stub handler prevents userspace errors */
 	case V4L2_CID_DIGITAL_GAIN:
-		ret = 0; /* stub - no hardware support */
+		ret = 0;
 		break;
 
 		default:
