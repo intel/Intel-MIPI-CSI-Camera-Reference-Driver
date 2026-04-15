@@ -198,6 +198,7 @@ Replace target system with recommended [ipu75xa](../../config/isx031/ipu75xa) se
 
 Export environment variables below
 
+    unset XDG_RUNTIME_DIR
     export DISPLAY=:0; xhost +
     export GST_PLUGIN_PATH=/usr/lib/gstreamer-1.0
     export LIBVA_DRIVER_NAME=iHD
