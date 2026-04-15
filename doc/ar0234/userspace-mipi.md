@@ -74,6 +74,7 @@ Import [AR0234_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/io
 
 Export environment variables below
 
+    unset XDG_RUNTIME_DIR
     export DISPLAY=:0; xhost +
     export GST_PLUGIN_PATH=/usr/lib/gstreamer-1.0
     export LIBVA_DRIVER_NAME=iHD
