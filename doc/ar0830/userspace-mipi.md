@@ -100,6 +100,16 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+> **Note:** CPHY-DPHY adapter board required only if connecting a DPHY sensor to PTL(CPHY).
+
+DPHY sensor must be connecting to the front side of adapter.
+
+![cphy-dphy-adapter-front](cphy-dphy-adapter-front.png)
+
+Connect the rear side of adapter to PTL.
+
+![cphy-dphy-adapter-rear](cphy-dphy-adapter-rear.png)
+
 ## Camera Configuration File Setup
 
 #### Setup for IPU6EPMTL
