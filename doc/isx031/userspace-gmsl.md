@@ -242,7 +242,7 @@ Replace target system with recommended [ipu6ep](../../config/isx031/ipu6ep) sett
 > **Note:** Add config below only if using x1 GMSL sensor.
 
     sudo cp -r ../../config/isx031/ipu6ep /etc/camera
-    sudo sed -i '/availableSensors/c\        <availableSensors value="isx031-1"/>' /etc/camera/ipu6ep/libcamhal_profile.xml
+    sudo sed -i '/availableSensors/c\        <availableSensors value="isx031-1-1"/>' /etc/camera/ipu6ep/libcamhal_profile.xml
 
 > **Note:** Add config below only if using x4 GMSL sensors.
 
