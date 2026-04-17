@@ -4,7 +4,7 @@ diff --git a/6.17.0/drivers/media/pci/intel/ipu-bridge.c b/6.17.0/drivers/media/
 index 3c947d1..36e8f10 100644
 --- a/6.17.0/drivers/media/pci/intel/ipu-bridge.c
 +++ b/6.17.0/drivers/media/pci/intel/ipu-bridge.c
-@@ -97,6 +97,12 @@ static const struct ipu_sensor_config ipu_supported_sensors[] = {
+@@ -97,6 +97,14 @@ static const struct ipu_sensor_config ipu_supported_sensors[] = {
  	IPU_SENSOR_CONFIG("XMCC0003", 1, 321468000),
  	/* Lontium lt6911gxd */
  	IPU_SENSOR_CONFIG("INTC1124", 0),
@@ -14,6 +14,8 @@ index 3c947d1..36e8f10 100644
 +       IPU_SENSOR_CONFIG("LIAR0830", 1, 600000000),
 +       /* Innodisk AR0822 */
 +       IPU_SENSOR_CONFIG("EV8MOOM1", 1, 600000000),
++       /* LI IMX415 */
++       IPU_SENSOR_CONFIG("IMXSN415", 1, 445500000),
  };
  
  static const struct ipu_property_names prop_names = {
