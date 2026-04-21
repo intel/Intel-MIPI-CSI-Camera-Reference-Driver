@@ -90,12 +90,17 @@ out() {
 
 # For case with usb camera plugged in during the boot,
 # usb media controller will occupy index 0
-mdev=$(${v4l2_util} --list-devices | grep -A100 ipu | grep media)
+mdev=$(${v4l2_util} --list-devices | grep -A100 ipu | grep media | head -n 1)
 [[ -z "${mdev}" ]] && exit 0
 
 # Find IPU PCI device gen name
 cap_prefix=$(${v4l2_util} --list-devices | grep ipu | grep PCI | sed 's/^\(ipu[6|7]\).*/\1/' | tr '[:lower:]' '[:upper:]')
 [[ -z "${cap_prefix}" ]] && exit 0
+
+# D4XX requires IPU7/IPU6 ISYS Capture devices to bind to IPU7/IPU6 ISYS CSI subdev srcpads from 1-16
+# exit if IPU7/IPU6 ISYS CSI subdev 1-8 srcpads limitation detected
+mdev_capdev_count=$(${v4l2_util} -d ${mdev} -A | wc -l)
+[[ $((${mdev_capdev_count}-2)) -gt 48 ]] && exit 0
 
 media_ctl_cmd="${media_util} -d ${mdev}"
 [[ -n "${mux_param}" ]] && out $media_ctl_cmd -r # <- this can be used to clean-up all bindings from media controller

@@ -114,8 +114,6 @@ sen_src_pad() {
 }
 
 # mapping for ISX031/IMX390/AR0234 max9x entity to IPU7|IPU6 CSI-2 entity matching.
-declare -A media_mux_capture_link=( [0]=0 [1]=16 [2]=32 [3]=48 [4]=64 [5]=80)
-
 declare -A media_mux_capture_pad=(
 	[a]=0
 	[b]=1
@@ -131,8 +129,16 @@ mux_list=${mux_param:-'a-0 b-0 c-0 d-0 a-1 b-1 c-1 d-1 a-2 b-2 c-2 d-2 a-3 b-3 c
 # Find media device.
 # For case with usb camera plugged in during the boot,
 # usb media controller will occupy index 0
-mdev=$(${v4l2_util} --list-devices | grep -A100 ipu | grep media)
+mdev=$(${v4l2_util} --list-devices | grep -A100 ipu | grep media | head -n 1)
 [[ -z "${mdev}" ]] && exit 0
+
+# IPU7/IPU6 ISYS Capture devices can bind to either on IPU7/IPU6 ISYS CSI subdev 1-16 or 1-8 srcpads
+mdev_capdev_count=$(${v4l2_util} -d ${mdev} -A | wc -l)
+if [ $((${mdev_capdev_count}-2)) -gt 48 ]; then
+    declare -A media_mux_capture_link=( [0]=0 [1]=16 [2]=32 [3]=48 [4]=64 [5]=80)
+else
+    declare -A media_mux_capture_link=( [0]=0 [1]=8 [2]=16 [3]=24 [4]=32 [5]=40)
+fi
 
 # Find IPU PCI device gen name
 cap_prefix=$(${v4l2_util} --list-devices | grep ipu | grep PCI | sed 's/^\(ipu[6|7]\).*/\1/' | tr '[:lower:]' '[:upper:]')
@@ -210,8 +216,8 @@ elif [ ${sensor} = "imx390" ]; then
 elif [ ${sensor} = "ar0234" ]; then
 	out ${v4l2_util} -d ${dev_ln} --set-fmt-video=width=1280,height=960,pixelformat=NV12
 fi
-	# disable ipu link enumeration feature
-	out ${v4l2_util} -d $dev_ln -c enumerate_graph_link=0
+	# disable ipu link enumeration feature, if exists
+	[[ -e "$(${v4l2_util} -d $dev_ln -L | grep enumerate_graph_link)" ]] && out ${v4l2_util} -d $dev_ln -c enumerate_graph_link=0
 
 	# change group
 	out chown root:video $cap_dev
