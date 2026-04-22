@@ -56,7 +56,7 @@ ccflags-y := -I$(src)/include
 # IPU7 driver configs
 export CONFIG_VIDEO_INTEL_IPU7=m
 
-subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU7
+subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU7 -DENABLE_FW_OFFLINE_LOGGER -DCONFIG_DEBUG_FS
 
 # Build IPU7 drivers from submodule
 obj-m += ipu7-drivers/drivers/media/pci/intel/ipu7/
