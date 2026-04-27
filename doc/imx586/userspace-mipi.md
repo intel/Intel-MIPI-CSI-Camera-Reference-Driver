@@ -105,7 +105,6 @@ Import [IMX586_GX48M9684_MTL.aiqb](https://github.com/intel/ipu6-camera-hal/blob
 | Number of Stream | Command Pipeline |
 |---|---|
 | x1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx586-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3968,height=2976' ! glimagesink sync=false |
-| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx586-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3968,height=2976' ! glimagesink sync=false icamerasrc num-buffers=-1 scene-mode=auto device-name=imx586-b printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3968,height=2976' ! glimagesink sync=false |
 
 #### FPS Result
 
@@ -113,5 +112,3 @@ Import [IMX586_GX48M9684_MTL.aiqb](https://github.com/intel/ipu6-camera-hal/blob
 |---               |---       |---         |
 | x1               | USERPTR  | 30         |
 | x1               | DMA MODE | 30         |
-| x2               | USERPTR  | 30         |
-| x2               | DMA MODE | 30         |
