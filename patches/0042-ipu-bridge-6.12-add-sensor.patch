@@ -16,6 +16,8 @@ index 4e4f86a..e680967 100644
 +	IPU_SENSOR_CONFIG("EV8MOOM1", 1, 600000000),
 +	/* LI IMX415 */
 +	IPU_SENSOR_CONFIG("IMXSN415", 1, 445500000),
++   /* LI IMX586 */
++	IPU_SENSOR_CONFIG("IMXSN586", 1, 1000000000),
  };
  
  static const struct ipu_sensor_config ipu_supported_sensors_dummy[] = {
