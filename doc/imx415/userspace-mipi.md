@@ -71,8 +71,8 @@ Import [IMX415_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/io
 
 | MIPI Port | Command Pipeline |
 |---|---|
-| CRD1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
-| CRD2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| CRD1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| CRD2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-b printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
 
 > **Note**: Refer to icamerasrc device-name property for more sensor details.
 
@@ -80,8 +80,8 @@ Import [IMX415_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/io
 
 | IO Mode | Command Pipeline |
 |---|---|
-| USERPTR | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-1 printfps=true io-mode=userptr ! 'video/x-raw,format=NV12,width=3840,height=2160' ! glimagesink sync=false |
-| DMA MODE | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| USERPTR | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-a printfps=true io-mode=userptr ! 'video/x-raw,format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| DMA MODE | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
 
 > **Note**: Refer to icamerasrc io-mode property for more sensor details.
 
@@ -89,20 +89,20 @@ Import [IMX415_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/io
 
 | Resolution | Command Pipeline |
 |---|---|
-| 3840x2160 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| 3840x2160 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
 
 #### Sensor Format Selection
 
 | Format | Command Pipeline |
 |---|---|
-| NV12 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| NV12 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
 
 #### Number of Stream (Single Stream / Multi Stream) Selection
 
 | Number of Stream | Command Pipeline |
 |---|---|
-| x1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
-| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| x1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
+| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-a printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false icamerasrc num-buffers=-1 scene-mode=auto device-name=imx415-b printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=3840,height=2160' ! glimagesink sync=false |
 
 #### FPS Result
 

@@ -22,9 +22,9 @@
 		Note: Remove from list if not matching to use case
 
 		isx031-1        - for gmsl setup with x1 sensor, where sensor detected as sensor 1
-		isx031-1-mipi-1 - for mipi setup, where sensor connected on crd1 (port 1)
-		isx031-2-mipi-2 - for mipi setup, where sensor connected on crd2 (port 2)
+		isx031-a-1      - for mipi setup, where sensor connected on crd1 (port 1)
+		isx031-b-2      - for mipi setup, where sensor connected on crd2 (port 2)
         -->
-	<availableSensors value="isx031-1,isx031-1-mipi-1,isx031-2-mipi-2"/>
+	<availableSensors value="isx031-1,isx031-a-1,isx031-b-2"/>
     </Common>
 </CameraSettings>

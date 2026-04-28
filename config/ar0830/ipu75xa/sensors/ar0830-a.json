@@ -2,7 +2,7 @@
   "CameraSettings": {
     "Sensor": [
       {
-        "name": "ar0830-1",
+        "name": "ar0830-a",
         "description": "AR0830 MIPI CSI-2 Sensor 1",
         "MediaCtlConfig": [
           {

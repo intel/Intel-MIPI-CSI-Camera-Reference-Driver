@@ -15,7 +15,7 @@
 -->
 
 <CameraSettings>
-    <Sensor name="ar0234-1" description="AR0234 MIPI CSI-2 Sensor 1">
+    <Sensor name="ar0234-a" description="AR0234 MIPI CSI-2 Sensor 1">
         <MediaCtlConfig id="0" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
             <format name="ar0234 b" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10"/>
             <format name="Intel IPU6 CSI-2 1" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10"/>
