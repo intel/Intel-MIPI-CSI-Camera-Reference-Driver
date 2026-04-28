@@ -21,8 +21,8 @@
         //  The value format of availableSensors is "sensor name"-wf/uf-"CSI port ID".
         //  wf is world facing, and uf is user facing.
         "availableSensors": [
-            "ar0830-1-mipi-0",
-            "ar0830-2-mipi-2"
+            "ar0830-a-0",
+            "ar0830-b-2"
         ],
         "videoStreamNum" : 2
     }

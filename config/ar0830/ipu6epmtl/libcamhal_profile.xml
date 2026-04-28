@@ -18,7 +18,7 @@
     <Common>
         <version value="1.0"/>
         <platform value="IPU6"/>
-        <availableSensors value="ar0830-1-mipi-0,
-                                 ar0830-2-mipi-4"/>
+        <availableSensors value="ar0830-a-0,
+                                 ar0830-b-4"/>
     </Common>
 </CameraSettings>

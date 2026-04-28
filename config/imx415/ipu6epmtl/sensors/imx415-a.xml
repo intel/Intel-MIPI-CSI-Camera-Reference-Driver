@@ -15,7 +15,7 @@
 -->
 
 <CameraSettings>
-	<Sensor name="imx415-1" description="Leaopard Imaging IMX415 sensor 1">
+	<Sensor name="imx415-a" description="Leaopard Imaging IMX415 sensor 1">
         <MediaCtlConfig id="0" ConfigMode="AUTO" outputWidth="3840" outputHeight="2160" format="V4L2_PIX_FMT_SGBRG10">
             <format name="imx415 a" pad="0" width="3864" height="2192" format="V4L2_MBUS_FMT_SGBRG10_1X10"/>
             <format name="Intel IPU6 CSI-2 0" pad="0" width="3864" height="2192" format="V4L2_MBUS_FMT_SGBRG10_1X10"/>
@@ -116,4 +116,3 @@
     </Sensor>
 
 </CameraSettings>
-
