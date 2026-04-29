@@ -28,6 +28,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH00.SER0"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Channel 1
@@ -40,6 +41,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH01.SER1"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH01.SER1
             #define DESCH_SER_GPIOREF ^^SER1
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Channel 2
@@ -52,6 +54,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH02.SER2"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH02.SER2
             #define DESCH_SER_GPIOREF ^^SER2
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Channel 3
@@ -64,6 +67,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH03.SER3"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH03.SER3
             #define DESCH_SER_GPIOREF ^^SER3
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Clean up DES0-level defines
@@ -75,6 +79,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #undef DESCH_SER_I2C
             #undef DESCH_DES_PATH
             #undef DESCH_DES_REF
+            #undef CAM_LANES
         }
 
         Device (DES1)
@@ -99,6 +104,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH00.SER0"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Channel 1
@@ -111,6 +117,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH01.SER1"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH01.SER1
             #define DESCH_SER_GPIOREF ^^SER1
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Channel 2
@@ -123,6 +130,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH02.SER2"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH02.SER2
             #define DESCH_SER_GPIOREF ^^SER2
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Channel 3
@@ -135,6 +143,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH03.SER3"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH03.SER3
             #define DESCH_SER_GPIOREF ^^SER3
+            #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
             // Clean up DES1-level defines
@@ -146,6 +155,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #undef DESCH_SER_I2C
             #undef DESCH_DES_PATH
             #undef DESCH_DES_REF
+            #undef CAM_LANES
         }
     }
 }
