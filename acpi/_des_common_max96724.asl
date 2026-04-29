@@ -47,6 +47,9 @@ Name (_DSD, Package ()
     Package ()
     {
         Package () { "i2c-alias-pool",  Package () { 0x44, 0x45, 0x46, 0x47 } },
+        #if DES_PIPE_STR_AUTOSELECT == 0
+        Package () { "pipe-stream-autoselect", 0 }, // Zero to disable, One to enable
+        #endif
     },
     ToUUID("dbb8e3e6-5886-4ba6-8795-1319f52a966b"), /* Hierarchical Data Extension */,
     Package ()
