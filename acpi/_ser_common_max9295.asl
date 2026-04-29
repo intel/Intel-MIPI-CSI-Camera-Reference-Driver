@@ -56,7 +56,13 @@ Name (PRT0, Package()
         Package ()
         {
         Package () { "mipi-img-clock-lanes", 0 },
+        #if CAM_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },
+        #elif CAM_LANES == 2
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },
+        #else
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },
+        #endif
         },
 })
 
