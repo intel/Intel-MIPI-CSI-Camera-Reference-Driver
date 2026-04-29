@@ -39,6 +39,9 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 | ISX031          | GMSL       | Leopard Imaging | IPU6EP, IPU6EPMTL, IPU75XA |
 | ISX031          | GMSL       | Sensing         | IPU6EP, IPU6EPMTL, IPU75XA |
 | ISX031          | MIPI CSI-2 | D3 Embedded     | IPU6EP, IPU6EPMTL, IPU75XA |
+| ISX031          | MIPI CSI-2 | Sensing         | IPU6EP, IPU6EPMTL, IPU75XA |
+| IMX415          | MIPI CSI-2 | Leopard Imaging | IPU6EPMTL                  |
+| IMX586          | MIPI CSI-2 | Leopard Imaging | IPU6EPMTL                  |
 
 > **Note:** \
 IPU6EP represents ADL, TWL, ASL and RPL platforms; \
