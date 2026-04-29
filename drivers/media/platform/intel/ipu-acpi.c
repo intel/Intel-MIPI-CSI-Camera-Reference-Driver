@@ -244,6 +244,48 @@ static const struct ipu_acpi_devices supported_devices[] = {
 	},// AR0234 HID
 #endif
 #endif
+#if IS_ENABLED(CONFIG_VIDEO_ZEDX)
+	{
+		.hid_name = "ZEDX234M",
+		.real_driver = "sl_zedx",
+		.get_platform_data = get_sensor_pdata,
+		.priv_data = NULL,
+		.priv_size = 0,
+		.connect = TYPE_SERDES,
+		.serdes_name = "sl_max96724",
+		.sensor_physical_addr = 0x28,
+		.link_freq = 1200,
+		.ser_physical_addr = 0x62,
+		.ser_gpio = {
+			{
+				.chip_hwnum = 0,
+				.con_id = "reset",
+				.flags = GPIO_ACTIVE_LOW,
+			},
+		},
+		.sensor_dt = MIPI_CSI2_TYPE_RAW10,
+	},// ZED-X and ZED-X-ONE AR0234 HID
+	{
+		.hid_name = "ZEDX234L",
+		.real_driver = "sl_zedx",
+		.get_platform_data = get_sensor_pdata,
+		.priv_data = NULL,
+		.priv_size = 0,
+		.connect = TYPE_SERDES,
+		.serdes_name = "sl_max9296",
+		.sensor_physical_addr = 0x28,
+		.link_freq = 1200,
+		.ser_physical_addr = 0x62,
+		.ser_gpio = {
+			{
+				.chip_hwnum = 0,
+				.con_id = "reset",
+				.flags = GPIO_ACTIVE_LOW,
+			},
+		},
+		.sensor_dt = MIPI_CSI2_TYPE_RAW10,
+	},// ZED-X and ZED-X-ONE AR0234 HID
+#endif
 };
 
 static int get_table_index(const char *acpi_name)
@@ -277,6 +319,10 @@ static const struct acpi_device_id ipu_acpi_match[] = {
 #endif
 #if IS_ENABLED(CONFIG_VIDEO_AR0234)
 	{ "INTC0234", 0 },
+#endif
+#if IS_ENABLED(CONFIG_VIDEO_ZEDX)
+	{ "ZEDX234M", 0 },	// ZED-X and ZED-X-ONE HID max9296
+	{ "ZEDX234L", 0 },	// ZED-X and ZED-X-ONE HID max96724
 #endif
 	{},
 };
