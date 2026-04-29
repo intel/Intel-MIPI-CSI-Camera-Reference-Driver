@@ -37,6 +37,10 @@ Device (DESCH_CH)
 
     Device (DESCH_SER)
     {
+        #define SER_X_VC Package () { 0 }
+        #define SER_Y_VC Package () { 1 }
+        #define SER_Z_VC Package () { 2 }
+        #define SER_U_VC Package () { 3 }
         #include "_ser_common_max9295.asl"
 
         Device (DESCH_CAM)
@@ -63,3 +67,7 @@ Device (DESCH_CH)
 #ifdef DESCH_CAM_FSIN_GPIO
 #undef DESCH_CAM_FSIN_GPIO
 #endif
+#undef SER_X_VC
+#undef SER_Y_VC
+#undef SER_Z_VC
+#undef SER_U_VC

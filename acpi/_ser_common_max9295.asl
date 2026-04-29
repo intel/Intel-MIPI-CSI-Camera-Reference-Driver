@@ -47,6 +47,18 @@ Name (_DSD, Package ()  // _DSD: Device-Specific Data
         {
         Package () { "mipi-img-port-0", "PRT0" }, // to sensor
         Package () { "mipi-img-port-1", "PRT1" }, // to des
+        #ifdef SER_X_VC
+        Package () { "Pipe-X", "PIPX" }, // Pipe X
+        #endif
+        #ifdef SER_Y_VC
+        Package () { "Pipe-Y", "PIPY" }, // Pipe Y
+        #endif
+        #ifdef SER_Z_VC
+        Package () { "Pipe-Z", "PIPZ" }, // Pipe Z
+        #endif
+        #ifdef SER_U_VC
+        Package () { "Pipe-U", "PIPU" }, // Pipe U
+        #endif
         }
 })
 
@@ -76,3 +88,43 @@ Name (PRT1, Package()
         Package () { "mipi-img-link-frequencies", Package() { 600000000 } }, // 600 MHz
         },
 })
+#ifdef SER_X_VC
+Name (PIPX, Package()
+{
+        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package ()
+        {
+        Package () { "vc-id", SER_X_VC }, // VC for pipe X
+        },
+})
+#endif
+#ifdef SER_Y_VC
+Name (PIPY, Package()
+{
+        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package ()
+        {
+        Package () { "vc-id", SER_Y_VC }, // VC for pipe Y
+        },
+})
+#endif
+#ifdef SER_Z_VC
+Name (PIPZ, Package()
+{
+        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package ()
+        {
+        Package () { "vc-id", SER_Z_VC }, // VC for pipe Z
+        },
+})
+#endif
+#ifdef SER_U_VC
+Name (PIPU, Package()
+{
+        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        Package ()
+        {
+        Package () { "vc-id", SER_U_VC }, // VC for pipe U
+        },
+})
+#endif

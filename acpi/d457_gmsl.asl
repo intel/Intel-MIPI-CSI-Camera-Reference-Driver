@@ -16,6 +16,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DES_I2C_BUS "\\_SB.PC00.I2C1"
             #define DESCH_DES_PATH "\\_SB.PC00.DES0"
             #define DESCH_DES_REF \_SB.PC00.DES0
+            #define DES_PIPE_STR_AUTOSELECT 0
             #include "_des_common_max96724.asl"
 
             // Channel 0
@@ -28,7 +29,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH00.SER0"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
-            #define DESCH_SER_PIPECONFIG 1
             #define CAM_LANES 2
             #include "_des_ch_common_d457.asl"
 
