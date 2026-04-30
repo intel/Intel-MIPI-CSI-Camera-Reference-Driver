@@ -40,7 +40,11 @@ Name (_DSD, Package ()  // _DSD: Device-Specific Data
         ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), /* Device Properties for _DSD */,
         Package ()
         {
-        Package () { "i2c-alias-pool",  Package () { 0x54, 0x55 } }, // alias for cam0
+        #ifdef SER_ALIAS
+        Package () { "i2c-alias-pool",  Package() { SER_ALIAS } }, // alias for cam0
+        #else
+        Package () { "i2c-alias-pool",  Package() { 0x54, 0x55 } }, // default alias pool
+        #endif
         },
         ToUUID("dbb8e3e6-5886-4ba6-8795-1319f52a966b"), /* Hierarchical Data Extension */,
         Package ()

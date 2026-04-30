@@ -71,3 +71,5 @@ Device (DESCH_CH)
 #undef SER_Y_VC
 #undef SER_Z_VC
 #undef SER_U_VC
+#undef CAM_LANES
+#undef SER_ALIAS
