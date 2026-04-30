@@ -28,6 +28,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH00.SER0"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
+            #define SER_ALIAS 0x54
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -41,6 +42,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH01.SER1"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH01.SER1
             #define DESCH_SER_GPIOREF ^^SER1
+            #define SER_ALIAS 0x55
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -54,6 +56,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH02.SER2"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH02.SER2
             #define DESCH_SER_GPIOREF ^^SER2
+            #define SER_ALIAS 0x56
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -69,6 +72,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_GPIOREF ^^SER3
             #define DESCH_EXTRA_GPIO_PIN 7
             #define DESCH_CAM_FSIN_GPIO 1
+            #define SER_ALIAS 0x57
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -81,7 +85,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #undef DESCH_SER_I2C
             #undef DESCH_DES_PATH
             #undef DESCH_DES_REF
-            #undef CAM_LANES
         }
 
         Device (DES1)
@@ -106,6 +109,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH00.SER0"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
+            #define SER_ALIAS 0x54
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -119,6 +123,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH01.SER1"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH01.SER1
             #define DESCH_SER_GPIOREF ^^SER1
+            #define SER_ALIAS 0x55
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -132,6 +137,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH02.SER2"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH02.SER2
             #define DESCH_SER_GPIOREF ^^SER2
+            #define SER_ALIAS 0x56
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -147,6 +153,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_GPIOREF ^^SER3
             #define DESCH_EXTRA_GPIO_PIN 7
             #define DESCH_CAM_FSIN_GPIO 1
+            #define SER_ALIAS 0x57
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
 
@@ -159,7 +166,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #undef DESCH_SER_I2C
             #undef DESCH_DES_PATH
             #undef DESCH_DES_REF
-            #undef CAM_LANES
         }
     }
 }

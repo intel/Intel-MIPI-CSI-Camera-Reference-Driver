@@ -29,11 +29,9 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_PTL", 0x20250920)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH00.SER0"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
+            #define SER_ALIAS 0x54
             #define CAM_LANES 2
             #include "_des_ch_common_d457.asl"
-
-            // Clean up DES-level defines
-            #undef CAM_LANES
         }
     }
 }

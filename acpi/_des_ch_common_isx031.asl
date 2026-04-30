@@ -62,3 +62,5 @@ Device (DESCH_CH)
 #ifdef DESCH_CAM_FSIN_GPIO
 #undef DESCH_CAM_FSIN_GPIO
 #endif
+#undef CAM_LANES
+#undef SER_ALIAS
