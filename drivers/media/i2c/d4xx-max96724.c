@@ -1909,7 +1909,7 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 	int err = 0;
 	struct max96724 *priv = dev_get_drvdata(dev);
 	int i = 0, j = 0;
-	unsigned int st_count;
+	unsigned int st_count, src_link_st_count;
 
 #ifdef CONFIG_VIDEO_D4XX_MAX967XX_DT_VC_EXT
 	u8 en_mapping_num = 0xFF;
@@ -1987,6 +1987,25 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 	default:
 		dev_warn(dev, "%s: invalid deserializer csi port, default CSI 1!\n", __func__);
 	};
+
+	for (i = 0, st_count = 0, src_link_st_count = 0; i < MAX96724_MAX_PIPES; i++) {
+
+		if (!priv->pipe[i].st_count)
+			continue;
+
+		st_count++;
+
+		if (src_link != priv->pipe[i].src_link)
+			continue;
+
+		src_link_st_count++;
+	}
+
+	dev_info(dev, "%s: %s stream %u/%u active pipes\n",
+		__func__,
+		 max96724_get_link_name(src_link),
+		 src_link_st_count,
+		 st_count);
 	
 	struct reg_pair map_pipe_select[] = {
 		{MAX96724_REG5_ADDR, 0x80}, // Enable lock
@@ -2188,28 +2207,29 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 		 vc_id_3b_dst);
 #endif
 
-	// disable CSI out link during pipe re-configuration
-	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
-		MAX96724_CSI_OUT_EN_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 0));
-	if (err) {
-		dev_err(dev, "%s: Failed to enable csi output link: %d\n",
-			__func__,
-			err);
-	}
-
-	/* Disable DPLL link during pipe re-configuration
+	/* ONLY on initial streaming, skip if CSI already streaming data
 	*/
-	for (i = 0; i < MAX96724_NUM_CSI_LINKS; i++)
-		err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_DPLL_RESET(i),
-		MAX96724_DPLL_RESET_SOFT_RST_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_DPLL_RESET_SOFT_RST_FIELD, 0U));
-	if (err) {
-		dev_err(dev, "%s: Failed to reset configure CSI %u %s DPLL : %d\n",
-			__func__,
-			priv->dst_link,
-			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-			err);
+	if (st_count < 2) {
+		// disable CSI out link during initial pipe re-configuration
+		err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_CSI_OUT_EN_ADDR,
+					    MAX96724_CSI_OUT_EN_FIELD,
+					    MAX96724_FIELD_PREP(MAX96724_CSI_OUT_EN_FIELD, 0));
+		if (err)
+			dev_err(dev, "%s: Failed to enable csi output link: %d\n",
+				__func__,
+				err);
+
+		// Disable DPLL link during pipe re-configuration
+		for (i = 0; i < MAX96724_NUM_CSI_LINKS; i++)
+			err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_DPLL_RESET(i),
+			MAX96724_DPLL_RESET_SOFT_RST_FIELD,
+			MAX96724_FIELD_PREP(MAX96724_DPLL_RESET_SOFT_RST_FIELD, 0U));
+		if (err)
+			dev_err(dev, "%s: Failed to reset configure CSI %u %s DPLL : %d\n",
+				__func__,
+				priv->dst_link,
+				priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
+				err);
 	}
 
 	/* Video Pipe Input Source Selection
@@ -2241,8 +2261,11 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 			MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id),
 			MAX96724_FIELD_PREP(MAX96724_VIDEO_PIPE_EN_FIELD(pipe_id), 0U));
 #endif
-	err |= max96724_set_registers(dev, map_pipe_select,
-				     ARRAY_SIZE(map_pipe_select));
+	/* ONLY on initial streaming, skip if CSI already streaming data
+	*/
+	if (st_count < 2)
+		err |= max96724_set_registers(dev, map_pipe_select,
+					      ARRAY_SIZE(map_pipe_select));
 
 #if defined(CONFIG_VIDEO_D4XX_MAX96712_LEGACY)
 	// Enable max96712 "legacy" mode
@@ -2326,37 +2349,14 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 	err = max96724_set_registers(dev, map_pipe_control,
 				     ARRAY_SIZE(map_pipe_control));
 
-	// 0x02: ALT_MEM_MAP8, 0x10: ALT2_MEM_MAP8
-	err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_MIPI_TX_ALT_MEM(csi_id), 0x10);
+	if (st_count < 2)
+		// 0x02: ALT_MEM_MAP8, 0x10: ALT2_MEM_MAP8
+		err |= MAX96724_WRITE_REG(priv->regmap, MAX96724_MIPI_TX_ALT_MEM(csi_id), 0x10);
 
 	/* Configure per Pipe 0, 1, 2 and 3 MIPI interleaved-SYNC FCFS aggregation 
 	 * Aggregator A, B, C and D corresponds to GMSL A, B, C and D input src
-	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_MIPI_TX_MAP_CON(link_id),
-		MAX96724_MAP_CON_SYNC_PIPE_0_FIELD
-		| MAX96724_MAP_CON_SYNC_PIPE_1_FIELD
-		| MAX96724_MAP_CON_SYNC_PIPE_2_FIELD
-		| MAX96724_MAP_CON_SYNC_PIPE_3_FIELD
-		| MAX96724_MAP_CON_SYNC_PIPE_FIELD
-		| MAX96724_MAP_CON_SYNC_EN_4WxH_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_MAP_CON_SYNC_PIPE_0_FIELD, 0U)
-		| MAX96724_FIELD_PREP(MAX96724_MAP_CON_SYNC_PIPE_1_FIELD, 0U)
-		| MAX96724_FIELD_PREP(MAX96724_MAP_CON_SYNC_PIPE_2_FIELD, 0U)
-		| MAX96724_FIELD_PREP(MAX96724_MAP_CON_SYNC_PIPE_3_FIELD, 0U)
-		| MAX96724_MAP_CON_SYNC_PIPE_MASTER(pipe_id)
-		| MAX96724_FIELD_PREP(MAX96724_MAP_CON_SYNC_EN_4WxH_FIELD, 0U));
 	*/
-	for (i = 0, st_count = 0; i < MAX96724_MAX_PIPES; i++) {
-
-		if (!priv->pipe[i].st_count)
-			continue;
-
-		if (src_link != priv->pipe[i].src_link)
-			continue;
-
-		st_count++;
-	}
-
-	if (st_count < 2)
+	if (src_link_st_count < 2)
 		err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_MIPI_TX_MAP_CON(link_id),
 			MAX96724_MAP_CON_SYNC_PIPE_0_FIELD
 			| MAX96724_MAP_CON_SYNC_PIPE_1_FIELD
@@ -2375,16 +2375,18 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 			MAX96724_MAP_CON_SYNC_PIPE_FIELD,
 			MAX96724_MAP_CON_SYNC_PIPE_MASTER(pipe_id));
 
-	/* Configure per Pipe CSI and PHY type
+	/* ONLY on initial streaming, skip if CSI already streaming data
+	* Configure per Pipe CSI and PHY type
 	*/
-	err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_MIPI_TX_LANE_CNT(csi_id),
-		MAX96724_MIPI_TX_CPHY_EN_FIELD
-		| MAX96724_MIPI_TX_VCX_EN_FIELD
-		| MAX96724_MIPI_TX_LANE_CNT_FIELD,
-		MAX96724_FIELD_PREP(MAX96724_MIPI_TX_CPHY_EN_FIELD,
-				    priv->csi_phy == MAX96724_CSI_CPHY ? 1U : 0U)
-		| MAX96724_FIELD_PREP(MAX96724_MIPI_TX_VCX_EN_FIELD, MAX96724_VC_2_BITS)
-		| MAX96724_LANE_CTRL_MAP(priv->dst_n_lanes-1));
+	if (st_count < 2)
+		err |= MAX96724_UPDATE_BITS(priv->regmap, MAX96724_MIPI_TX_LANE_CNT(csi_id),
+			MAX96724_MIPI_TX_CPHY_EN_FIELD
+			| MAX96724_MIPI_TX_VCX_EN_FIELD
+			| MAX96724_MIPI_TX_LANE_CNT_FIELD,
+			MAX96724_FIELD_PREP(MAX96724_MIPI_TX_CPHY_EN_FIELD,
+					    priv->csi_phy == MAX96724_CSI_CPHY ? 1U : 0U)
+			| MAX96724_FIELD_PREP(MAX96724_MIPI_TX_VCX_EN_FIELD, MAX96724_VC_2_BITS)
+			| MAX96724_LANE_CTRL_MAP(priv->dst_n_lanes-1));
 
 #if defined(CONFIG_VIDEO_D4XX_MAX96712_LEGACY)
 	/*
@@ -2407,6 +2409,11 @@ static int __max96724_set_pipe_d4xx(struct device *dev, int pipe_id, u8 data_typ
 			priv->dst_n_lanes,
 			err);
 	}
+
+	/* ONLY on initial streaming, skip if CSI already streaming data
+	*/
+	if (st_count > 1)
+		return err;
 
 	err |= max967xx_phy_tuning(dev);
 	if (err) {
@@ -2646,6 +2653,8 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 	unsigned rev;
 	int err = 0;
 	u8 src_port = max96724_link_to_port(src_link);
+	unsigned int st_count;
+	int i = 0;
 
 	if (pipe_id > (MAX96724_MAX_PIPES - 1)) {
 		dev_info(dev, "%s, input pipe_id: %d exceed max96724 max pipes\n",
@@ -2653,16 +2662,15 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 		return -EINVAL;
 	}
 
-	dev_dbg(dev, "%s: disabling  %s pipe %u (vc_id %u) CSI %u %s mode %s (num_lanes:x%u)\n",
-		__func__,
-		max96724_get_link_name(src_link),
-		pipe_id, vc_id,
-		priv->dst_link,
-		priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
-		priv->csi_mode == MAX96724_CSI_MODE_4X2 ? "4X2" : "2X4",
-		priv->dst_n_lanes);
-
 	mutex_lock(&priv->lock);
+
+	for (i = 0, st_count = 0; i < MAX96724_MAX_PIPES; i++) {
+
+		if (!priv->pipe[i].st_count)
+			continue;
+
+		st_count++;
+	}
 
 	dev_info(dev, "%s() : %s Re-configuring pipe_id %d, data_type1 %x, data_type2 %x, vc_id %u\n",
 		__func__,
@@ -2670,6 +2678,9 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 		pipe_id, data_type1, data_type2, vc_id);
 
 	err = __max96724_set_pipe_d4xx(dev, pipe_id, data_type1, data_type2, vc_id, priv->dst_link, src_link);
+
+	if (st_count > 1)
+		goto status;
 
 	/* Enable all channels
 	err = MAX96724_WRITE_REG(priv->regmap, MAX96724_REM_CC,
@@ -2728,7 +2739,6 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 			err);
 	}
 
-
 	/* Turn on MIPI PHY continuous clock mode (matches script line 520)
 	 * Reference script does this AFTER CSI enable (0x040B = 0x02)
 	 * This enables continuous clock on MIPI CSI-2 interface
@@ -2752,7 +2762,7 @@ int max96724_set_pipe(struct device *dev, int pipe_id,
 			priv->csi_phy == MAX96724_CSI_CPHY ? "CPHY" : "DPHY",
 			priv->csi_mode == MAX96724_CSI_MODE_4X2 ? "4X2" : "2X4",
 			priv->dst_n_lanes);
-
+status:
 	/* Double-Check GMSL link status after stream start configuration */
 	{
 		unsigned int link_status = 0;
