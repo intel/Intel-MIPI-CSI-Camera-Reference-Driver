@@ -96,85 +96,217 @@ acpi_hid() { cat "$1/hid" 2>/dev/null; }
 
 # -------- topology discovery --------------------------------------------------
 
-# Locate the (single) deserializer present on the system. If multiple are
-# present, the first one wins; export DES_HID=<hid> to override.
-find_deserializer() {
-    local want=${DES_HID:-}
-    local hid
+# Maximum number of links (CHxx) we consider per deserializer.
+MAX_LINKS=${MAX_LINKS:-4}
+
+# Locate every deserializer present on the system. Echoes one sysfs dir per
+# line. Honours DES_HID=<hid> (filter to a specific HID) and DES_BUSADDR=
+# (filter to a specific bus-addr e.g. "1-0027").
+find_all_deserializers() {
+    local want_hid=${DES_HID:-}
+    local want_ba=${DES_BUSADDR:-}
+    local hid d ba prefix
     for hid in "${!DES_PREFIX[@]}"; do
-        [ -n "$want" ] && [ "$want" != "$hid" ] && continue
-        local d
+        [ -n "$want_hid" ] && [ "$want_hid" != "$hid" ] && continue
+        prefix=${DES_PREFIX[$hid]}
         for d in /sys/bus/acpi/devices/${hid}:*; do
             [ -d "$d" ] || continue
+            if [ -n "$want_ba" ]; then
+                ba=$(acpi_busaddr "$d" "$prefix") || continue
+                [ "$ba" = "$want_ba" ] || continue
+            fi
             echo "$d"
-            return 0
         done
     done
-    return 1
 }
 
-declare -a CH_PATH SER_PATH CAM_PATH
-declare -a SER_BA  CAM_BA
-declare -a CAM_HID CAM_MODEL CAM_PREFIX
-declare -a SER_HID_ARR SER_PFX
-DES_BA=""; DES_PREFIX_NAME=""; DES_PATH=""
+# Per-DES arrays (indexed by deserializer index 'd', 0..N-1):
+declare -a DES_PATH=() DES_BA=() DES_PREFIX_NAME=() DES_SRC_PAD=()
+declare -a IPU_CSI2_ENTITY=() IPU_BASE=() CAPTURE_BASE=()
+NUM_DES=0
+
+# Per-link associative arrays keyed by "d_l" (deserializer index, link index):
+declare -A CH_PATH=() SER_PATH=() CAM_PATH=()
+declare -A SER_BA=()  CAM_BA=()
+declare -A CAM_HID=() CAM_MODEL=() CAM_PREFIX=()
+declare -A SER_HID_ARR=() SER_PFX=()
+# LINKS_OF[d] holds a space-separated list of valid link indices on DES d.
+declare -A LINKS_OF=()
+
+discover_one_des() {
+    local d=$1 des_dir=$2
+    local des_hid des_path des_ba des_prefix
+    des_hid=$(acpi_hid "$des_dir")
+    des_prefix=${DES_PREFIX[$des_hid]}
+    des_path=$(cat "$des_dir/path")
+    des_ba=$(acpi_busaddr "$des_dir" "$des_prefix") || {
+        echo "WARN: deserializer ${des_hid} at ${des_path} has no v4l-subdev (driver loaded?); skipping" >&2
+        return 1
+    }
+
+    DES_PATH[$d]=$des_path
+    DES_BA[$d]=$des_ba
+    DES_PREFIX_NAME[$d]=$des_prefix
+    case "$des_prefix" in
+        max96724) DES_SRC_PAD[$d]=6 ;;
+        max9296a) DES_SRC_PAD[$d]=4 ;;
+        *) echo "WARN: unknown deserializer prefix '$des_prefix'; skipping DES ${d}" >&2; return 1 ;;
+    esac
+
+    local i ch ser_path ser_dir ser_hid cam_path cam_dir cam_hid ch_name key
+    local found=0
+    local links=""
+    while IFS= read -r ch; do
+        [ -z "$ch" ] && continue
+
+        ch_name=${ch##*.}
+        if [[ $ch_name =~ ^CH([0-9]+)$ ]]; then
+            i=$((10#${BASH_REMATCH[1]}))
+        else
+            echo "WARN: DES${d}: cannot parse channel index from '$ch'; skipping" >&2
+            continue
+        fi
+        if (( i >= MAX_LINKS )); then
+            echo "WARN: DES${d}: link ${i} (${ch}) exceeds max supported links (${MAX_LINKS}); skipping" >&2
+            continue
+        fi
+        key="${d}_${i}"
+
+        ser_path=$(acpi_children_of "$ch" | head -1)
+        [ -z "$ser_path" ] && {
+            echo "WARN: DES${d} link ${i} (${ch}) has no serializer child; skipping" >&2
+            continue
+        }
+        read -r _ ser_dir < <(acpi_find_by_path "$ser_path") || {
+            echo "WARN: DES${d} link ${i}: serializer ACPI dev for '$ser_path' not present in sysfs; skipping" >&2
+            continue
+        }
+        ser_hid=$(acpi_hid "$ser_dir")
+        [ -n "${SER_PREFIX[$ser_hid]:-}" ] || {
+            echo "WARN: DES${d} link ${i}: unsupported serializer HID '$ser_hid' at $ser_path; skipping" >&2
+            continue
+        }
+
+        cam_path=$(acpi_children_of "$ser_path" | head -1)
+        [ -z "$cam_path" ] && {
+            echo "WARN: DES${d} link ${i}: serializer at $ser_path has no camera child; skipping" >&2
+            continue
+        }
+        read -r _ cam_dir < <(acpi_find_by_path "$cam_path") || {
+            echo "WARN: DES${d} link ${i}: camera ACPI dev for '$cam_path' not present in sysfs; skipping" >&2
+            continue
+        }
+        cam_hid=$(acpi_hid "$cam_dir")
+        if [ -z "${SENSOR_MODEL[$cam_hid]:-}" ]; then
+            local cam_name=""
+            cam_name=$(cat "$cam_dir"/physical_node*/video4linux/v4l-subdev*/name 2>/dev/null | head -1)
+            echo "WARN: DES${d} link ${i}: unsupported camera HID '$cam_hid' at $cam_path${cam_name:+ (subdev: $cam_name)}; skipping" >&2
+            echo "      add an entry to SENSOR_MODEL[${cam_hid}] / SENSOR_PREFIX[${cam_hid}] to enable it" >&2
+            continue
+        fi
+
+        CH_PATH[$key]=$ch
+        SER_PATH[$key]=$ser_path
+        CAM_PATH[$key]=$cam_path
+        SER_HID_ARR[$key]=$ser_hid
+        SER_PFX[$key]=${SER_PREFIX[$ser_hid]}
+        SER_BA[$key]=$(acpi_busaddr "$ser_dir" "${SER_PFX[$key]}") || {
+            echo "WARN: DES${d} link ${i}: serializer at $ser_path has no v4l-subdev (driver loaded?); skipping" >&2
+            unset 'CH_PATH[$key]' 'SER_PATH[$key]' 'CAM_PATH[$key]' \
+                  'SER_HID_ARR[$key]' 'SER_PFX[$key]' 'SER_BA[$key]'
+            continue
+        }
+        CAM_PREFIX[$key]=${SENSOR_PREFIX[$cam_hid]}
+        CAM_BA[$key]=$(acpi_busaddr "$cam_dir" "${CAM_PREFIX[$key]}") || {
+            echo "WARN: DES${d} link ${i}: camera at $cam_path has no v4l-subdev (driver loaded?); skipping" >&2
+            unset 'CH_PATH[$key]' 'SER_PATH[$key]' 'CAM_PATH[$key]' \
+                  'SER_HID_ARR[$key]' 'SER_PFX[$key]' 'SER_BA[$key]' \
+                  'CAM_PREFIX[$key]'
+            continue
+        }
+        CAM_HID[$key]=$cam_hid
+        CAM_MODEL[$key]=${SENSOR_MODEL[$cam_hid]}
+        links+="${links:+ }${i}"
+        found=$((found + 1))
+    done < <(acpi_children_of "$des_path")
+
+    LINKS_OF[$d]=$links
+    [ "$found" -gt 0 ] || {
+        echo "WARN: DES${d} (${des_path}): no supported cameras discovered; skipping" >&2
+        unset 'DES_PATH[$d]' 'DES_BA[$d]' 'DES_PREFIX_NAME[$d]' 'DES_SRC_PAD[$d]'
+        unset 'LINKS_OF[$d]'
+        return 1
+    }
+    return 0
+}
 
 discover() {
-    local des_dir des_hid
-    des_dir=$(find_deserializer) || {
+    local des_dirs=()
+    mapfile -t des_dirs < <(find_all_deserializers)
+    [ "${#des_dirs[@]}" -gt 0 ] || {
         echo "ERROR: no known deserializer ACPI device present" >&2
         return 1
     }
-    des_hid=$(acpi_hid "$des_dir")
-    DES_PREFIX_NAME=${DES_PREFIX[$des_hid]}
-    DES_PATH=$(cat "$des_dir/path")
-    DES_BA=$(acpi_busaddr "$des_dir" "$DES_PREFIX_NAME") || {
-        echo "ERROR: deserializer ${des_hid} has no v4l-subdev (driver loaded?)" >&2
+    local d=0 dir
+    for dir in "${des_dirs[@]}"; do
+        if discover_one_des "$d" "$dir"; then
+            d=$((d + 1))
+        fi
+    done
+    NUM_DES=$d
+    [ "$NUM_DES" -gt 0 ] || { echo "ERROR: no usable deserializer found" >&2; return 1; }
+    return 0
+}
+
+# For each DES, locate the "Intel IPUx CSI2 N" entity wired to its source
+# pad, and the absolute capture-node base (lowest "ISYS Capture <N>" index
+# linked to that CSI2). The DES->CSI2 link is IMMUTABLE so the live media
+# topology is the source of truth.
+detect_csi2_entities() {
+    local topo
+    topo=$(media-ctl -p 2>/dev/null) || {
+        echo "ERROR: failed to read media topology via 'media-ctl -p'" >&2
         return 1
     }
-
-    local i=0 ch ser_path ser_dir ser_hid cam_path cam_dir cam_hid
-    while IFS= read -r ch; do
-        [ -z "$ch" ] && continue
-        # serializer = single child of CHxx
-        ser_path=$(acpi_children_of "$ch" | head -1)
-        [ -z "$ser_path" ] && continue
-        read -r _ ser_dir < <(acpi_find_by_path "$ser_path") || continue
-        ser_hid=$(acpi_hid "$ser_dir")
-        [ -n "${SER_PREFIX[$ser_hid]:-}" ] || {
-            echo "WARN: unknown serializer HID $ser_hid at $ser_path; skipping" >&2
-            continue
-        }
-        # camera = single child of SERx
-        cam_path=$(acpi_children_of "$ser_path" | head -1)
-        [ -z "$cam_path" ] && continue
-        read -r _ cam_dir < <(acpi_find_by_path "$cam_path") || continue
-        cam_hid=$(acpi_hid "$cam_dir")
-        [ -n "${SENSOR_MODEL[$cam_hid]:-}" ] || {
-            echo "WARN: unknown camera HID $cam_hid at $cam_path; skipping" >&2
-            continue
-        }
-
-        CH_PATH[$i]=$ch
-        SER_PATH[$i]=$ser_path
-        CAM_PATH[$i]=$cam_path
-        SER_HID_ARR[$i]=$ser_hid
-        SER_PFX[$i]=${SER_PREFIX[$ser_hid]}
-        SER_BA[$i]=$(acpi_busaddr "$ser_dir" "${SER_PFX[$i]}") || {
-            echo "ERROR: serializer at $ser_path has no v4l-subdev" >&2
+    local d des_entity csi2 base
+    for ((d = 0; d < NUM_DES; d++)); do
+        des_entity="${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}"
+        csi2=$(awk -v des="$des_entity" '
+            /^- entity / { in_des=0 }
+            index($0, "- entity") && index($0, ": " des " (") { in_des=1; next }
+            in_des && match($0, /-> "Intel IPU[0-9]+ CSI2 [0-9]+"/) {
+                s = substr($0, RSTART+4, RLENGTH-5)
+                gsub(/"/, "", s)
+                print s
+                exit
+            }' <<<"$topo")
+        if [ -z "$csi2" ]; then
+            echo "ERROR: DES${d}: could not find an 'Intel IPUx CSI2 N' link from '$des_entity'" >&2
             return 1
-        }
-        CAM_PREFIX[$i]=${SENSOR_PREFIX[$cam_hid]}
-        CAM_BA[$i]=$(acpi_busaddr "$cam_dir" "${CAM_PREFIX[$i]}") || {
-            echo "ERROR: camera at $cam_path has no v4l-subdev" >&2
-            return 1
-        }
-        CAM_HID[$i]=$cam_hid
-        CAM_MODEL[$i]=${SENSOR_MODEL[$cam_hid]}
-        i=$((i + 1))
-    done < <(acpi_children_of "$DES_PATH")
+        fi
+        IPU_CSI2_ENTITY[$d]=$csi2
+        IPU_BASE[$d]=${csi2% CSI2 *}
 
-    [ "$i" -gt 0 ] || { echo "ERROR: no cameras discovered under $DES_PATH" >&2; return 1; }
+        # Capture base = lowest "ISYS Capture N" entity that links from this CSI2.
+        base=$(awk -v csi="$csi2" '
+            /^- entity / {
+                cap_num = ""
+                if (match($0, /Intel IPU[0-9]+ ISYS Capture [0-9]+/)) {
+                    s = substr($0, RSTART, RLENGTH)
+                    sub(/.*Capture /, "", s)
+                    cap_num = s + 0
+                }
+            }
+            cap_num != "" && index($0, "<- \"" csi "\":") {
+                if (min == "" || cap_num < min) min = cap_num
+            }
+            END { if (min != "") print min }' <<<"$topo")
+        if [ -z "$base" ]; then
+            echo "ERROR: DES${d}: could not find any 'ISYS Capture' entity linked from '$csi2'" >&2
+            return 1
+        fi
+        CAPTURE_BASE[$d]=$base
+    done
     return 0
 }
 
@@ -182,33 +314,44 @@ discover() {
 
 print_topology() {
     echo "Discovered topology:"
-    printf "  DES   %-34s %s %s\n" "$DES_PATH" "${DES_PREFIX_NAME}" "$DES_BA"
-    local i
-    for i in "${!CAM_PATH[@]}"; do
-        printf "  CAM%d  %-34s %s %s  (model=%s, hid=%s)\n" \
-            "$i" "${CAM_PATH[$i]}" "${CAM_PREFIX[$i]}" "${CAM_BA[$i]}" \
-            "${CAM_MODEL[$i]}" "${CAM_HID[$i]}"
-        printf "  SER%d  %-34s %s %s\n" \
-            "$i" "${SER_PATH[$i]}" "${SER_PFX[$i]}" "${SER_BA[$i]}"
+    local d l key
+    for ((d = 0; d < NUM_DES; d++)); do
+        printf "  DES%d  %-34s %s %s -> %s (capture base /dev/video%s)\n" \
+            "$d" "${DES_PATH[$d]}" "${DES_PREFIX_NAME[$d]}" "${DES_BA[$d]}" \
+            "${IPU_CSI2_ENTITY[$d]}" "${CAPTURE_BASE[$d]}"
+        for l in ${LINKS_OF[$d]}; do
+            key="${d}_${l}"
+            printf "    CAM%d  %-34s %s %s  (model=%s, hid=%s)\n" \
+                "$l" "${CAM_PATH[$key]}" "${CAM_PREFIX[$key]}" "${CAM_BA[$key]}" \
+                "${CAM_MODEL[$key]}" "${CAM_HID[$key]}"
+            printf "    SER%d  %-34s %s %s\n" \
+                "$l" "${SER_PATH[$key]}" "${SER_PFX[$key]}" "${SER_BA[$key]}"
+        done
     done
 }
 
+
 # -------- per-sensor media-ctl programming -----------------------------------
 #
-# CLI (mc-d4xx-style):
-#     mc-mixed.sh                                       # default per-model streams
-#     mc-mixed.sh link=N,stream=<csv> [link=M,stream=<csv> ...]
+# CLI:
+#     mc-mixed.sh                                      # default per-model streams, all DES
+#     mc-mixed.sh [des=D,]link=N,stream=<csv> ...
+#
+# When des= is omitted, des=0 is assumed (matches the legacy single-DES CLI).
 #
 # Stream tokens by sensor model:
 #     d4xx:   depth | rgb | ir | imu
 #     isx031: yuv
 #
-# When no link/stream is specified, the default is:
+# Default streams when no link is specified:
 #     d4xx   -> depth,rgb
 #     isx031 -> yuv
-# applied to every link discovered under the deserializer.
+# applied to every link discovered under every deserializer.
 #
-# Node layout: node = STREAM_NODE[s] * 4 + link_idx  (/dev/video<node>).
+# Capture-node layout (per DES):
+#     node = CAPTURE_BASE[d] + STREAM_NODE[s] * MAX_LINKS + l
+# where CAPTURE_BASE[d] is the absolute index of the lowest "ISYS Capture N"
+# entity wired to DES d's CSI2 (read from the live media topology).
 
 # =============================================================================
 # Per-sensor stream defaults
@@ -271,25 +414,33 @@ die() { echo "ERROR: $*" >&2; exit 1; }
 # -------- main ----------------------------------------------------------------
 
 discover || exit 1
+detect_csi2_entities || exit 1
 print_topology
 
 # ---- argument parsing ------------------------------------------------------
 
+# Each CFG entry is identified by (des_idx, link_idx) and carries a streams list.
+declare -a CFG_DES=()
 declare -a CFG_LINKS=()
 declare -a CFG_STREAMS=()
 
 if [ "$#" -eq 0 ]; then
     # Default: program every discovered link with its model's default streams.
-    for i in "${!CAM_MODEL[@]}"; do
-        CFG_LINKS+=("$i")
-        CFG_STREAMS+=("${MODEL_DEFAULT_STREAMS[${CAM_MODEL[$i]}]}")
+    for ((d = 0; d < NUM_DES; d++)); do
+        for l in ${LINKS_OF[$d]}; do
+            key="${d}_${l}"
+            CFG_DES+=("$d")
+            CFG_LINKS+=("$l")
+            CFG_STREAMS+=("${MODEL_DEFAULT_STREAMS[${CAM_MODEL[$key]}]}")
+        done
     done
 else
     for arg in "$@"; do
-        link=""; streams=""
+        des=""; link=""; streams=""
         IFS=',' read -ra parts <<<"$arg"
         for kv in "${parts[@]}"; do
             case "$kv" in
+                des=*)    des=${kv#des=} ;;
                 link=*)   link=${kv#link=} ;;
                 stream=*) streams+="${streams:+ }${kv#stream=}" ;;
                 depth|rgb|ir|imu|yuv)
@@ -301,56 +452,68 @@ else
         [ -n "$link" ]    || die "missing link= in '$arg'"
         [ -n "$streams" ] || die "missing stream= in '$arg'"
         [[ $link =~ ^[0-9]+$ ]] || die "link must be numeric (got '$link')"
-        [ -n "${CAM_MODEL[$link]:-}" ] || die "no camera discovered on link $link"
+        # Default des=0 when only one DES is present and des= was omitted.
+        if [ -z "$des" ]; then
+            if [ "$NUM_DES" -gt 1 ]; then
+                die "des= required when multiple deserializers are present (in '$arg')"
+            fi
+            des=0
+        fi
+        [[ $des =~ ^[0-9]+$ ]] || die "des must be numeric (got '$des')"
+        (( des < NUM_DES )) || die "des=$des out of range (have ${NUM_DES} DES)"
+        key="${des}_${link}"
+        [ -n "${CAM_MODEL[$key]:-}" ] || die "no camera discovered on DES${des} link ${link}"
         for s in $streams; do
-            stream_valid_for_model "$s" "${CAM_MODEL[$link]}" \
-                || die "stream '$s' invalid for ${CAM_MODEL[$link]} on link $link"
+            stream_valid_for_model "$s" "${CAM_MODEL[$key]}" \
+                || die "stream '$s' invalid for ${CAM_MODEL[$key]} on DES${des} link ${link}"
         done
+        CFG_DES+=("$des")
         CFG_LINKS+=("$link")
         CFG_STREAMS+=("$streams")
     done
-    declare -A seen_link=()
-    for l in "${CFG_LINKS[@]}"; do
-        [ -z "${seen_link[$l]:-}" ] || die "link $l specified more than once"
-        seen_link[$l]=1
+    # Reject duplicate (des,link) entries.
+    declare -A seen=()
+    for k in "${!CFG_LINKS[@]}"; do
+        sk="${CFG_DES[$k]}_${CFG_LINKS[$k]}"
+        [ -z "${seen[$sk]:-}" ] || die "DES${CFG_DES[$k]} link ${CFG_LINKS[$k]} specified more than once"
+        seen[$sk]=1
     done
 fi
 
-# Deserializer CSI2-source pad: max96724 -> 6, max9296a -> 4.
-case "$DES_PREFIX_NAME" in
-    max96724) DES_SRC_PAD=6 ;;
-    max9296a) DES_SRC_PAD=4 ;;
-    *) die "unknown deserializer prefix '$DES_PREFIX_NAME'" ;;
-esac
-
 echo "Setting Up:"
 for k in "${!CFG_LINKS[@]}"; do
+    d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
-    echo -e "  LINK${l}\t Sensor model\t ${CAM_MODEL[$l]}\n\t Cam Entity\t ${CAM_PREFIX[$l]} ${CAM_BA[$l]}\n\t Ser Entity\t ${SER_PFX[$l]} ${SER_BA[$l]}"
+    key="${d}_${l}"
+    echo -e "  DES${d} LINK${l}\t Sensor model\t ${CAM_MODEL[$key]}\n\t\t Cam Entity\t ${CAM_PREFIX[$key]} ${CAM_BA[$key]}\n\t\t Ser Entity\t ${SER_PFX[$key]} ${SER_BA[$key]}"
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( STREAM_NODE[$s] * 4 + l ))
-        echo -e "\t Stream\t\t [${s}] available at: /dev/video${node}"
+        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * MAX_LINKS + l ))
+        echo -e "\t\t Stream\t\t [${s}] available at: /dev/video${node}"
     done
 done
 
 # ---- programming -----------------------------------------------------------
 
-des_routes=""
-csi2_routes=""
+# Per-DES route accumulators (the kernel resets per-stream pad formats whenever
+# routes are (re)programmed, so all -R must precede any -V).
+declare -A DES_ROUTES=()
+declare -A CSI2_ROUTES=()
 
-# --- pass 1: routes only (the kernel resets per-stream pad formats whenever
-#             routes are (re)programmed, so all -R must precede any -V).
+# --- pass 1: per-link source-side routes (mux/serializer), and accumulate
+#             per-DES deserializer/CSI2 routes.
 for k in "${!CFG_LINKS[@]}"; do
+    d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
-    model=${CAM_MODEL[$l]}
-    cam=${CAM_BA[$l]}
-    ser=${SER_BA[$l]}
+    key="${d}_${l}"
+    model=${CAM_MODEL[$key]}
+    cam=${CAM_BA[$key]}
+    ser=${SER_BA[$key]}
+    ser_pfx=${SER_PFX[$key]}
     sel_streams=(${CFG_STREAMS[$k]})
     n=${#sel_streams[@]}
 
     case "$model" in
         d4xx)
-            # DS5 mux: active selected streams + inactive [0] for the rest.
             declare -A is_selected=()
             for s in "${sel_streams[@]}"; do is_selected[$s]=1; done
 
@@ -367,7 +530,7 @@ for k in "${!CFG_LINKS[@]}"; do
             done
             mux_routes=$(IFS=,; echo "${mux_route_parts[*]}")
 
-            media-ctl -l "\"DS5 mux ${cam}\":0 -> \"${SER_PFX[$l]} ${ser}\":0[1]"
+            media-ctl -l "\"DS5 mux ${cam}\":0 -> \"${ser_pfx} ${ser}\":0[1]"
             media-ctl -R "\"DS5 mux ${cam}\" [${mux_routes}]"
 
             ser_route_parts=()
@@ -375,51 +538,61 @@ for k in "${!CFG_LINKS[@]}"; do
                 ser_route_parts+=("0/${idx}->1/${idx}[1]")
             done
             ser_routes=$(IFS=,; echo "${ser_route_parts[*]}")
-            media-ctl -R "\"${SER_PFX[$l]} ${ser}\" [${ser_routes}]"
+            media-ctl -R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
 
             unset is_selected
             ;;
         isx031)
-            # isx031 -> max96717 link is IMMUTABLE; just program ser passthrough.
             ser_route_parts=()
             for idx in $(seq 0 $((n - 1))); do
                 ser_route_parts+=("0/${idx}->1/${idx}[1]")
             done
             ser_routes=$(IFS=,; echo "${ser_route_parts[*]}")
-            media-ctl -R "\"${SER_PFX[$l]} ${ser}\" [${ser_routes}]"
+            media-ctl -R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
             ;;
     esac
 
     for idx in "${!sel_streams[@]}"; do
         s=${sel_streams[$idx]}
-        node=$(( STREAM_NODE[$s] * 4 + l ))
-        des_routes+="${des_routes:+,}${l}/${idx}->${DES_SRC_PAD}/${node}[1]"
-        csi2_routes+="${csi2_routes:+,}0/${node}->$((node + 1))/0[1]"
+        # CSI2-local stream/pad index (0..15) -- per-CSI2, regardless of DES.
+        csi2_pad=$(( STREAM_NODE[$s] * MAX_LINKS + l ))
+        DES_ROUTES[$d]+="${DES_ROUTES[$d]:+,}${l}/${idx}->${DES_SRC_PAD[$d]}/${csi2_pad}[1]"
+        CSI2_ROUTES[$d]+="${CSI2_ROUTES[$d]:+,}0/${csi2_pad}->$((csi2_pad + 1))/0[1]"
     done
 done
 
-media-ctl -R "\"${DES_PREFIX_NAME} ${DES_BA}\" [${des_routes}]"
-media-ctl -R "\"Intel IPU7 CSI2 0\" [${csi2_routes}]"
+# Apply per-DES route tables.
+for ((d = 0; d < NUM_DES; d++)); do
+    [ -n "${DES_ROUTES[$d]:-}" ] || continue
+    media-ctl -R "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\" [${DES_ROUTES[$d]}]"
+    media-ctl -R "\"${IPU_CSI2_ENTITY[$d]}\" [${CSI2_ROUTES[$d]}]"
+done
 
+# CSI2 source pad -> ISYS Capture entity link (must exist before formats flow).
 for k in "${!CFG_LINKS[@]}"; do
+    d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( STREAM_NODE[$s] * 4 + l ))
-        media-ctl -l "\"Intel IPU7 CSI2 0\":$((node + 1)) -> \"Intel IPU7 ISYS Capture ${node}\":0[1]"
+        csi2_pad=$(( STREAM_NODE[$s] * MAX_LINKS + l ))
+        node=$(( CAPTURE_BASE[d] + csi2_pad ))
+        media-ctl -l "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1)) -> \"${IPU_BASE[$d]} ISYS Capture ${node}\":0[1]"
     done
 done
 
-# --- pass 2: format propagation.
+# --- pass 2: format propagation (all routes are now in place).
 for k in "${!CFG_LINKS[@]}"; do
+    d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
-    model=${CAM_MODEL[$l]}
-    cam=${CAM_BA[$l]}
-    ser=${SER_BA[$l]}
+    key="${d}_${l}"
+    model=${CAM_MODEL[$key]}
+    cam=${CAM_BA[$key]}
+    ser=${SER_BA[$key]}
+    ser_pfx=${SER_PFX[$key]}
     sel_streams=(${CFG_STREAMS[$k]})
 
     for idx in "${!sel_streams[@]}"; do
         s=${sel_streams[$idx]}
-        node=$(( STREAM_NODE[$s] * 4 + l ))
+        csi2_pad=$(( STREAM_NODE[$s] * MAX_LINKS + l ))
         fmt=$(stream_fmt "$s")
         size=$(stream_size "$s")
 
@@ -431,12 +604,12 @@ for k in "${!CFG_LINKS[@]}"; do
                 media-ctl -V "\"isx031 ${cam}\":0/${idx} [fmt:${fmt}/${size} field:none]"
                 ;;
         esac
-        media-ctl -V "\"${SER_PFX[$l]} ${ser}\":0/${idx} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${SER_PFX[$l]} ${ser}\":1/${idx} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${DES_PREFIX_NAME} ${DES_BA}\":${l}/${idx} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${DES_PREFIX_NAME} ${DES_BA}\":${DES_SRC_PAD}/${node} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"Intel IPU7 CSI2 0\":0/${node} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"Intel IPU7 CSI2 0\":$((node + 1))/0 [fmt:${fmt}/${size} field:none]"
+        media-ctl -V "\"${ser_pfx} ${ser}\":0/${idx} [fmt:${fmt}/${size} field:none]"
+        media-ctl -V "\"${ser_pfx} ${ser}\":1/${idx} [fmt:${fmt}/${size} field:none]"
+        media-ctl -V "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\":${l}/${idx} [fmt:${fmt}/${size} field:none]"
+        media-ctl -V "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\":${DES_SRC_PAD[$d]}/${csi2_pad} [fmt:${fmt}/${size} field:none]"
+        media-ctl -V "\"${IPU_CSI2_ENTITY[$d]}\":0/${csi2_pad} [fmt:${fmt}/${size} field:none]"
+        media-ctl -V "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1))/0 [fmt:${fmt}/${size} field:none]"
     done
 done
 
@@ -453,9 +626,10 @@ mbus_to_pixfmt() {
 }
 
 for k in "${!CFG_LINKS[@]}"; do
+    d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( STREAM_NODE[$s] * 4 + l ))
+        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * MAX_LINKS + l ))
         pixfmt=$(mbus_to_pixfmt "$(stream_fmt "$s")")
         [ -z "$pixfmt" ] && continue
         size=$(stream_size "$s")
