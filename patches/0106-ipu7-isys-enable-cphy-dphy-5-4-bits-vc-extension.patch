@@ -1,0 +1,39 @@
+From 12091ca1671bba71ea11b12d353c861f6a95dc06 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Wed, 6 May 2026 08:53:02 -0700
+Subject: [PATCH 106/106] ipu7-isys: enable cphy/dphy 5/4-bits vc-extension
+
+VC_EXTENSION register activates extra bits for virtual channel.
+The Virtual Channel Extension (VCX) field is common to both options,
+but is a 2-bit field for D-PHY and a 3-bit field for C-PHY.
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ .../drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c     | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c
+index cc6f57f..4badb6a 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi-phy.c
+@@ -274,10 +274,15 @@ static int __dids_config(struct ipu7_isys_csi2 *csi2, u32 id, u8 vc, u8 dt)
+ 	u8 lo, hi;
+ 	int ret;
+ 
+-	dev_dbg(&isys->adev->auxdev.dev, "config CSI-%u with vc:%u dt:0x%02x\n",
++#ifdef CONFIG_INTEL_IPU_VC_EXT
++	dev_info(&isys->adev->auxdev.dev, "config CSI-%u with vc_ext:%u [vc_msb:%u vc_lsb:%u] dt:0x%02x\n",
++		id, vc, vc & GENMASK(4, 2), vc & GENMASK(1, 0), dt);
++#else
++	dev_info(&isys->adev->auxdev.dev, "config CSI-%u with vc:%u dt:0x%02x\n",
+ 		id, vc, dt);
+-
++#endif
+ 	dwc_csi_write(isys, id, VC_EXTENSION, 0x0);
++
+ 	n = find_first_zero_bit(data_ids, N_DATA_IDS);
+ 
+ 	dev_dbg(&isys->adev->auxdev.dev, "config CSI-%u with n/data_ids:%u/%p\n",
+-- 
+2.43.0
+
