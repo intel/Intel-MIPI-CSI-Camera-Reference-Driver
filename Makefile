@@ -9,14 +9,18 @@ BUILD_EXCLUSIVE_KERNEL="^(6\.(1[278])\.)"
 MODSRC := $(shell pwd)
 
 subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
+
 # Extract kernel version components - strip suffix like "-intel"
 KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | cut -d. -f1)
 KERNEL_PATCHLEVEL := $(shell echo $(KERNELRELEASE) | cut -d. -f2 | cut -d- -f1)
 
-# Check if kernel version is 6.17 or above
+# Check if kernel version is 6.18
+KERNEL_EQ_6_18 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 18 ]) && echo 1 || echo 0)
+
+# Check if kernel version is 6.17
 KERNEL_EQ_6_17 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 17 ]) && echo 1 || echo 0)
 
-# Check if kernel version is 6.12 or above
+# Check if kernel version is 6.12
 KERNEL_EQ_6_12 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 12 ]) && echo 1 || echo 0)
 
 export EXTERNAL_BUILD = 1
@@ -56,12 +60,13 @@ subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 
 ccflags-y := -I$(src)/include
-ifeq ($(KERNEL_EQ_6_17),1)
+ifneq (,$(filter 1,$(KERNEL_EQ_6_17) $(KERNEL_EQ_6_18)))
 # IPU7 driver configs
 export CONFIG_VIDEO_INTEL_IPU7=m
 export CONFIG_VIDEO_INTEL_IPU6=m
 export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
 
+subdir-ccflags-y += -DIPU8_INSYS_NEW_ABI
 subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU7
 subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU6
 
@@ -71,11 +76,18 @@ obj-m += ipu7-drivers/drivers/media/pci/intel/ipu7/
 # Build IPU6 drivers from submodule
 obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
 
+# Select extracted kernel tree based on running kernel
+ifeq ($(KERNEL_EQ_6_18),1)
+KERNEL_MEDIA_TREE := 6.18.0
+else
+KERNEL_MEDIA_TREE := 6.17.0
+endif
+
 # Build V4L2 core module
-obj-m += 6.17.0/drivers/media/v4l2-core/
+obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/v4l2-core/
 
 # Build ipu-bridge module
-obj-m += 6.17.0/drivers/media/pci/intel/
+obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/pci/intel/
 
 else ifeq ($(KERNEL_EQ_6_12),1)
 # IPU6 driver configs
