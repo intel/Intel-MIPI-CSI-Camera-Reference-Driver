@@ -1,10 +1,10 @@
- 6.17.0/drivers/media/pci/intel/ipu-bridge.c | 6 ++++++
- 1 file changed, 6 insertions(+)
+ 6.17.0/drivers/media/pci/intel/ipu-bridge.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 diff --git a/6.17.0/drivers/media/pci/intel/ipu-bridge.c b/6.17.0/drivers/media/pci/intel/ipu-bridge.c
 index 3c947d1..36e8f10 100644
 --- a/6.17.0/drivers/media/pci/intel/ipu-bridge.c
 +++ b/6.17.0/drivers/media/pci/intel/ipu-bridge.c
-@@ -97,6 +97,14 @@ static const struct ipu_sensor_config ipu_supported_sensors[] = {
+@@ -97,6 +97,16 @@ static const struct ipu_sensor_config ipu_supported_sensors[] = {
  	IPU_SENSOR_CONFIG("XMCC0003", 1, 321468000),
  	/* Lontium lt6911gxd */
  	IPU_SENSOR_CONFIG("INTC1124", 0),
