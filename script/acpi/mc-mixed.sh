@@ -96,8 +96,15 @@ acpi_hid() { cat "$1/hid" 2>/dev/null; }
 
 # -------- topology discovery --------------------------------------------------
 
-# Maximum number of links (CHxx) we consider per deserializer.
-MAX_LINKS=${MAX_LINKS:-4}
+# Maximum number of links (CHxx) we consider per deserializer, keyed by the
+# deserializer's v4l entity prefix. Override per model via env, e.g.
+# MAX_LINKS_max9296a=2.
+declare -A MAX_LINKS_BY_PREFIX=(
+    [max96724]=${MAX_LINKS_max96724:-4}
+    [max9296a]=${MAX_LINKS_max9296a:-2}
+)
+# Per-DES MAX_LINKS (indexed by DES index 'd'), populated during discovery.
+declare -a DES_MAX_LINKS=()
 
 # Locate every deserializer present on the system. Echoes one sysfs dir per
 # line. Honours DES_HID=<hid> (filter to a specific HID) and DES_BUSADDR=
@@ -147,11 +154,10 @@ discover_one_des() {
     DES_PATH[$d]=$des_path
     DES_BA[$d]=$des_ba
     DES_PREFIX_NAME[$d]=$des_prefix
-    case "$des_prefix" in
-        max96724) DES_SRC_PAD[$d]=6 ;;
-        max9296a) DES_SRC_PAD[$d]=4 ;;
-        *) echo "WARN: unknown deserializer prefix '$des_prefix'; skipping DES ${d}" >&2; return 1 ;;
-    esac
+    # DES_SRC_PAD[$d] is filled in later by detect_csi2_entities() based on the
+    # live media topology (which reflects the DES_CSI_LOCAL_PORT value the
+    # SSDT/_CRS published in the CSI2Bus resource).
+    DES_MAX_LINKS[$d]=${MAX_LINKS_BY_PREFIX[$des_prefix]:-4}
 
     local i ch ser_path ser_dir ser_hid cam_path cam_dir cam_hid ch_name key
     local found=0
@@ -166,8 +172,8 @@ discover_one_des() {
             echo "WARN: DES${d}: cannot parse channel index from '$ch'; skipping" >&2
             continue
         fi
-        if (( i >= MAX_LINKS )); then
-            echo "WARN: DES${d}: link ${i} (${ch}) exceeds max supported links (${MAX_LINKS}); skipping" >&2
+        if (( i >= DES_MAX_LINKS[d] )); then
+            echo "WARN: DES${d}: link ${i} (${ch}) exceeds max supported links (${DES_MAX_LINKS[$d]}) for ${des_prefix}; skipping" >&2
             continue
         fi
         key="${d}_${i}"
@@ -259,31 +265,40 @@ discover() {
 }
 
 # For each DES, locate the "Intel IPUx CSI2 N" entity wired to its source
-# pad, and the absolute capture-node base (lowest "ISYS Capture <N>" index
-# linked to that CSI2). The DES->CSI2 link is IMMUTABLE so the live media
-# topology is the source of truth.
+# pad, the DES source pad number itself (which mirrors DES_CSI_LOCAL_PORT in
+# the SSDT CSI2Bus resource), and the absolute capture-node base (lowest
+# "ISYS Capture <N>" index linked to that CSI2). The DES->CSI2 link is
+# IMMUTABLE so the live media topology is the source of truth.
 detect_csi2_entities() {
     local topo
     topo=$(media-ctl -p 2>/dev/null) || {
         echo "ERROR: failed to read media topology via 'media-ctl -p'" >&2
         return 1
     }
-    local d des_entity csi2 base
+    local d des_entity csi2 src_pad base line
     for ((d = 0; d < NUM_DES; d++)); do
         des_entity="${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}"
-        csi2=$(awk -v des="$des_entity" '
+        # Extract "<src_pad> <csi2_entity>" from the entity block.
+        line=$(awk -v des="$des_entity" '
             /^- entity / { in_des=0 }
             index($0, "- entity") && index($0, ": " des " (") { in_des=1; next }
+            in_des && match($0, /pad[0-9]+:/) {
+                p = substr($0, RSTART+3, RLENGTH-4)
+                cur_pad = p + 0
+            }
             in_des && match($0, /-> "Intel IPU[0-9]+ CSI2 [0-9]+"/) {
                 s = substr($0, RSTART+4, RLENGTH-5)
                 gsub(/"/, "", s)
-                print s
+                print cur_pad, s
                 exit
             }' <<<"$topo")
-        if [ -z "$csi2" ]; then
+        if [ -z "$line" ]; then
             echo "ERROR: DES${d}: could not find an 'Intel IPUx CSI2 N' link from '$des_entity'" >&2
             return 1
         fi
+        src_pad=${line%% *}
+        csi2=${line#* }
+        DES_SRC_PAD[$d]=$src_pad
         IPU_CSI2_ENTITY[$d]=$csi2
         IPU_BASE[$d]=${csi2% CSI2 *}
 
@@ -349,9 +364,11 @@ print_topology() {
 # applied to every link discovered under every deserializer.
 #
 # Capture-node layout (per DES):
-#     node = CAPTURE_BASE[d] + STREAM_NODE[s] * MAX_LINKS + l
+#     node = CAPTURE_BASE[d] + STREAM_NODE[s] * DES_MAX_LINKS[d] + l
 # where CAPTURE_BASE[d] is the absolute index of the lowest "ISYS Capture N"
-# entity wired to DES d's CSI2 (read from the live media topology).
+# entity wired to DES d's CSI2 (read from the live media topology), and
+# DES_MAX_LINKS[d] is the deserializer model's link count (e.g. 4 for
+# max96724, 2 for max9296a).
 
 # =============================================================================
 # Per-sensor stream defaults
@@ -487,7 +504,7 @@ for k in "${!CFG_LINKS[@]}"; do
     key="${d}_${l}"
     echo -e "  DES${d} LINK${l}\t Sensor model\t ${CAM_MODEL[$key]}\n\t\t Cam Entity\t ${CAM_PREFIX[$key]} ${CAM_BA[$key]}\n\t\t Ser Entity\t ${SER_PFX[$key]} ${SER_BA[$key]}"
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * MAX_LINKS + l ))
+        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
         echo -e "\t\t Stream\t\t [${s}] available at: /dev/video${node}"
     done
 done
@@ -554,8 +571,8 @@ for k in "${!CFG_LINKS[@]}"; do
 
     for idx in "${!sel_streams[@]}"; do
         s=${sel_streams[$idx]}
-        # CSI2-local stream/pad index (0..15) -- per-CSI2, regardless of DES.
-        csi2_pad=$(( STREAM_NODE[$s] * MAX_LINKS + l ))
+        # CSI2-local stream/pad index -- per-CSI2, regardless of DES.
+        csi2_pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
         DES_ROUTES[$d]+="${DES_ROUTES[$d]:+,}${l}/${idx}->${DES_SRC_PAD[$d]}/${csi2_pad}[1]"
         CSI2_ROUTES[$d]+="${CSI2_ROUTES[$d]:+,}0/${csi2_pad}->$((csi2_pad + 1))/0[1]"
     done
@@ -573,7 +590,7 @@ for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     for s in ${CFG_STREAMS[$k]}; do
-        csi2_pad=$(( STREAM_NODE[$s] * MAX_LINKS + l ))
+        csi2_pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
         node=$(( CAPTURE_BASE[d] + csi2_pad ))
         media-ctl -l "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1)) -> \"${IPU_BASE[$d]} ISYS Capture ${node}\":0[1]"
     done
@@ -592,7 +609,7 @@ for k in "${!CFG_LINKS[@]}"; do
 
     for idx in "${!sel_streams[@]}"; do
         s=${sel_streams[$idx]}
-        csi2_pad=$(( STREAM_NODE[$s] * MAX_LINKS + l ))
+        csi2_pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
         fmt=$(stream_fmt "$s")
         size=$(stream_size "$s")
 
@@ -629,7 +646,7 @@ for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * MAX_LINKS + l ))
+        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
         pixfmt=$(mbus_to_pixfmt "$(stream_fmt "$s")")
         [ -z "$pixfmt" ] && continue
         size=$(stream_size "$s")
