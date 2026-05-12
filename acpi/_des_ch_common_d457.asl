@@ -1,75 +1,55 @@
-// SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2025 Intel Corporation.
-//
-// Common template for ISX031 deserializer ATR channel device.
-// Uses IASL C-preprocessor macros to eliminate per-channel file duplication.
-//
-// DES-level defines (set once before all channels, caller undefs after):
-//   DESCH_SER_I2C     - Serializer I2C address (e.g., 0x40)
-//   DESCH_DES_PATH    - DES ACPI path string (e.g., "\\_SB.PC00.DES0")
-//   DESCH_DES_REF     - DES ACPI namespace reference (e.g., \_SB.PC00.DES0)
-//
-// Channel-level defines (set per channel, auto-cleaned by this template):
-//   DESCH_CH_VALUE    - Channel number (0, 1, 2, 3) - used for _ADR, reg, and SER remote port
-//   DESCH_CH          - Channel device name (e.g., CH00)
-//   DESCH_SER         - Serializer device name (e.g., SER0)
-//   DESCH_CAM         - Camera device name (e.g., CAM0)
-//   DESCH_CH_PATH     - Channel ACPI path string (e.g., "\\_SB.PC00.DES0.CH00")
-//   DESCH_SER_PATH    - Serializer ACPI path string (e.g., "\\_SB.PC00.DES0.CH00.SER0")
-//   DESCH_SER_REF     - Serializer ACPI namespace reference (e.g., \_SB.PC00.DES0.CH00.SER0)
-//   DESCH_SER_GPIOREF - GPIO reference for CAM reset (e.g., ^^SER0)
-//
-// Optional defines:
-//   DESCH_EXTRA_GPIO_PIN  - Additional GPIO pin number (e.g., 7 for fsin)
-//   DESCH_CAM_FSIN_GPIO   - If defined, adds fsin-gpios property to CAM _DSD
+/* 
+ * SPDX-License-Identifier: GPL-2.0
+ * Copyright (c) 2025 Intel Corporation.
+ *
+ * Description: Common template for each D457 GMSL camera under each deserializer link,
+ *              where each link is represented as an ATR channel device.
+ *
+ * DES-level defines expected by caller:
+ *   DES_PATH          - DESx ACPI path string (e.g., "\\_SB.PC00.DES0")
+ *   DES_REF           - DESx ACPI namespace reference (e.g., \_SB.PC00.DES0)
+ *
+ * Channel-level defines expected by caller:
+ *   DESCH_CH          - Channel device name (e.g., CH00)
+ *   DESCH_SER         - Serializer device name (e.g., SER0)
+ *   DESCH_CAM         - Camera device name (e.g., CAM0)
+ *   DESCH_CH_PATH     - CHxx ACPI path string (e.g., "\\_SB.PC00.DES0.CH00")
+ *   DESCH_SER_PATH    - SERx ACPI path string (e.g., "\\_SB.PC00.DES0.CH00.SER0")
+ *   DESCH_SER_REF     - SERx ACPI namespace reference (e.g., \_SB.PC00.DES0.CH00.SER0)
+ *   DESCH_SER_I2C     - SERx I2C address (e.g., 0x40)
+ *   DESCH_LINK_NUM    - Channel/link number (0, 1, 2, 3) - used for _ADR, reg, and SER remote port
+ *   DESCH_SER_GPIOREF - SERx GPIO controller reference (e.g., ^^SER0, ^^SER1, etc.)
+ *   CAM_LANES   - CAMx Number of MIPI data lanes for the camera (e.g., 2, 4)
+ * Optional defines:
+ *   DESCH_SER_EXTRA_GPIO_PIN - SERx Additional GPIO pin number (e.g., 7 for MFP7 in MAX9295A)
+ *   DESCH_SER_X/Y/Z/U_VC     - SERx VC filter for Pipe X/Y/Z/U, specifically for MAX96717 driver
+ */
 
-Device (DESCH_CH)
+Device (DESCH_CH) // New CHxx Device under parent DESx device for each DES channel/link
 {
-    Name (_ADR, DESCH_CH_VALUE)
-    Name (_DSD, Package ()
+    /*
+     * Channel is the naming convention used by i2c-mux or i2c-atr in ACPI namespace 
+     * In GMSL context, it can directly be translated as Link 0/1/2/3 of the Deserializer
+     */
+
+    Name (_ADR, DESCH_LINK_NUM) // _ADR: Address for the channel (e.g. 0 for Link 0, 1 for Link 1)
+
+    Name (_DSD, Package ()      // _DSD: Device Specific Data
     {
-        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
+        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
         Package ()
         {
-            Package () { "reg", DESCH_CH_VALUE },
+            Package () { "reg", DESCH_LINK_NUM },       // used by i2c-atr driver. Represents the channel / link number
         }
     })
 
-    Device (DESCH_SER)
+    Device (DESCH_SER)      // SERx device under parent DESx.CHxx
     {
-        #define SER_X_VC Package () { 0 }
-        #define SER_Y_VC Package () { 1 }
-        #define SER_Z_VC Package () { 2 }
-        #define SER_U_VC Package () { 3 }
         #include "_ser_common_max9295.asl"
 
-        Device (DESCH_CAM)
+        Device (DESCH_CAM)  // CAMx device under parent DESx.CHxx.SERx
         {
             #include "_cam_common_d457.asl"
         }
     }
 }
-
-// Clean up channel-level defines for safe reuse
-#undef DESCH_CH_VALUE
-#undef DESCH_CH
-#undef DESCH_SER
-#undef DESCH_CAM
-#undef DESCH_SER_I2C
-#undef DESCH_CH_PATH
-#undef DESCH_SER_I2C
-#undef DESCH_SER_PATH
-#undef DESCH_SER_REF
-#undef DESCH_SER_GPIOREF
-#ifdef DESCH_EXTRA_GPIO_PIN
-#undef DESCH_EXTRA_GPIO_PIN
-#endif
-#ifdef DESCH_CAM_FSIN_GPIO
-#undef DESCH_CAM_FSIN_GPIO
-#endif
-#undef SER_X_VC
-#undef SER_Y_VC
-#undef SER_Z_VC
-#undef SER_U_VC
-#undef CAM_LANES
-#undef SER_ALIAS
