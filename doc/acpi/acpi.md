@@ -15,6 +15,9 @@ Create ASL source file based on current hardware setup using reference ASL sourc
 | 1x 2D sensor + 1x 3D sensor on single DES | d3_d4xx_isx031_gmsl.asl |
 
 ## How to compile ACPI ASL source
+Pre-requisite:
+    sudo apt-get install flex bison
+
 Install acpica tools version 20250807 https://github.com/acpica/acpica/releases/tag/20250807
 
     wget https://github.com/user-attachments/files/21674610/acpica-unix-20250807.tar.gz
