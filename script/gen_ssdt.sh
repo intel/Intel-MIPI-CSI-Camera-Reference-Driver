@@ -17,7 +17,7 @@ AML="${1%.asl}.aml"
 # cannot leave the old AML in place to be packaged below.
 rm -f "$AML" ./img_ssdt.img
 
-iasl "$1"
+iasl -li "$1"
 
 # iasl can return 0 with warnings but skip writing the AML on errors;
 # guard against that as well.
