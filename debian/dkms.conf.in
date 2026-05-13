@@ -90,6 +90,8 @@ PATCH[$((++j))]="0104-isys-video-let-v4l2-set-default-colorspace.patch"
 PATCH_MATCH[$j]="^(6.1[278])"
 PATCH[$((++j))]="0105-isys-queue-ignore-HW_ERR_BAD_FRAME_DIM-led-expected-.patch"
 PATCH_MATCH[$j]="^(6.1[278])"
+PATCH[$((++j))]="0106-ipu7-isys-enable-cphy-dphy-5-4-bits-vc-extension.patch"
+PATCH_MATCH[$j]="^(6.1[278])"
 
 i=0
 
