@@ -68,12 +68,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DESCH_SER_REF \_SB.PC00.DES0.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
             #define CAM_ALIAS 0x54
-            #define CAM_LANES 2
-            #define DESCH_SER_X_VC Package () { 0 }
-            #define DESCH_SER_Y_VC Package () { 1 }
-            #define DESCH_SER_Z_VC Package () { 2 }
-            #define DESCH_SER_U_VC Package () { 3 }
-            #include "_des_ch_common_d457.asl"
+            #define CAM_LANES 4
+            #include "_des_ch_common_isx031.asl"
 
             #undef DESCH_CH
             #undef DESCH_SER
@@ -86,10 +82,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DESCH_SER_GPIOREF
             #undef CAM_ALIAS
             #undef CAM_LANES
-            #undef DESCH_SER_X_VC
-            #undef DESCH_SER_Y_VC
-            #undef DESCH_SER_Z_VC
-            #undef DESCH_SER_U_VC
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
