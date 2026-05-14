@@ -96,6 +96,123 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_CAM_FSIN_GPIO
             #undef DESCH_CAM_FSIN_GPIO
 #endif
+
+            // Channel 1
+            #define DESCH_LINK_NUM 1
+            #define DESCH_CH CH01
+            #define DESCH_SER SER1
+            #define DESCH_CAM CAM1
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH01"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH01.SER1"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH01.SER1
+            #define DESCH_SER_GPIOREF ^^SER1
+            #define CAM_ALIAS 0x55
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef DESCH_CAM_FSIN_GPIO
+            #undef DESCH_CAM_FSIN_GPIO
+#endif
+
+            // Channel 2
+            #define DESCH_LINK_NUM 2
+            #define DESCH_CH CH02
+            #define DESCH_SER SER2
+            #define DESCH_CAM CAM2
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH02"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH02.SER2"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH02.SER2
+            #define DESCH_SER_GPIOREF ^^SER2
+            #define CAM_ALIAS 0x56
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef DESCH_CAM_FSIN_GPIO
+            #undef DESCH_CAM_FSIN_GPIO
+#endif
+
+            // Channel 3
+            #define DESCH_LINK_NUM 3
+            #define DESCH_CH CH03
+            #define DESCH_SER SER3
+            #define DESCH_CAM CAM3
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH03"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH03.SER3"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH03.SER3
+            #define DESCH_SER_GPIOREF ^^SER3
+            #define CAM_ALIAS 0x57
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef DESCH_CAM_FSIN_GPIO
+            #undef DESCH_CAM_FSIN_GPIO
+#endif
         }
     }
 }
