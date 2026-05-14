@@ -60,19 +60,23 @@ You should see log similar to below:
 
 ### Construct media-ctl pipeline 
 
-Run ../script/acpi/mc-mixed.sh to auto construct media-ctl pipeline.
+Run ../../script/acpi/mc-setup.sh to auto construct media-ctl pipeline.
 
 > **Note:** Auto construct media-ctl pipeline for all links (regardless of 2D or 3D sensors) on all deserializers. 3D sensors default to depth and rgb streams, while 2D sensors default to yuv stream. Any unknown sensors will be skipped.
 
-    ../script/acpi/mc-mixed.sh
+    ../../script/acpi/mc-setup.sh
 
 > **Note:** If want to configure only DES0 single link, with 2D YUV sensor
 
-    ../script/acpi/mc-mixed.sh des=0,link=0,stream=yuv
+    ../../script/acpi/mc-setup.sh des=0,link=0,stream=yuv
+
+> **Note:** If want to configure only DES0 Link 0 with 2D YUV sensor, and Link 1 with 3D sensors
+
+    ../../script/acpi/mc-setup.sh des=0,link=0,stream=yuv des=0,link=1,stream=depth,rgb
 
 > **Note:** If want to configure only DES1 single link, with 3D depth and rgb sensors
 
-    ../script/acpi/mc-mixed.sh des=1,link=1,stream=depth,rgb
+    ../../script/acpi/mc-setup.sh des=1,link=1,stream=depth,rgb
 
 ### Verify stream using v4l2src
 
