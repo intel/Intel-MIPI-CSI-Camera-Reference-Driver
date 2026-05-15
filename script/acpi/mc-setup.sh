@@ -363,12 +363,20 @@ print_topology() {
 #     isx031 -> yuv
 # applied to every link discovered under every deserializer.
 #
-# Capture-node layout (per DES):
-#     node = CAPTURE_BASE[d] + STREAM_NODE[s] * DES_MAX_LINKS[d] + l
-# where CAPTURE_BASE[d] is the absolute index of the lowest "ISYS Capture N"
-# entity wired to DES d's CSI2 (read from the live media topology), and
-# DES_MAX_LINKS[d] is the deserializer model's link count (e.g. 4 for
-# max96724, 2 for max9296a).
+# Capture-node layout (per DES) -- STREAM-MAJOR:
+#     csi2_pad = STREAM_NODE[s] * DES_MAX_LINKS[d] + l
+#     node     = CAPTURE_BASE[d] + csi2_pad
+# Nodes are grouped by stream type across links: e.g. for a 4-link max96724
+# with d4xx, depth lands on nodes base+0..3, rgb on base+4..7, etc. For
+# 1-stream sensors like isx031, 4 links land on base+0..3 directly. The
+# CSI2 RX cap is IPU7_NR_OF_CSI2_SRC_PADS (16 with the D4XX patch applied;
+# 8 otherwise); the resulting pad must stay within that.
+#
+# v4l2 source_stream tag at the deserializer source pad / CSI2 sink pad is
+# allocated separately as a compact per-DES sequential id (0..3), because
+# max96724 / max_des bound the per-pipe stream-id field at 2 bits
+# (MAX_SERDES_STREAMS_NUM=4). The csi2_pad above is only used as the CSI2
+# *source* pad index (i.e. capture-node selector).
 
 # =============================================================================
 # Per-sensor stream defaults
@@ -428,8 +436,30 @@ stream_valid_for_model() {
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
+# Require media-ctl >= 1.30 (older releases lack the streams/routing API used here).
+check_media_ctl_version() {
+    local required_major=1 required_minor=30
+    command -v media-ctl >/dev/null 2>&1 || die "media-ctl not found in PATH"
+
+    local ver
+    ver=$(media-ctl --version 2>/dev/null | awk '/^media-ctl[[:space:]]+[0-9]+\./ {print $2; exit}')
+    [[ -n $ver ]] || die "unable to determine media-ctl version (\`media-ctl --version\`)"
+
+    local major minor
+    major=${ver%%.*}
+    minor=${ver#*.}; minor=${minor%%.*}; minor=${minor%%-*}
+    [[ $major =~ ^[0-9]+$ && $minor =~ ^[0-9]+$ ]] \
+        || die "unable to parse media-ctl version: '$ver'"
+
+    if (( major < required_major )) || \
+       (( major == required_major && minor < required_minor )); then
+        die "media-ctl ${ver} is too old; ${required_major}.${required_minor} or newer is required"
+    fi
+}
+
 # -------- main ----------------------------------------------------------------
 
+check_media_ctl_version
 discover || exit 1
 detect_csi2_entities || exit 1
 print_topology
@@ -498,14 +528,56 @@ else
 fi
 
 echo "Setting Up:"
+
+# IPU7 CSI2 RX source-pad cap (16 with the D4XX patch, 8 otherwise).
+IPU_CSI2_SRC_PADS=${IPU_CSI2_SRC_PADS:-16}
+
+# Compute csi2_pad per (cfg_index, stream) using a stream-major formula:
+# all 'depth' across links first, then all 'rgb', etc. For 1-stream sensors
+# (isx031) this collapses to csi2_pad == link, so 4 links land on the first
+# four capture nodes.
+declare -A CSI2_PAD=()
+# Compact v4l2 source_stream id assigned to each (cfg_index, stream) at the
+# deserializer source pad and at the CSI2 sink pad. The kernel-side max96724
+# / max_des state machine bounds the per-pipe stream-id field at 2 bits
+# (MAX_SERDES_STREAMS_NUM=4), so any v4l2 source_stream tag >=4 trips an
+# EINVAL on set_fmt. We therefore allocate per-DES sequential ids 0..3
+# independent of the (larger) csi2_pad values used downstream.
+declare -A DES_STREAM=()
+declare -A DES_STREAM_NEXT=()
+for k in "${!CFG_LINKS[@]}"; do
+    d=${CFG_DES[$k]}
+    l=${CFG_LINKS[$k]}
+    key="${d}_${l}"
+    for s in ${CFG_STREAMS[$k]}; do
+        pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
+        if (( pad >= IPU_CSI2_SRC_PADS )); then
+            die "DES${d} link ${l} stream ${s}: csi2_pad ${pad} exceeds IPU7 cap (${IPU_CSI2_SRC_PADS}); rebuild with the D4XX patch (raises cap to 16) or reduce active links/streams"
+        fi
+        CSI2_PAD["${k}_${s}"]=$pad
+
+        ds=${DES_STREAM_NEXT[$d]:-0}
+        if (( ds >= 4 )); then
+            die "DES${d}: too many streams routed through deserializer source pad (max96724 supports 4 unique source_streams)"
+        fi
+        DES_STREAM["${k}_${s}"]=$ds
+        DES_STREAM_NEXT[$d]=$(( ds + 1 ))
+    done
+done
+
+# Reset all media links and per-stream pad state so we don't inherit formats
+# or enabled-link flags from a prior run with a different layout.
+media-ctl -r 2>/dev/null || true
+
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
     echo -e "  DES${d} LINK${l}\t Sensor model\t ${CAM_MODEL[$key]}\n\t\t Cam Entity\t ${CAM_PREFIX[$key]} ${CAM_BA[$key]}\n\t\t Ser Entity\t ${SER_PFX[$key]} ${SER_BA[$key]}"
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
-        echo -e "\t\t Stream\t\t [${s}] available at: /dev/video${node}"
+        csi2_pad=${CSI2_PAD["${k}_${s}"]}
+        node=$(( CAPTURE_BASE[d] + csi2_pad ))
+        echo -e "\t\t Stream\t\t [${s}] available at: /dev/video${node} (csi2 src stream ${csi2_pad})"
     done
 done
 
@@ -529,21 +601,26 @@ for k in "${!CFG_LINKS[@]}"; do
     sel_streams=(${CFG_STREAMS[$k]})
     n=${#sel_streams[@]}
 
+    # Stream IDs along the mux->serializer->deserializer chain are fixed
+    # per sensor sub-stream (see STREAM_NODE): depth=0, rgb=1, ir=2, imu=3,
+    # yuv=0. The d4xx driver in particular asserts that the route's
+    # source_stream on the mux matches the sensor's hard-coded vc_id, so
+    # we must use STREAM_NODE[$s] -- not a sequential 0..n-1 index -- as
+    # the stream identifier everywhere downstream of the sensor.
+
     case "$model" in
         d4xx)
             declare -A is_selected=()
             for s in "${sel_streams[@]}"; do is_selected[$s]=1; done
 
             mux_route_parts=()
-            for idx in "${!sel_streams[@]}"; do
-                s=${sel_streams[$idx]}
-                mux_route_parts+=("${STREAM_MUXPAD[$s]}/0->0/${idx}[1]")
-            done
-            inactive_idx=$n
             for s in depth rgb ir imu; do
-                [ -n "${is_selected[$s]:-}" ] && continue
-                mux_route_parts+=("${STREAM_MUXPAD[$s]}/0->0/${inactive_idx}[0]")
-                inactive_idx=$((inactive_idx + 1))
+                sid=${STREAM_NODE[$s]}
+                if [ -n "${is_selected[$s]:-}" ]; then
+                    mux_route_parts+=("${STREAM_MUXPAD[$s]}/0->0/${sid}[1]")
+                else
+                    mux_route_parts+=("${STREAM_MUXPAD[$s]}/0->0/${sid}[0]")
+                fi
             done
             mux_routes=$(IFS=,; echo "${mux_route_parts[*]}")
 
@@ -551,8 +628,9 @@ for k in "${!CFG_LINKS[@]}"; do
             media-ctl -R "\"DS5 mux ${cam}\" [${mux_routes}]"
 
             ser_route_parts=()
-            for idx in $(seq 0 $((n - 1))); do
-                ser_route_parts+=("0/${idx}->1/${idx}[1]")
+            for s in "${sel_streams[@]}"; do
+                sid=${STREAM_NODE[$s]}
+                ser_route_parts+=("0/${sid}->1/${sid}[1]")
             done
             ser_routes=$(IFS=,; echo "${ser_route_parts[*]}")
             media-ctl -R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
@@ -561,20 +639,22 @@ for k in "${!CFG_LINKS[@]}"; do
             ;;
         isx031)
             ser_route_parts=()
-            for idx in $(seq 0 $((n - 1))); do
-                ser_route_parts+=("0/${idx}->1/${idx}[1]")
+            for s in "${sel_streams[@]}"; do
+                sid=${STREAM_NODE[$s]}
+                ser_route_parts+=("0/${sid}->1/${sid}[1]")
             done
             ser_routes=$(IFS=,; echo "${ser_route_parts[*]}")
             media-ctl -R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
             ;;
     esac
 
-    for idx in "${!sel_streams[@]}"; do
-        s=${sel_streams[$idx]}
-        # CSI2-local stream/pad index -- per-CSI2, regardless of DES.
-        csi2_pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
-        DES_ROUTES[$d]+="${DES_ROUTES[$d]:+,}${l}/${idx}->${DES_SRC_PAD[$d]}/${csi2_pad}[1]"
-        CSI2_ROUTES[$d]+="${CSI2_ROUTES[$d]:+,}0/${csi2_pad}->$((csi2_pad + 1))/0[1]"
+    vcs=${MODEL_VCS_PER_LINK[$model]:-1}
+    for s in "${sel_streams[@]}"; do
+        sid=${STREAM_NODE[$s]}
+        csi2_pad=${CSI2_PAD["${k}_${s}"]}
+        des_stream=${DES_STREAM["${k}_${s}"]}
+        DES_ROUTES[$d]+="${DES_ROUTES[$d]:+,}${l}/${sid}->${DES_SRC_PAD[$d]}/${des_stream}[1]"
+        CSI2_ROUTES[$d]+="${CSI2_ROUTES[$d]:+,}0/${des_stream}->$((csi2_pad + 1))/0[1]"
     done
 done
 
@@ -588,15 +668,23 @@ done
 # CSI2 source pad -> ISYS Capture entity link (must exist before formats flow).
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
-    l=${CFG_LINKS[$k]}
     for s in ${CFG_STREAMS[$k]}; do
-        csi2_pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
+        csi2_pad=${CSI2_PAD["${k}_${s}"]}
         node=$(( CAPTURE_BASE[d] + csi2_pad ))
         media-ctl -l "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1)) -> \"${IPU_BASE[$d]} ISYS Capture ${node}\":0[1]"
     done
 done
 
 # --- pass 2: format propagation (all routes are now in place).
+
+# Wrapper around `media-ctl -V` that prints the exact failing arg on error so
+# format-propagation issues are easy to pin down.
+mc_v() {
+    if ! media-ctl -V "$1"; then
+        echo "  ^^ failed: media-ctl -V $1" >&2
+    fi
+}
+
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
@@ -607,26 +695,27 @@ for k in "${!CFG_LINKS[@]}"; do
     ser_pfx=${SER_PFX[$key]}
     sel_streams=(${CFG_STREAMS[$k]})
 
-    for idx in "${!sel_streams[@]}"; do
-        s=${sel_streams[$idx]}
-        csi2_pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
+    for s in "${sel_streams[@]}"; do
+        sid=${STREAM_NODE[$s]}
+        csi2_pad=${CSI2_PAD["${k}_${s}"]}
+        des_stream=${DES_STREAM["${k}_${s}"]}
         fmt=$(stream_fmt "$s")
         size=$(stream_size "$s")
 
         case "$model" in
             d4xx)
-                media-ctl -V "\"D4XX ${s} ${cam}\":0 [fmt:${fmt}/${size} field:none]"
+                mc_v "\"D4XX ${s} ${cam}\":0 [fmt:${fmt}/${size} field:none]"
                 ;;
             isx031)
-                media-ctl -V "\"isx031 ${cam}\":0/${idx} [fmt:${fmt}/${size} field:none]"
+                mc_v "\"isx031 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
                 ;;
         esac
-        media-ctl -V "\"${ser_pfx} ${ser}\":0/${idx} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${ser_pfx} ${ser}\":1/${idx} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\":${l}/${idx} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\":${DES_SRC_PAD[$d]}/${csi2_pad} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${IPU_CSI2_ENTITY[$d]}\":0/${csi2_pad} [fmt:${fmt}/${size} field:none]"
-        media-ctl -V "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1))/0 [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${ser_pfx} ${ser}\":0/${sid} [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${ser_pfx} ${ser}\":1/${sid} [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\":${l}/${sid} [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\":${DES_SRC_PAD[$d]}/${des_stream} [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${IPU_CSI2_ENTITY[$d]}\":0/${des_stream} [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1))/0 [fmt:${fmt}/${size} field:none]"
     done
 done
 
@@ -644,9 +733,8 @@ mbus_to_pixfmt() {
 
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
-    l=${CFG_LINKS[$k]}
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( CAPTURE_BASE[d] + STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
+        node=$(( CAPTURE_BASE[d] + CSI2_PAD["${k}_${s}"] ))
         pixfmt=$(mbus_to_pixfmt "$(stream_fmt "$s")")
         [ -z "$pixfmt" ] && continue
         size=$(stream_size "$s")
