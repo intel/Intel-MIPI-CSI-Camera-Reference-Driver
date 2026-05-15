@@ -8,11 +8,12 @@ Create ASL source file based on current hardware setup using reference ASL sourc
 
 | Use case | Reference ASL source file |
 | --- | --- |
-| 1x 2D sensor | li_isx031_gmsl.asl, sensing_isx031_gmsl.asl |
-| 1x 3D sensor | d4xx_gmsl.asl |
-| 4x 2D sensor on single DES | d3_isx031_gmsl.asl |
-| 4x 2D sensor on single DES (mixed model) | d3_mixed_isx031_gmsl.asl |
-| 1x 2D sensor + 1x 3D sensor on single DES | d3_d4xx_isx031_gmsl.asl |
+| 1x 2D sensor | max96724_li_isx031_gmsl.asl, max96724_sensing_isx031_gmsl.asl |
+| 1x 3D sensor | max96724_rs_d457_gmsl.asl |
+| 2x 2D sensor | max9296_d3_isx031_gmsl.asl |
+| 4x 2D sensor on single DES | max96724_d3_isx031_gmsl.asl |
+| 4x 2D sensor on single DES (mixed model) | max96724_mixed_isx031_gmsl.asl |
+| 1x 2D sensor + 1x 3D sensor on single DES | max96724_mixed_isx031_d457_gmsl.asl |
 
 ## How to compile ACPI ASL source
 Pre-requisite:
