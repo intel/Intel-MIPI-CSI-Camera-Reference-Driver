@@ -15,15 +15,15 @@ Create ASL source file based on current hardware setup using reference ASL sourc
 | 4x 2D sensor on single DES (mixed model) | max96724_mixed_isx031_gmsl.asl |
 | 1x 2D sensor + 1x 3D sensor on single DES | max96724_mixed_isx031_d457_gmsl.asl |
 
-## How to compile ACPI ASL source
+## How to compile ACPI ASL source on Canonical Ubuntu 24.04
 Pre-requisite:
     sudo apt-get install flex bison
 
-Install acpica tools version 20250807 https://github.com/acpica/acpica/releases/tag/20250807
+Install acpica tools version 20260408 https://github.com/acpica/acpica/releases/tag/20260408
 
-    wget https://github.com/user-attachments/files/21674610/acpica-unix-20250807.tar.gz
-    tar zxf ./acpica-unix-20250807.tar.gz
-    cd acpica-unix-20250807/
+    wget https://github.com/acpica/acpica/releases/download/20260408/acpica-unix-20260408.tar.gz
+    tar zxf ./acpica-unix-20260408.tar.gz
+    cd acpica-unix-20260408/
     make
     sudo make install
 
@@ -34,7 +34,7 @@ Compile ASL source into AML file in acpi/sensor.asl
 ## How to load imaging SSDT at boot time
 Run helper script to generate initramfs image from ASL source file.
 
-    ../../script/gen_ssdt.sh ../../acpi/sensor.asl
+    ../../script/gen_ssdt.sh ../../acpi/{sensor}.asl
 
 Add following line to /etc/default/grub for GRUB to load SSDT initramfs
 
@@ -52,8 +52,8 @@ You should see log similar to below:
 
     [    0.009303] ACPI: SSDT ACPI table found in initrd [kernel/firmware/acpi/isx031.aml][0x143d]
     ...
-    [    0.009609] ACPI: Table Upgrade: install [SSDT-      - IMG_PTL]
-    [    0.009611] ACPI: SSDT 0x00000000678E6000 00143D (v02        IMG_PTL  20250920 INTL 20250404)
+    [    0.009609] ACPI: Table Upgrade: install [SSDT-      - IMG_IPU]
+    [    0.009611] ACPI: SSDT 0x00000000678E6000 00143D (v02        IMG_IPU  20260513 INTL 20250404)
 
 
 ## How to Verify Stream
