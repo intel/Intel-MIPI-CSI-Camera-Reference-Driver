@@ -163,6 +163,60 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+### MIPI Camera Configuration for IPU8 (NVL)
+
+Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+
+**Note:** For CRD2, we need to use a Samtec cable to connect the second MIPI camera.
+
+|                            | Control Logic 1      | Control Logic 2      |
+|---                         |---                   |---                   |
+| Control Logic Type         | Discrete             | Discrete             |
+| CRD Version                | CRD-D                | CRD-D                |
+| Input Clock                | 19.2MHz              | 19.2MHz              |
+| PCH Clock                  | IMGCLKOUT_0          | IMGCLKOUT_1          |
+| Number of GPIOs            | 1                    | 1                    |
+| GPIO Pin 0                 |                      |                      |
+| Group Pad Number           | 10                   | 1                    |
+| Group Number               | C_E_V                | C_E_V                |
+| Com Number                 | COM1                 | COM1                 |
+| Function                   | RESET                | RESET                |
+| Active Value               | 1                    | 1                    |
+| Initial Value              | 0                    | 0                    |
+
+|                            | Camera1 Link options | Camera2 Link options |
+|---                         |---                   |---                   |
+| Sensor Model               | Custom Display Bridge| Custom Display Bridge|
+| Audio HID                  | _                    | _                    |
+| Custom HID                 | INTC113C             | INTC113C             |
+| Lanes Clock division       | 4 4 2 2              | 4 4 2 2              |
+| CRD Version                | CRD-D                | CRD-D                |
+| GPIO control               | Control Logic 1      | Control Logic 2      |
+| Camera position            | Front                | Back                 |
+| Flash Support              | Disabled             | Disabled             |
+| Privacy LED                | Driver default       | Driver default       |
+| Rotation                   | 0                    | 0                    |
+| Voltage Rail               |                      | 3 voltage rail       |
+| PPR Value                  | 0                    | 0                    |
+| PPR Unit                   | 0                    | 0                    |
+| PhyConfiguration           | DPHY                 | DPHY                 |
+| Camera module name         | _                    | _                    |
+| MIPI port                  | 0                    | 2                    |
+| LaneUsed                   | x4                   | x2                   |
+| MCLK                       | 19200000             | 19200000             |
+| EEPROM Type                | ROM_NONE             | ROM_NONE             |
+| VCM Type                   | VCM_NONE             | VCM_NONE             |
+| Number of I2C Components   | 1                    | 1                    |
+| I2C Channel                | I2C1                 | I2C0                 |
+| Device 0                   |                      |                      |
+| I2C Address                | 1A                   | 1A                   |
+| Device Type                | Sensor               | Sensor               |
+| Customize Device ID List   |                      |                      |
+| Customize Device ID Number | 17                   | 17                   |
+| Customize Device ID Number | 18                   | 18                   |
+| Customize Device ID Number | 19                   | 19                   |
+| Flash Driver Selection     | Disabled             | Disabled             |
+
 > **Note:** CPHY-DPHY adapter board required only if connecting a DPHY sensor to PTL(CPHY).
 
 DPHY sensor must be connecting to the front side of adapter.
@@ -201,6 +255,14 @@ Replace target system with recommended [ipu75xa](../../config/isx031/ipu75xa) se
 
     sudo cp -r ../../config/isx031/ipu75xa /etc/camera
     sudo sed -i '/availableSensors/c\        "availableSensors": ["isx031-a-0","isx031-b-2"],' /etc/camera/ipu75xa/libcamhal_configs.json
+
+#### Setup for IPU8
+
+Replace target system with recommended [ipu8](../../config/isx031/ipu8) setting
+
+> **Note:** Add config below only if using x2 MIPI sensors.
+
+    sudo cp -r ../../config/isx031/ipu8 /etc/camera
 
 ## Environment Setup
 
