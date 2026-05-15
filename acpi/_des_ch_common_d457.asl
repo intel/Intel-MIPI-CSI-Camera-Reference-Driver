@@ -1,6 +1,6 @@
 /* 
  * SPDX-License-Identifier: GPL-2.0
- * Copyright (c) 2025 Intel Corporation.
+ * Copyright (c) 2026 Intel Corporation.
  *
  * Description: Common template for each D457 GMSL camera under each deserializer link,
  *              where each link is represented as an ATR channel device.
