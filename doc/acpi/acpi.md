@@ -27,14 +27,14 @@ Install acpica tools version 20260408 https://github.com/acpica/acpica/releases/
     make
     sudo make install
 
-Compile ASL source into AML file in acpi/sensor.asl
+Compile ASL source into AML file in acpi/{ipu}/sensor.asl
 
-    iasl acpi/{sensor}.asl
+    iasl acpi/{ipu}/sensor.asl
 
 ## How to load imaging SSDT at boot time
 Run helper script to generate initramfs image from ASL source file.
 
-    ../../script/gen_ssdt.sh ../../acpi/{sensor}.asl
+    ../../script/gen_ssdt.sh ../../acpi/{ipu}/sensor.asl
 
 Add following line to /etc/default/grub for GRUB to load SSDT initramfs
 
