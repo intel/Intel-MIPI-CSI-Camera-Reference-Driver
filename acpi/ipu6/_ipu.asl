@@ -19,33 +19,49 @@ Scope (\_SB.PC00.IPU0)
             Package () { "mipi-img-port-1", "PRT1" }, // MIPI Port 1 of SOC
             Package () { "mipi-img-port-2", "PRT2" }, // MIPI Port 2 of SOC
             Package () { "mipi-img-port-3", "PRT3" }, // MIPI Port 3 of SOC
+            Package () { "mipi-img-port-4", "PRT4" }, // MIPI Port 4 of SOC
+            Package () { "mipi-img-port-5", "PRT5" }, // MIPI Port 5 of SOC
         },
     })
     Name (PRT0, Package()
     {
         ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
-        Package () { 
+        Package () {
             Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } }
         },
     })
     Name (PRT1, Package()
     {
         ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
-        Package () { 
+        Package () {
             Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } }
         },
     })
     Name (PRT2, Package()
     {
         ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
-        Package () { 
+        Package () {
             Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } }
         },
     })
     Name (PRT3, Package()
     {
         ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
-        Package () { 
+        Package () {
+            Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } }
+        },
+    })
+    Name (PRT4, Package()
+    {
+        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
+        Package () {
+            Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } }
+        },
+    })
+    Name (PRT5, Package()
+    {
+        ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
+        Package () {
             Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } }
         },
     })
