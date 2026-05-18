@@ -16,12 +16,7 @@ Method (_HID, 0, NotSerialized) // _HID: Hardware ID
 {
     Return ("INTC1137")         // MAX9296A
 }
-/*
-Method (_CID, 0, NotSerialized) // _CID: Compatible ID
-{
-    Return ("INTC1137")         // MAX9296A
-}
-*/
+
 Method (_STA, 0, NotSerialized) // _STA: Status
 {
     Return (0x0F)               // bit 0: device is present, bit 1: device is enabled, bit 2: device is shown in UI, bit 3: device is functional
@@ -80,8 +75,8 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         /* mipi-img-port here are NOT actual MIPI ports, but is used by mipi-disco-img.c to create fwnode. */
         Package () { "mipi-img-port-0", "PRT0" }, // Connected to Link 0 of DESx (used by SERx CSI2Bus ResourceSourceIndex)
         Package () { "mipi-img-port-1", "PRT1" }, // Connected to Link 1 of DESx (used by SERx CSI2Bus ResourceSourceIndex)
-        Package () { "mipi-img-port-2", "PRT2" }, // Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
-        Package () { "mipi-img-port-3", "PRT3" }, // Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
+        Package () { "mipi-img-port-2", "PRT2" }, // Internal PHY0, Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
+        Package () { "mipi-img-port-3", "PRT3" }, // Internal PHY1, Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
     }
 })
 Name (PRT0, Package()
