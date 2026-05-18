@@ -93,18 +93,10 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         Package () { "mipi-img-port-1", "PRT1" }, // Connected to DESx PRTx (used by SERx CSI2Bus LocalPort)
 
         /* Below are for MAX96717 driver usage. Refer to max96717.c for implementation details */
-    #ifdef DESCH_SER_X_VC
         Package () { "Pipe-X", "PIPX" }, // Pipe X
-    #endif
-    #ifdef DESCH_SER_Y_VC
         Package () { "Pipe-Y", "PIPY" }, // Pipe Y
-    #endif
-    #ifdef DESCH_SER_Z_VC
         Package () { "Pipe-Z", "PIPZ" }, // Pipe Z
-    #endif
-    #ifdef DESCH_SER_U_VC
         Package () { "Pipe-U", "PIPU" }, // Pipe U
-    #endif
     }
 })
 
@@ -115,11 +107,11 @@ Name (PRT0, Package()
     {
         Package () { "mipi-img-clock-lanes", 0 },
     #if CAM_LANES == 4
-        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } }, // 4 data lanes
     #elif CAM_LANES == 2
-        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },       // 2 data lanes
     #else
-        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } }, // Default to 4 data lanes if not defined
     #endif
     },
 })
@@ -134,46 +126,54 @@ Name (PRT1, Package()
     },
 })
 
-#ifdef DESCH_SER_X_VC
 Name (PIPX, Package()
 {
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "vc-id", DESCH_SER_X_VC }, // VC filter for pipe X
+        #ifdef DESCH_SER_X_VC
+        Package () { "vc-id", DESCH_SER_X_VC },     // VC filter for pipe X
+        #else
+        Package () { "vc-id", Package () { 0 } },   // Default to VC 0 if not defined
+        #endif
     },
 })
-#endif
 
-#ifdef DESCH_SER_Y_VC
 Name (PIPY, Package()
 {
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "vc-id", DESCH_SER_Y_VC }, // VC filter for pipe Y
+        #ifdef DESCH_SER_Y_VC
+        Package () { "vc-id", DESCH_SER_Y_VC },     // VC filter for pipe Y
+        #else
+        Package () { "vc-id", Package () { 0 } },   // Default to VC 0 if not defined
+        #endif
     },
 })
-#endif
 
-#ifdef DESCH_SER_Z_VC
 Name (PIPZ, Package()
 {
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "vc-id", DESCH_SER_Z_VC }, // VC filter for pipe Z
+        #ifdef DESCH_SER_Z_VC
+        Package () { "vc-id", DESCH_SER_Z_VC },     // VC filter for pipe Z
+        #else
+        Package () { "vc-id", Package () { 0 } },   // Default to VC 0 if not defined
+        #endif
     },
 })
-#endif
 
-#ifdef DESCH_SER_U_VC
 Name (PIPU, Package()
 {
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "vc-id", DESCH_SER_U_VC }, // VC filter for pipe U
+        #ifdef DESCH_SER_U_VC
+        Package () { "vc-id", DESCH_SER_U_VC },     // VC filter for pipe U
+        #else
+        Package () { "vc-id", Package () { 0 } },   // Default to VC 0 if not defined
+        #endif
     },
 })
-#endif
