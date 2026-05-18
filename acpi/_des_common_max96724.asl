@@ -17,12 +17,7 @@ Method (_HID, 0, NotSerialized) // _HID: Hardware ID
 {
     Return ("INTC1139")         // MAX96724
 }
-/*
-Method (_CID, 0, NotSerialized) // _CID: Compatible ID
-{
-    Return ("INTC1139")         // MAX96724
-}
-*/
+
 Method (_STA, 0, NotSerialized) // _STA: Status
 {
     Return (0x0F)               // bit 0: device is present, bit 1: device is enabled, bit 2: device is shown in UI, bit 3: device is functional
@@ -76,11 +71,13 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         Package () { "i2c-alias-pool",  Package () { 0x44, 0x45, 0x46, 0x47 } },
 
         /*
-         * MAX96724 specific handling for 3D sensor. Refer to max96724.c for implementation details. 
+         * MAX96724 specific handling for 3D sensor. Refer to max96724.c for implementation details.
          * pipe-stream-autoselect is enabled by default. Define it by caller to disable.
          */
-        #if DES_PIPE_STR_AUTOSELECT == 0
-        Package () { "pipe-stream-autoselect", 0 }, // Zero to disable, One to enable
+        #ifdef DES_PIPE_STR_AUTOSELECT
+        Package () { "pipe-stream-autoselect", DES_PIPE_STR_AUTOSELECT }, // Zero to disable, One to enable
+        else
+        Package () { "pipe-stream-autoselect", 1 }, // Enabled by default for usual 2D case
         #endif
     },
     ToUUID("dbb8e3e6-5886-4ba6-8795-1319f52a966b"), // Hierarchical Data Extension
@@ -91,7 +88,10 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         Package () { "mipi-img-port-1", "PRT1" }, // Connected to Link 1 of DESx (used by SERx CSI2Bus ResourceSourceIndex)
         Package () { "mipi-img-port-2", "PRT2" }, // Connected to Link 2 of DESx (used by SERx CSI2Bus ResourceSourceIndex)
         Package () { "mipi-img-port-3", "PRT3" }, // Connected to Link 3 of DESx (used by SERx CSI2Bus ResourceSourceIndex)
-        Package () { "mipi-img-port-6", "PRT6" }, // Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
+        Package () { "mipi-img-port-4", "PRT4" }, // Internal PHY0, Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
+        Package () { "mipi-img-port-5", "PRT5" }, // Internal PHY1, Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
+        Package () { "mipi-img-port-6", "PRT6" }, // Internal PHY2, Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
+        Package () { "mipi-img-port-7", "PRT7" }, // Internal PHY3, Connected to IPU0 PRTx (used by DESx CSI2Bus LocalPort)
     }
 })
 Name (PRT0, Package()
@@ -135,7 +135,41 @@ Name (PRT3, Package()
     },
 
 })
+
+Name (PRT4, Package()
+{
+    ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301), // Device Properties
+    Package ()
+    {
+        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY on Intel MIPI CRD
+        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+    },
+})
+
+Name (PRT5, Package()
+{
+    ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301), // Device Properties
+    Package ()
+    {
+        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY on Intel MIPI CRD
+        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+    },
+})
+
 Name (PRT6, Package()
+{
+    ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
+    Package ()
+    {
+        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY on Intel MIPI CRD
+        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+    },
+})
+
+Name (PRT7, Package()
 {
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
