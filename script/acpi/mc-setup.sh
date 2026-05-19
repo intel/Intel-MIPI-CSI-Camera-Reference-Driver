@@ -23,6 +23,44 @@
 #   INTC1139 = MAX96724 deserializer            (entity prefix: "max96724")
 
 # =============================================================================
+# Environment variable overrides (all optional)
+# =============================================================================
+# Discovery filters:
+#   DES_HID=<hid>            Restrict discovery to one deserializer HID
+#                            (e.g. INTC1137 or INTC1139). Default: unset (all).
+#   DES_BUSADDR=<bus>-<addr> Restrict to one I2C bus-addr (e.g. 1-0027).
+#                            Default: unset (all).
+#
+# Per-DES link count caps (override MAX_LINKS_BY_PREFIX):
+#   MAX_LINKS_max96724       Default: 4
+#   MAX_LINKS_max9296a       Default: 2
+#
+# D4XX default frame size (used for depth/rgb/ir when STREAM_SIZE_* unset):
+#   D4XX_WIDTH               Default: 640
+#   D4XX_HEIGHT              Default: 480
+#
+# Per-stream media-bus code overrides (STREAM_FMT_<token>):
+#   STREAM_FMT_depth         Default: UYVY8_1X16
+#   STREAM_FMT_rgb           Default: YUYV8_1X16
+#   STREAM_FMT_ir            Default: VYUY8_1X16
+#   STREAM_FMT_imu           Default: Y8_1X8
+#   STREAM_FMT_yuv           Default: UYVY8_1X16
+#
+# Per-stream frame size overrides (STREAM_SIZE_<token>):
+#   STREAM_SIZE_depth        Default: ${D4XX_WIDTH}x${D4XX_HEIGHT}
+#   STREAM_SIZE_rgb          Default: ${D4XX_WIDTH}x${D4XX_HEIGHT}
+#   STREAM_SIZE_ir           Default: ${D4XX_WIDTH}x${D4XX_HEIGHT}
+#   STREAM_SIZE_imu          Default: 38x1
+#   STREAM_SIZE_yuv          Default: 1920x1536
+#
+# IPU7 CSI2 RX source-pad cap:
+#   IPU_CSI2_SRC_PADS        Default: 16 (use 8 without the D4XX IPU7 patch).
+#
+# Example:
+#   DES_HID=INTC1139 D4XX_WIDTH=1280 D4XX_HEIGHT=720 \
+#       ./mc-setup.sh link=0,stream=depth,rgb link=1,stream=depth
+#
+# =============================================================================
 # USER CONFIGURATION
 # =============================================================================
 # Edit the tables below to add a new sensor MODEL, a new HID -> entity PREFIX
@@ -184,6 +222,26 @@ acpi_children_of() {
 
 # HID/UID of an ACPI sysfs dir
 acpi_hid() { cat "$1/hid" 2>/dev/null; }
+
+# Wrappers around `media-ctl` that print the exact failing arg on error so
+# link-setup, routing and format-propagation issues are easy to pin down.
+mc_l() {
+    if ! media-ctl -l "$1"; then
+        echo "  ^^ failed: media-ctl -l $1" >&2
+    fi
+}
+
+mc_R() {
+    if ! media-ctl -R "$1"; then
+        echo "  ^^ failed: media-ctl -R $1" >&2
+    fi
+}
+
+mc_v() {
+    if ! media-ctl -V "$1"; then
+        echo "  ^^ failed: media-ctl -V $1" >&2
+    fi
+}
 
 # -------- topology discovery --------------------------------------------------
 
@@ -419,15 +477,14 @@ print_topology() {
             "${IPU_CSI2_ENTITY[$d]}" "${CAPTURE_BASE[$d]}"
         for l in ${LINKS_OF[$d]}; do
             key="${d}_${l}"
+            printf "    SER%d  %-34s %s %s\n" \
+                "$l" "${SER_PATH[$key]}" "${SER_PFX[$key]}" "${SER_BA[$key]}"
             printf "    CAM%d  %-34s %s %s  (model=%s, hid=%s)\n" \
                 "$l" "${CAM_PATH[$key]}" "${CAM_PREFIX[$key]}" "${CAM_BA[$key]}" \
                 "${CAM_MODEL[$key]}" "${CAM_HID[$key]}"
-            printf "    SER%d  %-34s %s %s\n" \
-                "$l" "${SER_PATH[$key]}" "${SER_PFX[$key]}" "${SER_BA[$key]}"
         done
     done
 }
-
 
 # -------- per-sensor media-ctl programming -----------------------------------
 #
@@ -619,15 +676,16 @@ done
 # or enabled-link flags from a prior run with a different layout.
 media-ctl -r 2>/dev/null || true
 
+echo -e "\nConfiguration summary:"
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
-    echo -e "  DES${d} LINK${l}\t Sensor model\t ${CAM_MODEL[$key]}\n\t\t Cam Entity\t ${CAM_PREFIX[$key]} ${CAM_BA[$key]}\n\t\t Ser Entity\t ${SER_PFX[$key]} ${SER_BA[$key]}"
+    echo -e "  DES${d} LINK${l}\t Sensor model\t ${CAM_MODEL[$key]}"
     for s in ${CFG_STREAMS[$k]}; do
         csi2_pad=${CSI2_PAD["${k}_${s}"]}
         node=$(( CAPTURE_BASE[d] + csi2_pad ))
-        echo -e "\t\t Stream\t\t [${s}] available at: /dev/video${node} (csi2 src stream ${csi2_pad})"
+        echo -e "\t\t Stream\t\t [${s}] --> \t/dev/video${node}"
     done
 done
 
@@ -674,8 +732,8 @@ for k in "${!CFG_LINKS[@]}"; do
             done
             mux_routes=$(IFS=,; echo "${mux_route_parts[*]}")
 
-            media-ctl -l "\"DS5 mux ${cam}\":0 -> \"${ser_pfx} ${ser}\":0[1]"
-            media-ctl -R "\"DS5 mux ${cam}\" [${mux_routes}]"
+            mc_l "\"DS5 mux ${cam}\":0 -> \"${ser_pfx} ${ser}\":0[1]"
+            mc_R "\"DS5 mux ${cam}\" [${mux_routes}]"
 
             ser_route_parts=()
             for s in "${sel_streams[@]}"; do
@@ -683,7 +741,7 @@ for k in "${!CFG_LINKS[@]}"; do
                 ser_route_parts+=("0/${sid}->1/${sid}[1]")
             done
             ser_routes=$(IFS=,; echo "${ser_route_parts[*]}")
-            media-ctl -R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
+            mc_R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
 
             unset is_selected
             ;;
@@ -694,7 +752,7 @@ for k in "${!CFG_LINKS[@]}"; do
                 ser_route_parts+=("0/${sid}->1/${sid}[1]")
             done
             ser_routes=$(IFS=,; echo "${ser_route_parts[*]}")
-            media-ctl -R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
+            mc_R "\"${ser_pfx} ${ser}\" [${ser_routes}]"
             ;;
     esac
 
@@ -710,8 +768,8 @@ done
 # Apply per-DES route tables.
 for ((d = 0; d < NUM_DES; d++)); do
     [ -n "${DES_ROUTES[$d]:-}" ] || continue
-    media-ctl -R "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\" [${DES_ROUTES[$d]}]"
-    media-ctl -R "\"${IPU_CSI2_ENTITY[$d]}\" [${CSI2_ROUTES[$d]}]"
+    mc_R "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\" [${DES_ROUTES[$d]}]"
+    mc_R "\"${IPU_CSI2_ENTITY[$d]}\" [${CSI2_ROUTES[$d]}]"
 done
 
 # CSI2 source pad -> ISYS Capture entity link (must exist before formats flow).
@@ -720,19 +778,11 @@ for k in "${!CFG_LINKS[@]}"; do
     for s in ${CFG_STREAMS[$k]}; do
         csi2_pad=${CSI2_PAD["${k}_${s}"]}
         node=$(( CAPTURE_BASE[d] + csi2_pad ))
-        media-ctl -l "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1)) -> \"${IPU_BASE[$d]} ISYS Capture ${node}\":0[1]"
+        mc_l "\"${IPU_CSI2_ENTITY[$d]}\":$((csi2_pad + 1)) -> \"${IPU_BASE[$d]} ISYS Capture ${node}\":0[1]"
     done
 done
 
 # --- pass 2: format propagation (all routes are now in place).
-
-# Wrapper around `media-ctl -V` that prints the exact failing arg on error so
-# format-propagation issues are easy to pin down.
-mc_v() {
-    if ! media-ctl -V "$1"; then
-        echo "  ^^ failed: media-ctl -V $1" >&2
-    fi
-}
 
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
