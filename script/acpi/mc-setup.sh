@@ -22,8 +22,28 @@
 #   INTC1137 = MAX9296A deserializer            (entity prefix: "max9296a")
 #   INTC1139 = MAX96724 deserializer            (entity prefix: "max96724")
 
-# -------- sensor-model table ---------------------------------------------------
-#  HID       MODEL     CAM_PREFIX (used to read v4l-subdev bus-addr)
+# =============================================================================
+# USER CONFIGURATION
+# =============================================================================
+# Edit the tables below to add a new sensor MODEL, a new HID -> entity PREFIX
+# mapping, or a new stream FORMAT. Everything further down is generic and
+# dispatches off these tables.
+#
+# To add a new sensor model:
+#   1. Add its ACPI HID -> model name in SENSOR_MODEL.
+#   2. Add its ACPI HID -> v4l-subdev entity prefix in SENSOR_PREFIX.
+#   3. List the model's stream tokens in MODEL_STREAMS and pick defaults in
+#      MODEL_DEFAULT_STREAMS.
+#   4. For each new stream token, set STREAM_NODE (and STREAM_MUXPAD if it
+#      flows through a d4xx-style mux), STREAM_FMT, STREAM_SIZE.
+#   5. If your new media-bus code isn't covered, extend MBUS_TO_PIXFMT.
+#   6. If the sensor needs custom media-ctl wiring beyond a plain serializer
+#      pass-through (e.g. a mux subdev), extend the per-model case statements
+#      in the programming passes further down -- the tables alone are enough
+#      for simple "serializer-only" sensors.
+# -----------------------------------------------------------------------------
+
+# ---- ACPI HID -> v4l entity prefix / sensor model ---------------------------
 declare -A SENSOR_MODEL=(
     [INTC10CD]=d4xx
     [INTC113C]=isx031
@@ -33,7 +53,7 @@ declare -A SENSOR_PREFIX=(
     [INTC113C]="isx031"
 )
 
-# Serializer / deserializer HID -> v4l entity prefix
+# ---- Serializer / Deserializer HID -> v4l entity prefix ---------------------
 declare -A SER_PREFIX=(
     [INTC1138]="max96717"
 )
@@ -41,6 +61,77 @@ declare -A DES_PREFIX=(
     [INTC1137]="max9296a"
     [INTC1139]="max96724"
 )
+
+# Max number of CHxx links per deserializer, keyed by DES entity prefix.
+# Override per model via env, e.g. MAX_LINKS_max9296a=2.
+declare -A MAX_LINKS_BY_PREFIX=(
+    [max96724]=${MAX_LINKS_max96724:-4}
+    [max9296a]=${MAX_LINKS_max9296a:-2}
+)
+
+# ---- Per-model stream definitions -------------------------------------------
+# MODEL_STREAMS: every stream token a model can produce.
+# MODEL_DEFAULT_STREAMS: streams enabled when no `stream=` is given on the CLI.
+declare -A MODEL_STREAMS=(
+    [d4xx]="depth rgb ir imu"
+    [isx031]="yuv"
+)
+declare -A MODEL_DEFAULT_STREAMS=(
+    [d4xx]="depth rgb"
+    [isx031]="yuv"
+)
+
+# STREAM_NODE: per-stream capture-node index (also used as the v4l2
+# source_stream id on the mux/serializer chain -- d4xx in particular asserts
+# this matches the sensor's hard-coded vc_id, so pick stable values).
+declare -A STREAM_NODE=(
+    [depth]=0
+    [rgb]=1
+    [ir]=2
+    [imu]=3
+    [yuv]=0
+)
+# STREAM_MUXPAD: sink pad on a d4xx-style mux subdev. Only needed for streams
+# that flow through such a mux, usually a 3D sensor.
+declare -A STREAM_MUXPAD=(
+    [depth]=1
+    [rgb]=2
+    [ir]=3
+    [imu]=4
+)
+
+# ---- Per-stream media-bus format and frame size -----------------------------
+# Env-var overrides take precedence; use `STREAM_FMT_<token>` / `STREAM_SIZE_<token>`.
+D4XX_WIDTH=${D4XX_WIDTH:-640}
+D4XX_HEIGHT=${D4XX_HEIGHT:-480}
+D4XX_SIZE="${D4XX_WIDTH}x${D4XX_HEIGHT}"
+
+declare -A STREAM_FMT=(
+    [depth]=${STREAM_FMT_depth:-UYVY8_1X16}
+    [rgb]=${STREAM_FMT_rgb:-YUYV8_1X16}
+    [ir]=${STREAM_FMT_ir:-VYUY8_1X16}
+    [imu]=${STREAM_FMT_imu:-Y8_1X8}
+    [yuv]=${STREAM_FMT_yuv:-UYVY8_1X16}
+)
+declare -A STREAM_SIZE=(
+    [depth]=${STREAM_SIZE_depth:-$D4XX_SIZE}
+    [rgb]=${STREAM_SIZE_rgb:-$D4XX_SIZE}
+    [ir]=${STREAM_SIZE_ir:-$D4XX_SIZE}
+    [imu]=${STREAM_SIZE_imu:-38x1}
+    [yuv]=${STREAM_SIZE_yuv:-1920x1536}
+)
+
+# ---- Media-bus -> V4L2 pixelformat fourcc (used on capture nodes) -----------
+declare -A MBUS_TO_PIXFMT=(
+    [UYVY8_1X16]="UYVY"
+    [YUYV8_1X16]="YUYV"
+    [VYUY8_1X16]="Y8I "   # IR -> interleaved 8-bit greyscale
+    [Y8_1X8]="GREY"
+)
+
+# =============================================================================
+# end of USER CONFIGURATION
+# =============================================================================
 
 # -------- low-level helpers ---------------------------------------------------
 
@@ -96,14 +187,8 @@ acpi_hid() { cat "$1/hid" 2>/dev/null; }
 
 # -------- topology discovery --------------------------------------------------
 
-# Maximum number of links (CHxx) we consider per deserializer, keyed by the
-# deserializer's v4l entity prefix. Override per model via env, e.g.
-# MAX_LINKS_max9296a=2.
-declare -A MAX_LINKS_BY_PREFIX=(
-    [max96724]=${MAX_LINKS_max96724:-4}
-    [max9296a]=${MAX_LINKS_max9296a:-2}
-)
-# Per-DES MAX_LINKS (indexed by DES index 'd'), populated during discovery.
+# Per-DES MAX_LINKS (indexed by DES index 'd'), populated during discovery
+# from MAX_LINKS_BY_PREFIX (declared in the USER CONFIGURATION block).
 declare -a DES_MAX_LINKS=()
 
 # Locate every deserializer present on the system. Echoes one sysfs dir per
@@ -379,60 +464,26 @@ print_topology() {
 # *source* pad index (i.e. capture-node selector).
 
 # =============================================================================
-# Per-sensor stream defaults
+# Per-sensor stream lookups
 # =============================================================================
-# To support a new sensor or tweak an existing one, edit the block below.
-# Each sensor model has its own WIDTH/HEIGHT/FMT knobs; stream_fmt() and
-# stream_size() dispatch on the stream token to pick the right value.
-# All variables honour environment-variable overrides (`VAR=...` on the CLI).
+# Thin wrappers over the STREAM_FMT / STREAM_SIZE / MODEL_STREAMS tables
+# declared at the top of the file.
 
-# ---- D4XX (Intel RealSense) -------------------------------------------------
-# Streams: depth | rgb | ir | imu
-D4XX_WIDTH=${D4XX_WIDTH:-640}
-D4XX_HEIGHT=${D4XX_HEIGHT:-480}
-D4XX_DEPTH_FMT=${D4XX_DEPTH_FMT:-UYVY8_1X16}
-D4XX_RGB_FMT=${D4XX_RGB_FMT:-YUYV8_1X16}
-D4XX_IR_FMT=${D4XX_IR_FMT:-VYUY8_1X16}
-D4XX_IMU_FMT=${D4XX_IMU_FMT:-Y8_1X8}
-D4XX_IMU_SIZE=${D4XX_IMU_SIZE:-38x1}
+stream_fmt()  { echo "${STREAM_FMT[$1]:-}"; }
+stream_size() { echo "${STREAM_SIZE[$1]:-}"; }
 
-# ---- ISX031 (YUV) ------------------------------------------------------
-# Streams: yuv
-ISX031_FMT=${ISX031_FMT:-UYVY8_1X16}
-ISX031_SIZE=${ISX031_SIZE:-1920x1536}
-
-# Stream metadata.  d4xx: depth/rgb/ir/imu.  isx031: yuv (treated as row 0).
-declare -A STREAM_NODE=(   [depth]=0 [rgb]=1 [ir]=2 [imu]=3 [yuv]=0 )
-declare -A STREAM_MUXPAD=( [depth]=1 [rgb]=2 [ir]=3 [imu]=4 )
-
-declare -A MODEL_DEFAULT_STREAMS=(
-    [d4xx]="depth rgb"
-    [isx031]="yuv"
-)
-
-stream_fmt() {
-    case "$1" in
-        depth) echo "${D4XX_DEPTH_FMT}" ;;
-        rgb)   echo "${D4XX_RGB_FMT}"   ;;
-        ir)    echo "${D4XX_IR_FMT}"    ;;
-        imu)   echo "${D4XX_IMU_FMT}"   ;;
-        yuv)   echo "${ISX031_FMT}"     ;;
-    esac
-}
-stream_size() {
-    case "$1" in
-        depth|rgb|ir) echo "${D4XX_WIDTH}x${D4XX_HEIGHT}" ;;
-        imu)          echo "${D4XX_IMU_SIZE}"             ;;
-        yuv)          echo "${ISX031_SIZE}"               ;;
-    esac
-}
+# Is stream token $1 declared as valid for model $2?
 stream_valid_for_model() {
-    case "$2" in
-        d4xx)   [[ $1 == depth || $1 == rgb || $1 == ir || $1 == imu ]] ;;
-        isx031) [[ $1 == yuv ]] ;;
-        *)      return 1 ;;
-    esac
+    local s=$1 model=$2 t
+    [ -n "${MODEL_STREAMS[$model]:-}" ] || return 1
+    for t in ${MODEL_STREAMS[$model]}; do
+        [ "$t" = "$s" ] && return 0
+    done
+    return 1
 }
+
+# Is $1 a known stream token (in any model)?
+is_known_stream() { [ -n "${STREAM_NODE[$1]+x}" ]; }
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -490,10 +541,13 @@ else
                 des=*)    des=${kv#des=} ;;
                 link=*)   link=${kv#link=} ;;
                 stream=*) streams+="${streams:+ }${kv#stream=}" ;;
-                depth|rgb|ir|imu|yuv)
-                    streams+="${streams:+ }$kv"
+                *)
+                    if is_known_stream "$kv"; then
+                        streams+="${streams:+ }$kv"
+                    else
+                        die "unrecognised token '$kv' in '$arg'"
+                    fi
                     ;;
-                *) die "unrecognised token '$kv' in '$arg'" ;;
             esac
         done
         [ -n "$link" ]    || die "missing link= in '$arg'"
@@ -526,8 +580,6 @@ else
         seen[$sk]=1
     done
 fi
-
-echo "Setting Up:"
 
 # IPU7 CSI2 RX source-pad cap (16 with the D4XX patch, 8 otherwise).
 IPU_CSI2_SRC_PADS=${IPU_CSI2_SRC_PADS:-16}
@@ -721,15 +773,7 @@ done
 
 # ---- v4l2-ctl: capture-node format -----------------------------------------
 
-mbus_to_pixfmt() {
-    case "$1" in
-        UYVY8_1X16) echo UYVY ;;
-        YUYV8_1X16) echo YUYV ;;
-        VYUY8_1X16) echo "Y8I " ;;  # IR -> interleaved 8-bit greyscale
-        Y8_1X8)     echo GREY ;;
-        *)          echo ""   ;;
-    esac
-}
+mbus_to_pixfmt() { echo "${MBUS_TO_PIXFMT[$1]:-}"; }
 
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
