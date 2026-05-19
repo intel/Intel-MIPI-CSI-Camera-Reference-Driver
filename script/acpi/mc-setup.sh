@@ -218,10 +218,10 @@ declare -a IPU_CSI2_ENTITY=() IPU_BASE=() CAPTURE_BASE=()
 NUM_DES=0
 
 # Per-link associative arrays keyed by "d_l" (deserializer index, link index):
-declare -A CH_PATH=() SER_PATH=() CAM_PATH=()
+declare -A SER_PATH=() CAM_PATH=()
 declare -A SER_BA=()  CAM_BA=()
 declare -A CAM_HID=() CAM_MODEL=() CAM_PREFIX=()
-declare -A SER_HID_ARR=() SER_PFX=()
+declare -A SER_PFX=()
 # LINKS_OF[d] holds a space-separated list of valid link indices on DES d.
 declare -A LINKS_OF=()
 
@@ -296,22 +296,20 @@ discover_one_des() {
             continue
         fi
 
-        CH_PATH[$key]=$ch
         SER_PATH[$key]=$ser_path
         CAM_PATH[$key]=$cam_path
-        SER_HID_ARR[$key]=$ser_hid
         SER_PFX[$key]=${SER_PREFIX[$ser_hid]}
         SER_BA[$key]=$(acpi_busaddr "$ser_dir" "${SER_PFX[$key]}") || {
             echo "WARN: DES${d} link ${i}: serializer at $ser_path has no v4l-subdev (driver loaded?); skipping" >&2
-            unset 'CH_PATH[$key]' 'SER_PATH[$key]' 'CAM_PATH[$key]' \
-                  'SER_HID_ARR[$key]' 'SER_PFX[$key]' 'SER_BA[$key]'
+            unset 'SER_PATH[$key]' 'CAM_PATH[$key]' \
+                  'SER_PFX[$key]' 'SER_BA[$key]'
             continue
         }
         CAM_PREFIX[$key]=${SENSOR_PREFIX[$cam_hid]}
         CAM_BA[$key]=$(acpi_busaddr "$cam_dir" "${CAM_PREFIX[$key]}") || {
             echo "WARN: DES${d} link ${i}: camera at $cam_path has no v4l-subdev (driver loaded?); skipping" >&2
-            unset 'CH_PATH[$key]' 'SER_PATH[$key]' 'CAM_PATH[$key]' \
-                  'SER_HID_ARR[$key]' 'SER_PFX[$key]' 'SER_BA[$key]' \
+            unset 'SER_PATH[$key]' 'CAM_PATH[$key]' \
+                  'SER_PFX[$key]' 'SER_BA[$key]' \
                   'CAM_PREFIX[$key]'
             continue
         }
@@ -700,7 +698,6 @@ for k in "${!CFG_LINKS[@]}"; do
             ;;
     esac
 
-    vcs=${MODEL_VCS_PER_LINK[$model]:-1}
     for s in "${sel_streams[@]}"; do
         sid=${STREAM_NODE[$s]}
         csi2_pad=${CSI2_PAD["${k}_${s}"]}
