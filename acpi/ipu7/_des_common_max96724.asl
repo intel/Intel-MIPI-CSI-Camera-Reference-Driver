@@ -5,6 +5,7 @@
  * DES-level defines expected by caller:
  *   DES_PHY_TYPE           - DES PHY type (0 for CPHY, 1 for DPHY), used in CSI2Bus
  *   DES_INTERNAL_PHY       - DES internal PHY (e.g. PHY0 = 4, PHY1 = 5, PHY2 = 6, PHY3 = 7), used as DES Local port in CSI2Bus.
+ *   DES_LANES              - Number of MIPI data lanes (e.g. 2, 4), used in PRT4/5/6/7 connected to IPU
  *   DES_TO_MIPI_PORT       - DES connected to MIPI Port (e.g. 0/1/2/3) of IPU0 Device, used as IPU remote port in CSI2Bus
  *   DES_I2C_ADDR           - DES I2C slave address (e.g. 0x0027 for MAX96724), used in I2cSerialBusV2
  *   DES_I2C_BUS            - DES I2C bus path string (e.g. "\\_SB.PC00.I2C1"), used in I2cSerialBusV2
@@ -142,7 +143,11 @@ Name (PRT4, Package()
     Package ()
     {
         Package () { "mipi-img-clock-lanes", 0 },
-        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY on Intel MIPI CRD
+        #if DES_LANES == 4
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #else
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
+        #endif
         Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
@@ -153,7 +158,11 @@ Name (PRT5, Package()
     Package ()
     {
         Package () { "mipi-img-clock-lanes", 0 },
-        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY on Intel MIPI CRD
+        #if DES_LANES == 4
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #else
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
+        #endif
         Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
@@ -164,7 +173,11 @@ Name (PRT6, Package()
     Package ()
     {
         Package () { "mipi-img-clock-lanes", 0 },
-        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY on Intel MIPI CRD
+        #if DES_LANES == 4
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #else
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
+        #endif
         Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
@@ -175,7 +188,11 @@ Name (PRT7, Package()
     Package ()
     {
         Package () { "mipi-img-clock-lanes", 0 },
-        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY on Intel MIPI CRD
+        #if DES_LANES == 4
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #else
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
+        #endif
         Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })

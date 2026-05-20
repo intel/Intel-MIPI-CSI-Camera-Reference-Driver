@@ -2,14 +2,16 @@
  * SPDX-License-Identifier: GPL-2.0
  * Copyright (c) 2026 Intel Corporation.
  *
- * SSDT overlay: Mixed ISX031 GMSL camera configuration on PTL platform.
- *   Two MAX96724 deserializers (DES0, DES1) with CPHY connection to PTL platform,
- *   each carrying four ISX031 cameras over GMSL Links 0..3, fronted by MAX9295A serializers.
- *   Used to mix multiple ISX031 vendor variants on different links of single deserializers.
+ * SSDT overlay: Mixed ISX031 + D457 GMSL camera configuration on PTL platform.
+ *   Two MAX96724 deserializers (DES0, DES1) with CPHY connection to PTL platform.
+ *     - DES0 carries four ISX031 cameras (D3 / D3 / LI / Sensing) on Links 0..3
+ *     - DES1 carries two D3 ISX031 cameras on Links 0..1 and one RS D457 on Link 2
+ *   All cameras are fronted by MAX9295A serializers.
  *
  * DES-level defines (set per DESx, undef'd at the end of each Device):
  *   DES_PHY_TYPE       - DES PHY type (0 for CPHY, 1 for DPHY)
  *   DES_I2C_ADDR       - DES I2C slave address (e.g. 0x0027 for MAX96724)
+ *   DES_LANES          - Number of MIPI data lanes (e.g. 2, 4)
  *   DES_INTERNAL_PHY   - DES internal PHY (PHY0 = 4, PHY1 = 5, PHY2 = 6, PHY3 = 7)
  *   DES_TO_MIPI_PORT   - DES connected to IPU0 MIPI port (e.g. 0/1/2/3)
  *   DES_I2C_BUS        - DES I2C bus path (e.g. "\\_SB.PC00.I2C1")
@@ -43,6 +45,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // DES-level defines for DES0
             #define DES_PHY_TYPE 0
             #define DES_I2C_ADDR 0x0027
+            #define DES_LANES 2
             #define DES_INTERNAL_PHY 6
             #define DES_TO_MIPI_PORT 0
             #define DES_I2C_BUS "\\_SB.PC00.I2C1"
@@ -179,6 +182,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // Clean up DES0-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
+            #undef DES_LANES
             #undef DES_INTERNAL_PHY
             #undef DES_TO_MIPI_PORT
             #undef DES_I2C_BUS
@@ -191,11 +195,13 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // DES-level defines for DES1
             #define DES_PHY_TYPE 0
             #define DES_I2C_ADDR 0x0027
+            #define DES_LANES 2
             #define DES_INTERNAL_PHY 4
             #define DES_TO_MIPI_PORT 2
             #define DES_I2C_BUS "\\_SB.PC00.I2C2"
             #define DES_PATH "\\_SB.PC00.DES1"
             #define DES_REF \_SB.PC00.DES1
+            #define DES_PIPE_STR_AUTOSELECT 0
             #include "_des_common_max96724.asl"
 
             // Channel 0 (D3 ISX031)
@@ -260,19 +266,23 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_CAM_FSIN_GPIO
             #undef DESCH_CAM_FSIN_GPIO
 #endif
-            // Channel 2 (LI ISX031)
+            // Channel 2 (RS D457)
             #define DESCH_LINK_NUM 2
             #define DESCH_CH CH02
             #define DESCH_SER SER2
             #define DESCH_CAM CAM2
-            #define DESCH_SER_I2C 0x62
+            #define DESCH_SER_I2C 0x40
             #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH02"
             #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH02.SER2"
             #define DESCH_SER_REF \_SB.PC00.DES1.CH02.SER2
             #define DESCH_SER_GPIOREF ^^SER2
             #define CAM_ALIAS 0x56
-            #define CAM_LANES 4
-            #include "_des_ch_common_isx031.asl"
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
 
             #undef DESCH_CH
             #undef DESCH_SER
@@ -285,53 +295,26 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DESCH_SER_GPIOREF
             #undef CAM_ALIAS
             #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
 #ifdef DESCH_CAM_FSIN_GPIO
             #undef DESCH_CAM_FSIN_GPIO
 #endif
-            // Channel 3 (SENSING ISX031)
-            #define DESCH_LINK_NUM 3
-            #define DESCH_CH CH03
-            #define DESCH_SER SER3
-            #define DESCH_CAM CAM3
-            #define DESCH_SER_I2C 0x40
-            #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH03"
-            #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH03.SER3"
-            #define DESCH_SER_REF \_SB.PC00.DES1.CH03.SER3
-            #define DESCH_SER_GPIOREF ^^SER3
-            #define DESCH_SER_EXTRA_GPIO_PIN 7
-            #define DESCH_CAM_FSIN_GPIO 1
-            #define CAM_ALIAS 0x57
-            #define CAM_LANES 4
-            #include "_des_ch_common_isx031.asl"
-
-            #undef DESCH_CH
-            #undef DESCH_SER
-            #undef DESCH_CAM
-            #undef DESCH_CH_PATH
-            #undef DESCH_SER_PATH
-            #undef DESCH_SER_REF
-            #undef DESCH_LINK_NUM
-            #undef DESCH_SER_I2C
-            #undef DESCH_SER_GPIOREF
-            #undef CAM_ALIAS
-            #undef CAM_LANES
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
-            #undef DESCH_SER_EXTRA_GPIO_PIN
-#endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
-#endif
-            // Clean up DES0-level defines
+            // Clean up DES1-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
+            #undef DES_LANES
             #undef DES_INTERNAL_PHY
             #undef DES_TO_MIPI_PORT
             #undef DES_I2C_BUS
             #undef DES_PATH
             #undef DES_REF
+            #undef DES_PIPE_STR_AUTOSELECT
         }
     }
 }
