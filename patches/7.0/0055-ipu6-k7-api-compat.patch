@@ -1,0 +1,99 @@
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu-isys-csi2.c b/ipu6-drivers/drivers/media/pci/intel/ipu-isys-csi2.c
+index 803a4acef..7625ce86a 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu-isys-csi2.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu-isys-csi2.c
+@@ -102,7 +102,12 @@ int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, s64 *link_freq)
+ 	bpp = ipu_isys_mbus_code_to_bpp(csi2->asd.ffmt->code);
+ 	lanes = csi2->nlanes;
+ 
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
++	ret = v4l2_get_link_freq(pipe->external, bpp, lanes * 2);
++#else
+ 	ret = v4l2_get_link_freq(ext_sd->ctrl_handler, bpp, lanes * 2);
++#endif
+ 	if (ret < 0) {
+ 		dev_err(dev, "can't get link frequency (%lld)\n", ret);
+ 		return ret;
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
+index 5f2f836ef..47f441829 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
+@@ -98,7 +98,12 @@ s64 ipu6_isys_csi2_get_link_freq(struct ipu6_isys_csi2 *csi2)
+ 	if (WARN(!ext_sd, "Failed to get subdev for %s\n", csi2->asd.sd.name))
+ 		return -ENODEV;
+ 
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
++	return v4l2_get_link_freq(src_pad, 0, 0);
++#else
+ 	return v4l2_get_link_freq(ext_sd->ctrl_handler, 0, 0);
++#endif
+ }
+ 
+ static int csi2_subscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-queue.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-queue.c
+index 67cf25306..d91b919d4 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-queue.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-queue.c
+@@ -1061,8 +1061,10 @@ void ipu6_isys_queue_buf_ready(struct ipu6_isys_stream *stream,
+ 
+ static const struct vb2_ops ipu6_isys_queue_ops = {
+ 	.queue_setup = ipu6_isys_queue_setup,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
+ 	.wait_prepare = vb2_ops_wait_prepare,
+ 	.wait_finish = vb2_ops_wait_finish,
++#endif
+ 	.buf_init = ipu6_isys_buf_init,
+ 	.buf_prepare = ipu6_isys_buf_prepare,
+ 	.buf_cleanup = ipu6_isys_buf_cleanup,
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+index 927d92ea9..f84461367 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+@@ -1063,6 +1063,16 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
+ 	if (!state)
+ 		return 0;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
++	/* Use routing API for 7.0+ */
++	struct v4l2_subdev_route *route;
++	for_each_active_route(&state->routing, route) {
++		if (route->sink_pad == r_pad->index) {
++			stream_id = route->sink_stream;
++			break;
++		}
++	}
++#else
+ 	for (i = 0; i < state->stream_configs.num_configs; i++) {
+ 		struct v4l2_subdev_stream_config *cfg =
+ 			&state->stream_configs.configs[i];
+@@ -1071,6 +1075,7 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
+ 			break;
+ 		}
+ 	}
++#endif
+ 
+ 	v4l2_subdev_unlock_state(state);
+ 
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+index 415ff067e..9137c5609 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys.c
+@@ -1008,9 +1008,16 @@ static int isys_notifier_bound(struct v4l2_async_notifier *notifier,
+ 
+ 	dev_dbg(&isys->adev->auxdev.dev, "bind %s nlanes is %d port is %d\n",
+ 		sd->name, s_asd->csi2.nlanes, s_asd->csi2.port);
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 0, 0)
++	/* src_pad member was removed from v4l2_async_match_desc in newer kernels. */
++	ret = isys_complete_ext_device_registration(isys, sd, -1,
++					    &s_asd->csi2);
++#else
+ 	ret = isys_complete_ext_device_registration(isys, sd,
+ 						    asc->match.src_pad,
+ 						    &s_asd->csi2);
++#endif
+ 	if (ret)
+ 		return ret;
+ 

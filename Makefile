@@ -23,6 +23,17 @@ KERNEL_EQ_6_17 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL)
 # Check if kernel version is 6.12
 KERNEL_EQ_6_12 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 12 ]) && echo 1 || echo 0)
 
+# Check if kernel version is 7.0
+KERNEL_EQ_7_0 := $(shell ([ $(KERNEL_VERSION) -eq 7 ] && [ $(KERNEL_PATCHLEVEL) -eq 0 ]) && echo 1 || echo 0)
+
+# Check if kernel version is >= 6.17 (covers 6.17, 6.18, 7.0, ...)
+KERNEL_GE_6_17 := $(shell ([ $(KERNEL_VERSION) -gt 6 ] || ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -ge 17 ])) && echo 1 || echo 0)
+
+# Set for Intel BKC kernels that should skip maxim-serdes.
+KERNEL_IS_6_12_INTEL := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 12 ] && echo $(KERNELRELEASE) | grep -q -- '-intel') && echo 1 || echo 0)
+KERNEL_IS_6_17_INTEL := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 17 ] && echo $(KERNELRELEASE) | grep -q -- '-intel') && echo 1 || echo 0)
+KERNEL_SKIP_MAXIM_SERDES := $(shell ([ $(KERNEL_IS_6_12_INTEL) -eq 1 ] || [ $(KERNEL_IS_6_17_INTEL) -eq 1 ]) && echo 1 || echo 0)
+
 export EXTERNAL_BUILD = 1
 export CONFIG_IPU_BRIDGE=m
 export CONFIG_VIDEO_AR0233=m
@@ -36,13 +47,23 @@ export CONFIG_VIDEO_MAX9X=m
 export CONFIG_VIDEO_LT6911UXE=m
 export CONFIG_VIDEO_LT6911UXC=m
 export CONFIG_VIDEO_LT6911GXD=m
+# Build IPU6 on supported kernels including 7.0.
 export CONFIG_VIDEO_INTEL_IPU6=m
 export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
 export CONFIG_INTEL_IPU_ACPI=m
+# maxim-serdes drivers require CONFIG_I2C_ATR.
+# 6.17 BKC kernels typically ship with CONFIG_I2C_ATR disabled, so users must
+# rebuild that kernel with CONFIG_I2C_ATR=y to use maxim-serdes.
+# Skip only on 6.17-intel in this block.
+# 6.18-intel is allowed (WIP in BKC to enable CONFIG_I2C_ATR).
+ifeq ($(KERNEL_GE_6_17),1)
+ifneq ($(KERNEL_SKIP_MAXIM_SERDES),1)
 export CONFIG_VIDEO_MAXIM_SERDES=m
 export CONFIG_VIDEO_MAX96717=m
 export CONFIG_VIDEO_MAX96724=m
 export CONFIG_VIDEO_MAX9296A=m
+endif
+endif
 export CONFIG_MEDIA_CONTROLLER=m
 export CONFIG_VIDEO_D4XX=m
 
@@ -66,7 +87,7 @@ subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU
 LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 
 ccflags-y := -I$(src)/include
-ifneq (,$(filter 1,$(KERNEL_EQ_6_17) $(KERNEL_EQ_6_18)))
+ifneq (,$(filter 1,$(KERNEL_EQ_6_17) $(KERNEL_EQ_6_18) $(KERNEL_EQ_7_0)))
 # IPU7 driver configs
 export CONFIG_VIDEO_INTEL_IPU7=m
 export CONFIG_VIDEO_INTEL_IPU6=m
@@ -83,7 +104,9 @@ obj-m += ipu7-drivers/drivers/media/pci/intel/ipu7/
 obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
 
 # Select extracted kernel tree based on running kernel
-ifeq ($(KERNEL_EQ_6_18),1)
+ifeq ($(KERNEL_EQ_7_0),1)
+KERNEL_MEDIA_TREE := 7.0.0
+else ifeq ($(KERNEL_EQ_6_18),1)
 KERNEL_MEDIA_TREE := 6.18.0
 else
 KERNEL_MEDIA_TREE := 6.17.0
