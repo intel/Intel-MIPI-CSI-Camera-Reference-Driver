@@ -10,6 +10,7 @@
  * DES-level defines (set per DESx, undef'd at the end of each Device):
  *   DES_PHY_TYPE             - DES PHY type (0 for CPHY, 1 for DPHY)
  *   DES_I2C_ADDR             - DES I2C slave address (e.g. 0x0027 for MAX96724)
+ *   DES_LANES                - Number of MIPI data lanes (e.g. 2, 4)
  *   DES_INTERNAL_PHY         - DES internal PHY (PHY0 = 4, PHY1 = 5, PHY2 = 6, PHY3 = 7)
  *   DES_TO_MIPI_PORT         - DES connected to IPU0 MIPI port (e.g. 0/1/2/3)
  *   DES_I2C_BUS              - DES I2C bus path (e.g. "\\_SB.PC00.I2C1")
@@ -45,6 +46,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // DES-level defines for DES0
             #define DES_PHY_TYPE 0
             #define DES_I2C_ADDR 0x0027
+            #define DES_LANES 2
             #define DES_INTERNAL_PHY 6
             #define DES_TO_MIPI_PORT 0
             #define DES_I2C_BUS "\\_SB.PC00.I2C1"
@@ -88,6 +90,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // Clean up DES-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
+            #undef DES_LANES
             #undef DES_INTERNAL_PHY
             #undef DES_TO_MIPI_PORT
             #undef DES_I2C_BUS
