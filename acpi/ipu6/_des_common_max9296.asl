@@ -5,6 +5,7 @@
  * DES-level defines expected by caller:
  *   DES_PHY_TYPE           - DES PHY type (0 for CPHY, 1 for DPHY), used in CSI2Bus
  *   DES_INTERNAL_PHY       - DES internal PHY (e.g. PHY0 = 2, PHY1 = 3), used as DES Local port in CSI2Bus.
+ *   DES_LANES              - Number of MIPI data lanes (e.g. 2, 4), used in PRT2/3 connected to IPU
  *   DES_TO_MIPI_PORT       - DES connected to MIPI Port (e.g. 0/1/2/3) of IPU0 Device, used as IPU remote port in CSI2Bus
  *   DES_I2C_ADDR           - DES I2C slave address (e.g. 0x0048 for MAX9296A), used in I2cSerialBusV2
  *   DES_I2C_BUS            - DES I2C bus path string (e.g. "\\_SB.PC00.I2C1"), used in I2cSerialBusV2
@@ -105,7 +106,11 @@ Name (PRT2, Package()
     Package ()
     {
         Package () { "mipi-img-clock-lanes", 0 },
+        #if DES_LANES == 2
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },
+        #else
         Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } },
+        #endif
         Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
@@ -116,6 +121,10 @@ Name (PRT3, Package()
     Package ()
     {
         Package () { "mipi-img-clock-lanes", 0 },
+        #if DES_LANES == 2
+        Package () { "mipi-img-data-lanes", Package() { 1, 2 } },
+        #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },
+        #endif
     },
 })

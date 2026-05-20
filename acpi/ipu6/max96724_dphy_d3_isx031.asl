@@ -47,6 +47,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // DES-level defines for DES0.
             #define DES_PHY_TYPE 1
             #define DES_I2C_ADDR 0x0027
+            #define DES_LANES 4
             #define DES_INTERNAL_PHY 5
             #define DES_TO_MIPI_PORT 0
             #define DES_I2C_BUS "\\_SB.PC00.I2C1"
@@ -54,7 +55,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_REF \_SB.PC00.DES0
             #include "_des_common_max96724.asl"
 
-            // Channel-level defines for Channel 0 (CH00)
+            // Channel 0 (CH00)
             #define DESCH_CH CH00
             #define DESCH_SER SER0
             #define DESCH_CAM CAM0
@@ -157,6 +158,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // Clean up DES0-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
+            #undef DES_LANES
             #undef DES_INTERNAL_PHY
             #undef DES_TO_MIPI_PORT
             #undef DES_I2C_BUS
@@ -174,6 +176,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // DES-level defines for DES1.
             #define DES_PHY_TYPE 1
             #define DES_I2C_ADDR 0x0027
+            #define DES_LANES 2
             #define DES_INTERNAL_PHY 6
             #define DES_TO_MIPI_PORT 4
             #define DES_I2C_BUS "\\_SB.PC00.I2C0"
@@ -181,7 +184,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_REF \_SB.PC00.DES1
             #include "_des_common_max96724.asl"
 
-            // Channel-level defines for Channel 0 (CH00)
+            // Channel 0 (CH00)
             #define DESCH_CH CH00
             #define DESCH_SER SER0
             #define DESCH_CAM CAM0
@@ -284,6 +287,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             // Clean up DES1-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
+            #undef DES_LANES
             #undef DES_INTERNAL_PHY
             #undef DES_TO_MIPI_PORT
             #undef DES_I2C_BUS
