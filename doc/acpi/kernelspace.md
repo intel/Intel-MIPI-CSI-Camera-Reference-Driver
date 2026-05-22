@@ -3,7 +3,10 @@
 ## Description
 This document contains information of imaging specific ACPI SSDT ASL sources compilation and loading. It also contains information of how to construct media-ctl pipeline for imaging sensors described in ACPI SSDT, and how to verify the streaming of sensors.
 
-## ACPI ASL Source Files
+## Create ACPI ASL Source Files
+
+ASL source file needs to be created based on current hardware setup using reference ASL source file in ../acpi/{ipu}.
+Below sections describe the common ASL source files for different use cases and IPU generations, and the required defines in ASL source file for deserializer, serializer and camera sensor.
 
 ### Common ASL to be shared across different use cases and IPU generations
 These ASL source files should be able to be reused for different use cases. 
@@ -13,7 +16,7 @@ These ASL source files should be able to be reused for different use cases.
 > **Note:** These ASL source files are **NOT** meant to be compiled into AML file directly. They should be included by use case specific ASL source files.
 
 | ASL source file | Description | Usage |
-| --- | --- |
+| --- | --- | --- |
 | _des_common_max96724.asl  | Common ASL for MAX96724 deserializer | Included by caller ASL source file for each MAX96724 deserializer |
 | _des_ch_common_isx031.asl | Common ASL for single Deserializer Channel / Link with ISX031 2D camera sensor | Included by caller ASL source file for each link with ISX031 sensor |
 | _des_ch_common_d457.asl   | Common ASL for single Deserializer Channel / Link with D457 3D camera sensor | Included by caller ASL source file for each link with D457 sensor |
@@ -23,9 +26,11 @@ These ASL source files should be able to be reused for different use cases.
 
 ### ASL source file for different use cases
 
-The reference ASL source files are located in ../acpi/ipu6. Make sure below ASL source files is at least **subset** of your current hardware setup.
+The reference ASL source files are located in ../acpi/{ipu}. Make sure below ASL source files is at least **subset** of your current hardware setup.
 If you connect 4x 2D sensor with max96724, the ASL source file can have 1/2/3/4 channels.
 If you only connect 1x 2D sensor with max96724, the ASL source file can only have 1 channel.
+
+> **WARNING**: If ASL specified more than actual Hardware connection, or there is probe failure in any one of the links, the whole v4l2 subdev registration will fail, and subsequent streaming will not be able to work.
 
 > There are acpi/ipu6 , acpi/ipu7 , acpi/ipu8 folders. The files are mostly similar across different IPU generations, but with minor difference such as CPHY/DPHY for deserializer, or IPU MIPI port. Make sure to pick the right reference ASL source file based on your IPU generation.
 
@@ -51,7 +56,6 @@ Deserializer specific defines are used to describe the Connection to Board and S
 | DES_PATH          | ACPI Path for Deserializer | "\\_SB.PC00.DESx" | - |
 | DES_REF           | ACPI Reference for Deserializer | \_SB.PC00.DESx | - |
 | DES_PIPE_STR_AUTOSELECT | (Optional) Setting for MAX96724 to configure pipe, useful for 3D camera | 0 to disable fixed pipe, 1 to enable fixed pipe (default) | - |
-
 
 ### Channel Specific Defines in ASL
 
@@ -98,8 +102,6 @@ Serializer Specific Defines in ASL is used to specify the configuration for seri
 | Sensing ISX031| 0x40 | 7 | 1 | 4 | - |
 | RS D457       | 0x40 | - | - | 2 | Package () { 0/1/2/3 } for VC0/1/2/3 on Pipe X/Y/Z/U |
 
-## Create ASL file for imaging SSDT
-Create ASL source file based on current hardware setup using reference ASL source file in ../acpi/{ipu}. Below are the good reference for different use cases:
 
 ### Compile and Load ACPI ASL source on Canonical Ubuntu 24.04 or 26.04
 Pre-requisite:
@@ -139,71 +141,3 @@ You should see log similar to below:
     ...
     [    0.009609] ACPI: Table Upgrade: install [SSDT-      - IMG_IPU]
     [    0.009611] ACPI: SSDT 0x00000000678E6000 00143D (v02        IMG_IPU  20260513 INTL 20250404)
-
-
-## How to Verify Stream
-
-### Construct media-ctl pipeline 
-
-Run ../../script/acpi/mc-setup.sh to auto construct media-ctl pipeline.
-
-> **Note:** Auto construct media-ctl pipeline for all links (regardless of 2D or 3D sensors) on all deserializers. 3D sensors default to depth and rgb streams, while 2D sensors default to yuv stream. Any unknown sensors will be skipped.
-
-    ../../script/acpi/mc-setup.sh
-
-> **Note:** If want to configure only DES0 single link, with 2D YUV sensor
-
-    ../../script/acpi/mc-setup.sh des=0,link=0,stream=yuv
-
-> **Note:** If want to configure only DES0 Link 0 with 2D YUV sensor, and Link 1 with 3D sensors
-
-    ../../script/acpi/mc-setup.sh des=0,link=0,stream=yuv des=0,link=1,stream=depth,rgb
-
-> **Note:** If want to configure only DES1 single link, with 3D depth and rgb sensors
-
-    ../../script/acpi/mc-setup.sh des=1,link=1,stream=depth,rgb
-
-### Verify stream using v4l2src
-
-#### Sample Userspace Command for v4l2src
-
-> **Note:** example for 2D sensor (isx031) stream or 3D sensor (d4xx) RGB stream
-
-    gst-launch-1.0 v4l2src device=/dev/video0 ! 'video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink
-
-### Verify stream using icamerasrc
-
-> **Note:** Only work for 2D camera stream for now.
-
-> **Note:** Have dependency on [ipu7-camera-hal PR](https://github.com/intel/ipu7-camera-hal/pull/44)
-
-#### Camera Configuration File Setup for IPU75XA
-
-Replace target system with recommended [ipu75xa](../../config/acpi/ipu75xa) setting
-
-> **Note:** Add config below only if using x1 GMSL sensor.
-
-    sudo cp -r ../../config/acpi/ipu75xa /etc/camera
-
-#### Environment Setup
-
-Export environment variables below
-
-    unset XDG_RUNTIME_DIR
-    export DISPLAY=:0; xhost +
-    export GST_PLUGIN_PATH=/usr/lib/gstreamer-1.0
-    export LIBVA_DRIVER_NAME=iHD
-    export GST_GL_API=gles2
-    export GST_GL_PLATFORM=egl
-    export LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
-    export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib64/pkgconfig:/usr/lib/pkgconfig
-    export LD_LIBRARY_PATH=/usr/local/lib/pkgconfig:/usr/local/lib:/usr/lib64:/usr/lib:/usr/lib/x86_64-linux-gnu
-    export logSink=terminal
-    rm -rf ~/.cache/gstreamer-1.0
-
-#### Sample Userspace Command for icamerasrc
-
-    gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=acpi-1 printfps=true io-mode=mmap ! 'video/x-raw,format=UYVY,width=1920,height=1536' ! glimagesink sync=false
-
-    gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false
-
