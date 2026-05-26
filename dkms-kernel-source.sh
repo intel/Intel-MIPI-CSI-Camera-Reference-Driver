@@ -18,7 +18,29 @@ if (( patch != 0 )); then
 else
   kernelprefix="linux-$major.$minor"
 fi
-wget --no-check-certificate https://mirrors.edge.kernel.org/pub/linux/kernel/v$major.x/$kernelprefix.tar.xz -O $kernelprefix.tar.xz
+
+tarball="${kernelprefix}.tar.xz"
+url="https://mirrors.edge.kernel.org/pub/linux/kernel/v${major}.x/${tarball}"
+
+need_dl=1
+if [[ -s "$tarball" ]] && xz -t "$tarball" 2>/dev/null; then
+    local_size=$(stat -c %s "$tarball")
+    remote_size=$(curl -fsSLI "$url" 2>/dev/null \
+        | awk 'BEGIN{IGNORECASE=1} /^content-length:/ {gsub("\r",""); print $2}' \
+        | tail -1)
+    if [[ -n "$remote_size" && "$local_size" == "$remote_size" ]]; then
+        echo "dkms-kernel-source.sh: reusing cached ${tarball} (${local_size} bytes)"
+        need_dl=0
+    fi
+fi
+
+if (( need_dl )); then
+    echo "Downloading $url"
+    wget --no-check-certificate -q --show-progress -N "$url" -O "$tarball" || {
+        echo "dkms-kernel-source.sh: failed to download ${url}" >&2
+        return 1
+    }
+fi
 
 for arg in "$@"; do
     echo "Extracting: $kernelprefix/$arg"
