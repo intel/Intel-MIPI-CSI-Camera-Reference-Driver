@@ -53,6 +53,11 @@
 #include <media/i2c/ar0234.h>
 #endif
 
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+#include <media/i2c/d4xx_pdata.h>
+#include <media/i2c/d4xx-max929x_pdata.h>
+#endif
+
 static LIST_HEAD(devices);
 
 static struct ipu_camera_module_data *add_device_to_list(
@@ -244,6 +249,27 @@ static const struct ipu_acpi_devices supported_devices[] = {
 	},// AR0234 HID
 #endif
 #endif
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+		.hid_name = "INTC10CD",
+		.real_driver = D457_NAME,
+		.get_platform_data = get_sensor_pdata,
+		.priv_data = NULL,
+		.priv_size = 0,
+		.connect = TYPE_SERDES,
+		.serdes_name = D457_NAME,
+		.sensor_physical_addr = D457_I2C_ADDRESS,
+		.link_freq = 1600,
+		.ser_physical_addr = 0x40,
+		.ser_gpio = {
+			{
+				.chip_hwnum = 0,
+				.con_id = "reset",
+				.flags = GPIO_ACTIVE_LOW,
+			},
+		},
+		.sensor_dt = MIPI_CSI2_TYPE_YUV422_8,
+	},// D457 HID
+#endif
 };
 
 static int get_table_index(const char *acpi_name)
@@ -277,6 +303,9 @@ static const struct acpi_device_id ipu_acpi_match[] = {
 #endif
 #if IS_ENABLED(CONFIG_VIDEO_AR0234)
 	{ "INTC0234", 0 },
+#endif
+#if IS_ENABLED(CONFIG_VIDEO_D4XX)
+	{ "INTC10CD", 0 },	// D457 HID
 #endif
 	{},
 };

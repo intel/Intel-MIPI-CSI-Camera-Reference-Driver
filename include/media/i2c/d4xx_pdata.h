@@ -1,29 +1,37 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright (C) 2023-2025 Intel Corporation */
+/* Copyright (C) 2022 Intel Corporation */
 
-#ifndef MEDIA_SERDES_PDATA_H
-#define MEDIA_SERDES_PDATA_H
+#ifndef D457_H
+#define D457_H
 
-#include <media/ipu-acpi.h>
+#include <media/v4l2-mediabus.h>
 
-struct serdes_subdev_info {
+#define D457_NAME "d4xx"
+#define MAX9296_NAME "MAX9296"
+#define MAX96724_NAME "MAX96724"
+
+#define D457_I2C_ADDRESS 0x10
+
+#define d4xx_subdev_csi_link_id(link) \
+ link == GMSL_SERDES_CSI_LINK_A ? "GMSL A" : \
+ GMSL_SERDES_CSI_LINK_B ? "GMSL B" : \
+ GMSL_SERDES_CSI_LINK_C ? "GMSL C" : "GMSL D"
+
+struct d4xx_subdev_info {
 	struct i2c_board_info board_info;
 	int i2c_adapter_id;
 	unsigned short rx_port;
 	unsigned short phy_i2c_addr;
 	unsigned short ser_alias;
-	char suffix[MAX_SUFFIX_LEN]; /* suffix for subdevs */
+	char suffix[5]; /* suffix for subdevs */
 	unsigned short ser_phys_addr;
 	unsigned int sensor_dt;
-	struct gpiod_lookup ser_gpio[MAX_SER_GPIO_NUM];
-#if IS_ENABLED(CONFIG_VIDEO_D4XX)
-	unsigned short aggregated_link;
-#endif
+	int aggregated_link;
 };
 
-struct serdes_platform_data {
+struct d4xx_pdata {
 	unsigned int subdev_num;
-	struct serdes_subdev_info *subdev_info;
+	struct d4xx_subdev_info *subdev_info;
 	unsigned int reset_gpio;
 	unsigned int FPD_gpio;
 	char suffix;
@@ -35,5 +43,4 @@ struct serdes_platform_data {
 	char ser_name[I2C_NAME_SIZE];
 	struct i2c_board_info *deser_board_info;
 };
-
 #endif
