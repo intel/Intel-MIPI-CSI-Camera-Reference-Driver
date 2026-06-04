@@ -163,7 +163,7 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
-### MIPI Camera Configuration for IPU8 (NVL)
+### MIPI Camera Configuration for IPU8
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
@@ -200,6 +200,7 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | PPR Value                  | 0                    | 0                    |
 | PPR Unit                   | 0                    | 0                    |
 | PhyConfiguration           | DPHY                 | DPHY                 |
+| LaneConfiguration          | 0                    | 0                    |
 | Camera module name         | _                    | _                    |
 | MIPI port                  | 0                    | 2                    |
 | LaneUsed                   | x4                   | x2                   |
@@ -217,13 +218,13 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
-> **Note:** CPHY-DPHY adapter board required only if connecting a DPHY sensor to PTL(CPHY).
+> **Note:** CPHY-DPHY adapter board required only if connecting a DPHY sensor to CPHY MIPI Adapter.
 
 DPHY sensor must be connecting to the front side of adapter.
 
 ![cphy-dphy-adapter-front](cphy-dphy-adapter-front.png)
 
-Connect the rear side of adapter to PTL.
+Connect the rear side of adapter to CPHY MIPI Adapter.
 
 ![cphy-dphy-adapter-rear](cphy-dphy-adapter-rear.png)
 
