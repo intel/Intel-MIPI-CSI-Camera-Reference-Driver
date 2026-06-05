@@ -29,7 +29,7 @@ Currently mc-setup only supports d4xx and isx031 GMSL sensors, max9295a serializ
 | 2x RGB streams on link0,link1 on DES0 | ../../script/acpi/mc-setup.sh des=0,link=0,stream=rgb des=0,link=1,stream=rgb |
 | 4x RGB stream on link0,link1 on DES0,DES1 | ../../script/acpi/mc-setup.sh des=0,link=0,stream=rgb des=0,link=1,stream=rgb des=1,link=0,stream=rgb des=1,link=1,stream=rgb |
 
->**Note:** MAX96724 only support 4 active routing (matching with 4 internal pipes) at the same time, so maximum only 4 streams can be enabled on each DES, and by default it is 2 streams (Depth+RGB) from each D457 (assuming 2x D457 connected on each DES).
+>**Note:** MAX96724 only supports 4 active routing (matching with 4 internal pipes) at the same time, so maximum only 4 streams can be enabled on each DES, and by default it is 2 streams (Depth+RGB) from each D457 (assuming 2x D457 connected on each DES).
 
 ![mc-setup.sh output](mc-setup-output.png)
 
@@ -88,7 +88,7 @@ Export environment variables below
 
 #### Sample Command for icamerasrc
 
-The list below keeps track of the validated sensor and their respective configuration for icamerasrc. 3D sensors will need seperate config file, and can be found in their respective directories, i.e. d4xx sensor config file is located in ../../config/d4xx/ directory.
+The list below keeps track of the validated sensor and their respective configuration for icamerasrc. 3D sensors will need separate config file, and can be found in their respective directories, i.e. d4xx sensor config file is located in ../../config/d4xx/ directory.
 
 | Sensor | drm-format | width | height |
 | --- | --- | --- | --- |
