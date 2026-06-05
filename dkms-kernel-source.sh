@@ -18,7 +18,14 @@ if (( patch != 0 )); then
 else
   kernelprefix="linux-$major.$minor"
 fi
-wget --no-check-certificate https://mirrors.edge.kernel.org/pub/linux/kernel/v$major.x/$kernelprefix.tar.xz -O $kernelprefix.tar.xz
+
+if [[ -f "/usr/src/$kernelprefix.tar.xz" ]]; then
+  echo "File /usr/src/$kernelprefix.tar.xz already exists, skipping download."
+else
+  wget --no-check-certificate https://mirrors.edge.kernel.org/pub/linux/kernel/v$major.x/$kernelprefix.tar.xz -O /usr/src/$kernelprefix.tar.xz
+fi
+
+cp /usr/src/$kernelprefix.tar.xz $kernelprefix.tar.xz
 
 for arg in "$@"; do
     echo "Extracting: $kernelprefix/$arg"
