@@ -225,22 +225,33 @@ acpi_hid() { cat "$1/hid" 2>/dev/null; }
 
 # Wrappers around `media-ctl` that print the exact failing arg on error so
 # link-setup, routing and format-propagation issues are easy to pin down.
+# Each wrapper preserves the underlying `media-ctl` exit status so callers
+# checking $? still see the failure.
 mc_l() {
-    if ! media-ctl -l "$1"; then
+    local rc
+    media-ctl -l "$1"; rc=$?
+    if [ "$rc" -ne 0 ]; then
         echo "  ^^ failed: media-ctl -l $1" >&2
     fi
+    return "$rc"
 }
 
 mc_R() {
-    if ! media-ctl -R "$1"; then
+    local rc
+    media-ctl -R "$1"; rc=$?
+    if [ "$rc" -ne 0 ]; then
         echo "  ^^ failed: media-ctl -R $1" >&2
     fi
+    return "$rc"
 }
 
 mc_v() {
-    if ! media-ctl -V "$1"; then
+    local rc
+    media-ctl -V "$1"; rc=$?
+    if [ "$rc" -ne 0 ]; then
         echo "  ^^ failed: media-ctl -V $1" >&2
     fi
+    return "$rc"
 }
 
 # -------- topology discovery --------------------------------------------------
@@ -600,7 +611,7 @@ else
                     if is_known_stream "$kv"; then
                         streams+="${streams:+ }$kv"
                     else
-                        die "unrecognised token '$kv' in '$arg'"
+                        die "unrecognized token '$kv' in '$arg'"
                     fi
                     ;;
             esac
