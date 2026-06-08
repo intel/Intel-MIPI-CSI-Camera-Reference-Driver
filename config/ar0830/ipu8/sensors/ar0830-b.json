@@ -29,14 +29,14 @@
             "formats": [
               { "name": "ar0830 2-003c", "pad": 0, "width": 3840, "height": 2160, "format": "V4L2_MBUS_FMT_UYVY8_1X16", "stream": 0 },
               { "name": "Intel IPU7 CSI2 2", "pad": 0, "width": 3840, "height": 2160, "format": "V4L2_MBUS_FMT_UYVY8_1X16", "stream": 0 },
-              { "name": "Intel IPU7 ISYS Capture 16", "pad": 0, "width": 3840, "height": 2160, "format": "V4L2_MBUS_FMT_UYVY8_1X16", "stream": 0  }
+              { "name": "Intel IPU7 ISYS Capture 32", "pad": 0, "width": 3840, "height": 2160, "format": "V4L2_MBUS_FMT_UYVY8_1X16", "stream": 0  }
             ],
             "link": [
               { "srcName": "ar0830 2-003c", "srcPad": 0, "sinkName": "Intel IPU7 CSI2 2", "sinkPad": 0, "enable": true },
-              { "srcName": "Intel IPU7 CSI2 2", "srcPad": 1, "sinkName": "Intel IPU7 ISYS Capture 16", "sinkPad": 0, "enable": true }
+              { "srcName": "Intel IPU7 CSI2 2", "srcPad": 1, "sinkName": "Intel IPU7 ISYS Capture 32", "sinkPad": 0, "enable": true }
             ],
             "videonode": [
-              { "name": "Intel IPU7 ISYS Capture 16", "videoNodeType": "VIDEO_GENERIC" },
+              { "name": "Intel IPU7 ISYS Capture 32", "videoNodeType": "VIDEO_GENERIC" },
               { "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER" },
               { "name": "ar0830 2-003c", "videoNodeType": "VIDEO_PIXEL_ARRAY" }
             ]
