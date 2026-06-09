@@ -1330,6 +1330,13 @@ static void max9x_des_s_csi_link(struct max9x_common *common,
 			unsigned int csi_link_id =
 				video_pipe->config.map[map_id].dst_csi;
 
+			if (csi_link_id >= common->num_csi_links) {
+				dev_warn(common->dev,
+					 "Invalid dst_csi %d for video pipe %d map %d",
+					 csi_link_id, video_pipe_id, map_id);
+				continue;
+			}
+
 			if (common->csi_link[csi_link_id].config.auto_start)
 				continue; /* Already started at probe */
 
@@ -2327,7 +2334,7 @@ static int max9x_parse_serial_link_pdata(struct max9x_common *common,
 	struct device *dev = common->dev;
 	unsigned int serial_link_id = serial_link_pdata->link_id;
 
-	if (serial_link_id > common->num_serial_links) {
+	if (serial_link_id >= common->num_serial_links) {
 		dev_err(dev, "Serial link pdata: Invalid link id");
 		return -EINVAL;
 	}
@@ -2363,11 +2370,11 @@ static int max9x_parse_video_pipe_pdata(struct max9x_common *common,
 	unsigned int max_maps;
 	unsigned int max_data_types;
 
-	if (serial_link_id > common->num_serial_links) {
+	if (serial_link_id >= common->num_serial_links) {
 		dev_err(dev, "Video pdata: Invalid serial link id");
 		return -EINVAL;
 	}
-	if (pipe_id > common->num_video_pipes) {
+	if (pipe_id >= common->num_video_pipes) {
 		dev_err(dev, "Video pdata: Invalid video pipe id");
 		return -EINVAL;
 	}
@@ -2441,7 +2448,7 @@ static int max9x_parse_csi_link_pdata(struct max9x_common *common,
 {
 	unsigned int csi_link_id = csi_link_pdata->link_id;
 
-	if (csi_link_id > common->num_csi_links) {
+	if (csi_link_id >= common->num_csi_links) {
 		dev_err(common->dev, "CSI link pdata: Invalid link id");
 		return -EINVAL;
 	}
@@ -2476,7 +2483,14 @@ static int max9x_parse_subdev_pdata(struct max9x_common *common,
 				    struct max9x_subdev_pdata *subdev_pdata)
 {
 	unsigned int serial_link_id = subdev_pdata->serial_link_id;
-	struct max9x_serdes_serial_link *serial_link = &common->serial_link[serial_link_id];
+	struct max9x_serdes_serial_link *serial_link;
+
+	if (serial_link_id >= common->num_serial_links) {
+		dev_err(common->dev, "Subdev pdata: Invalid serial link id");
+		return -EINVAL;
+	}
+
+	serial_link = &common->serial_link[serial_link_id];
 
 	if (!serial_link->enabled)
 		return 0;
