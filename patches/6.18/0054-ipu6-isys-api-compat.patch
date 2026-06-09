@@ -18,16 +18,17 @@ diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-
 index 927d92ea9..426cf3b48 100644
 --- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
 +++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
-@@ -1063,6 +1063,17 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
+@@ -1063,6 +1063,18 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
  	if (!state)
  		return 0;
  
 +#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
-+	/* Use routing API for 6.18+ */
++	/* Use routing API for 6.18+. r_pad is the SOURCE pad on the CSI2
++	 * subdev, so match on source_pad and return source_stream. */
 +	struct v4l2_subdev_route *route;
 +	for_each_active_route(&state->routing, route) {
-+		if (route->sink_pad == r_pad->index) {
-+			stream_id = route->sink_stream;
++		if (route->source_pad == r_pad->index) {
++			stream_id = route->source_stream;
 +			break;
 +		}
 +	}
@@ -36,7 +37,7 @@ index 927d92ea9..426cf3b48 100644
  	for (i = 0; i < state->stream_configs.num_configs; i++) {
  		struct v4l2_subdev_stream_config *cfg =
  			&state->stream_configs.configs[i];
-@@ -1071,6 +1082,7 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
+@@ -1071,6 +1083,7 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
  			break;
  		}
  	}
