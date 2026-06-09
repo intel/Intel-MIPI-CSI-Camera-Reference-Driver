@@ -312,8 +312,11 @@ static int ipu_acpi_get_pdata(struct device *dev, int index)
 		supported_devices[index].ser_gpio,
 		supported_devices[index].sensor_dt);
 
-	if (rval)
-		return -EPROBE_DEFER;
+	if (rval) {
+		list_del(&camdata->list);
+		kfree(camdata);
+		return rval;
+	}
 
 	return 0;
 }
@@ -342,7 +345,6 @@ static int ipu_acpi_test(struct device *dev, void *priv)
 				adev->flags.reserved = 1;
 				break;
 			}
-			acpi_dev_put(adev);
 		}
 
 		if (!adev) {
@@ -439,6 +441,12 @@ static int __init ipu_acpi_init(void)
 
 static void __exit ipu_acpi_exit(void)
 {
+	struct ipu_camera_module_data *cam_device, *tmp;
+
+	list_for_each_entry_safe(cam_device, tmp, &devices, list) {
+		list_del(&cam_device->list);
+		kfree(cam_device);
+	}
 }
 
 module_init(ipu_acpi_init);
