@@ -522,6 +522,7 @@ static void lt6911uxc_remove(struct i2c_client *client)
 	struct lt6911uxc *lt6911uxc = to_lt6911uxc(sd);
 
 	if (!lt6911uxc->auxiliary_port) {
+		free_irq(gpiod_to_irq(lt6911uxc->irq_gpio), lt6911uxc);
 		v4l2_async_unregister_subdev(&lt6911uxc->sd);
 		v4l2_subdev_cleanup(sd);
 		media_entity_cleanup(&lt6911uxc->sd.entity);
