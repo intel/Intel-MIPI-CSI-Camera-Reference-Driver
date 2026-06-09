@@ -860,6 +860,7 @@ static int ar0830_request_firmware (struct ar0830 *ar0830)
 	if (ar0830->firmware->size > MAX_FIRMWARE_SIZE) {
 		dev_err (ar0830->sd.dev, "firmware size is too big: %zu", ar0830->firmware->size);
 		release_firmware(ar0830->firmware);
+		ar0830->firmware = NULL;
 		return -EINVAL;
 	} else
 		dev_info (ar0830->sd.dev, "firmware_size : %zu\n", ar0830->firmware->size);
@@ -964,10 +965,12 @@ static int ar0830_load_firmware (struct ar0830 *ar0830)
 
 	/* write firmware data */
 	ret = ar0830_write_firmware_window (ar0830);
-	if (ret) {
+	if (ret)
 		dev_err (&client->dev, "error in writing bootstage data: %d", ret);
-		return ret;
-	}
+
+	/* firmware data has been consumed; release it */
+	release_firmware(ar0830->firmware);
+	ar0830->firmware = NULL;
 
 	return ret;
 }
@@ -1054,7 +1057,6 @@ static int ar0830_board_setup(struct ar0830 *ar0830)
 	ret = ar0830_load_firmware (ar0830);
 	if (ret) {
 		dev_err(&client->dev, "failed to load firmware: %d", ret);
-		release_firmware(ar0830->firmware);
 		return ret;
 	}
 
