@@ -473,7 +473,15 @@ static int ar0233_remove(struct i2c_client *client)
 static void ar0233_remove(struct i2c_client *client)
 #endif
 {
+        struct v4l2_subdev *sd = i2c_get_clientdata(client);
+        struct ar0233 *ar0233 = to_ar0233(sd);
+
         dev_dbg(&client->dev, "%s: Enter", __func__);
+
+        v4l2_async_unregister_subdev(sd);
+        media_entity_cleanup(&sd->entity);
+        mutex_destroy(&ar0233->mutex);
+        pm_runtime_disable(&client->dev);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
 	return 0;
