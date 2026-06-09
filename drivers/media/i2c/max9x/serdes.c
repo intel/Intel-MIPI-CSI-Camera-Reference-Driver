@@ -1828,31 +1828,35 @@ static int max9x_registered(struct v4l2_subdev *sd)
 					dev_dbg(dev, "Registering sensor %s (%s)...",
 						subdev_pdata->board_info.type, dev_id);
 
-					static struct gpiod_lookup_table sensor_gpios = {
-						.dev_id = "",
-						.table = {
-							{}
-						},
-					};
+					struct gpiod_lookup_table *sensor_gpios;
+
+					sensor_gpios =
+						devm_kzalloc(dev,
+							     struct_size(sensor_gpios, table,
+									 MAX_SER_GPIO_NUM + 1),
+							     GFP_KERNEL);
+					if (!sensor_gpios)
+						return -ENOMEM;
+
+					sensor_gpios->dev_id = dev_id;
 
 					int line = 0;
 					for (int i = 0; i < MAX_SER_GPIO_NUM; i++) {
 						if (subdev_pdata->gpio && subdev_pdata->gpio[i].con_id != NULL) {
-							sensor_gpios.table[line] = subdev_pdata->gpio[i];
-							sensor_gpios.table[line++].key = common->gpio_chip.label;
+							sensor_gpios->table[line] = subdev_pdata->gpio[i];
+							sensor_gpios->table[line++].key = common->gpio_chip.label;
 							dev_dbg(dev, " Adding line %d as %s", i, subdev_pdata->gpio[i].con_id);
 						}
 					}
-					sensor_gpios.dev_id = dev_id;
 
-					gpiod_add_lookup_table(&sensor_gpios);
+					gpiod_add_lookup_table(sensor_gpios);
 
 					struct v4l2_subdev *subdev =
 						v4l2_i2c_new_subdev_board(sd->v4l2_dev,
 									  common->muxc->adapter[link_id],
 									  &subdev_pdata->board_info, NULL);
 
-					gpiod_remove_lookup_table(&sensor_gpios);
+					gpiod_remove_lookup_table(sensor_gpios);
 
 					if (IS_ERR_OR_NULL(subdev)) {
 						dev_err(dev,
