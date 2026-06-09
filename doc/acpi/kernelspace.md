@@ -5,7 +5,7 @@ This document contains information of imaging specific ACPI SSDT ASL sources com
 
 ## Create ACPI ASL Source Files
 
-ASL source file needs to be created based on current hardware setup using reference ASL source file in ../acpi/{ipu}.
+ASL source file needs to be created based on current hardware setup using reference ASL source file in ../../acpi/{ipu}.
 Below sections describe the common ASL source files for different use cases and IPU generations, and the required defines in ASL source file for deserializer, serializer and camera sensor.
 
 ### Common ASL to be shared across different use cases and IPU generations
@@ -26,13 +26,13 @@ These ASL source files should be able to be reused for different use cases.
 
 ### ASL source file for different use cases
 
-The reference ASL source files are located in ../acpi/{ipu}. Make sure below ASL source files is at least **subset** of your current hardware setup.
+The reference ASL source files are located in ../../acpi/{ipu}. Make sure below ASL source files is at least **subset** of your current hardware setup.
 If you connect 4x 2D sensor with max96724, the ASL source file can have 1/2/3/4 channels.
 If you only connect 1x 2D sensor with max96724, the ASL source file can only have 1 channel.
 
 > **WARNING**: If ASL specified more than actual Hardware connection, or there is probe failure in any one of the links, the whole v4l2 subdev registration will fail, and subsequent streaming will not be able to work.
 
-> There are acpi/ipu6 , acpi/ipu7 , acpi/ipu8 folders. The files are mostly similar across different IPU generations, but with minor difference such as CPHY/DPHY for deserializer, or IPU MIPI port. Make sure to pick the right reference ASL source file based on your IPU generation.
+> There are ../../acpi/ipu6 , ../../acpi/ipu7 , ../../acpi/ipu8 folders. The files are mostly similar across different IPU generations, but with minor difference such as CPHY/DPHY for deserializer, or IPU MIPI port. Make sure to pick the right reference ASL source file based on your IPU generation.
 
 | Use case | Reference ASL source file |
 | --- | --- |

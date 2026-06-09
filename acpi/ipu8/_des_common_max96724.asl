@@ -6,7 +6,7 @@
  *   DES_PHY_TYPE           - DES PHY type (0 for CPHY, 1 for DPHY), used in CSI2Bus
  *   DES_INTERNAL_PHY       - DES internal PHY (e.g. PHY0 = 4, PHY1 = 5, PHY2 = 6, PHY3 = 7), used as DES Local port in CSI2Bus.
  *   DES_LANES              - Number of MIPI data lanes (e.g. 2, 4), used in PRT4/5/6/7 connected to IPU
- *   DES_TO_MIPI_PORT       - DES connected to MIPI Port (e.g. 0/1/2/3) of IPU0 Device, used as IPU remote port in CSI2Bus
+ *   DES_TO_MIPI_PORT       - DES connected to MIPI Port (e.g. 0/1/2) of IPU0 Device, used as IPU remote port in CSI2Bus
  *   DES_I2C_ADDR           - DES I2C slave address (e.g. 0x0027 for MAX96724), used in I2cSerialBusV2
  *   DES_I2C_BUS            - DES I2C bus path string (e.g. "\\_SB.PC00.I2C1"), used in I2cSerialBusV2
  *   DES_PIPE_STR_AUTOSELECT - MAX96724 specific property

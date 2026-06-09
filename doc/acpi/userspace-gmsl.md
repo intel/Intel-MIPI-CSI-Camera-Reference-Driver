@@ -1,6 +1,6 @@
 ## Description
 
-This document details the steps to validate ACPI-enumerated GMSL sensors, providing essential information for system integration. The table below presents the key parameters and their respective values used during system setup and validation.
+This document details the steps to validate ACPI-enumerated GMSL sensors, providing essential information for system integration.
 
 For Kernel space ASL source file creation and compilation, please refer to [ACPI Kernel Space ASL Compilation](./kernelspace.md).
 
