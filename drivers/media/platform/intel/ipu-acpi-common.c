@@ -232,6 +232,8 @@ static int ipu_get_i2c_bdf_crs(struct device *dev, struct ipu_i2c_info *info)
 		 PCI_SLOT(pci_dev->devfn), PCI_FUNC(pci_dev->devfn));
 	pci_dev_put(pci_dev);
 
+	kfree(controller_path);
+
 	return 0;
 }
 
@@ -376,6 +378,9 @@ int ipu_acpi_get_dep_data(struct device *dev,
 		if (!device) {
 #endif
 			pr_err("IPU ACPI: Failed to get ACPI device");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
+			acpi_handle_list_free(&dep_devices);
+#endif
 			return -ENODEV;
 		}
 
@@ -392,8 +397,13 @@ int ipu_acpi_get_dep_data(struct device *dev,
 			/* obtain Control Logic Data from BIOS */
 			rval = ipu_acpi_get_control_logic_data(p_dev, &ctl_data);
 
+			put_device(p_dev);
+
 			if (rval) {
 				pr_err("IPU ACPI: Error getting Control Logic Data");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
+				acpi_handle_list_free(&dep_devices);
+#endif
 				return rval;
 			}
 
@@ -401,6 +411,10 @@ int ipu_acpi_get_dep_data(struct device *dev,
 		} else
 			pr_err("IPU ACPI: Dependent platform device not found for %s\n", dev_name(dev));
 	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
+	acpi_handle_list_free(&dep_devices);
+#endif
 
 	if (!ctl_data->completed) {
 		ctl_data->type = CL_EMPTY;
