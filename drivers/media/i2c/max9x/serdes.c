@@ -1591,7 +1591,9 @@ static int max9x_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 
 		struct media_pad *remote_pad = media_pad_remote_pad_first(
 			&common->v4l.pads[route->sink_pad]);
-		struct v4l2_mbus_frame_desc source_desc;
+		if (!remote_pad)
+			continue;
+		struct v4l2_mbus_frame_desc source_desc = { 0 };
 
 		ret = v4l2_subdev_call(
 			media_entity_to_v4l2_subdev(remote_pad->entity), pad,
@@ -1603,7 +1605,7 @@ static int max9x_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 			goto out_unlock;
 		}
 
-		struct v4l2_mbus_frame_desc_entry *source_desc_entry;
+		struct v4l2_mbus_frame_desc_entry *source_desc_entry = NULL;
 
 		for (int i = 0; i < source_desc.num_entries; i++) {
 			if (source_desc.entry[i].stream == route->sink_stream) {
