@@ -1,0 +1,30 @@
+From 4f6348286d71d460fafcd03796095b10d8af1758 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Tue, 28 Apr 2026 05:59:32 -0700
+Subject: [PATCH 7/8] ipu-bridge : add sensors
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ 6.12.0/drivers/media/pci/intel/ipu-bridge.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/6.12.0/drivers/media/pci/intel/ipu-bridge.c b/6.12.0/drivers/media/pci/intel/ipu-bridge.c
+index 4e4f86a..66983ff 100644
+--- a/6.12.0/drivers/media/pci/intel/ipu-bridge.c
++++ b/6.12.0/drivers/media/pci/intel/ipu-bridge.c
+@@ -47,6 +47,12 @@
+  * Please keep the list sorted by ACPI HID.
+  */
+ static const struct ipu_sensor_config ipu_supported_sensors[] = {
++	/* D3 Embedded ISX031 */
++	IPU_SENSOR_CONFIG("INTC113C", 1, 300000000),
++	/* LI AR0830 */
++	IPU_SENSOR_CONFIG("LIAR0830", 1, 600000000),
++	/* Innodisk AR0822 */
++	IPU_SENSOR_CONFIG("EV8MOOM1", 1, 600000000),
+ 	/* Himax HM11B1 */
+ 	IPU_SENSOR_CONFIG("HIMX11B1", 1, 384000000),
+ 	/* Himax HM2170 */
+-- 
+2.43.0
+

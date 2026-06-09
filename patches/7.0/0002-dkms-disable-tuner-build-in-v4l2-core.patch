@@ -1,0 +1,24 @@
+From bef04fed10de12d09b16b47e6bf386b3f7c0c8a4 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Tue, 28 Apr 2026 05:14:40 -0700
+Subject: [PATCH 2/7] dkms: disable tuner build in v4l2-core
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ 7.0.0/drivers/media/v4l2-core/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/7.0.0/drivers/media/v4l2-core/Makefile b/7.0.0/drivers/media/v4l2-core/Makefile
+index e7bcbf4..6ae8206 100644
+--- a/7.0.0/drivers/media/v4l2-core/Makefile
++++ b/7.0.0/drivers/media/v4l2-core/Makefile
+@@ -37,5 +37,5 @@ obj-$(CONFIG_V4L2_JPEG_HELPER) += v4l2-jpeg.o
+ obj-$(CONFIG_V4L2_MEM2MEM_DEV) += v4l2-mem2mem.o
+ obj-$(CONFIG_V4L2_VP9) += v4l2-vp9.o
+ 
+-obj-$(CONFIG_VIDEO_TUNER) += tuner.o
++# obj-$(CONFIG_VIDEO_TUNER) += tuner.o
+ obj-$(CONFIG_VIDEO_DEV) += v4l2-dv-timings.o videodev.o
+-- 
+2.43.0
+

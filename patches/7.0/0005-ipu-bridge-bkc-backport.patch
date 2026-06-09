@@ -1,0 +1,86 @@
+From 87f7af1244756dc4e987e4d1628b2f0f083b58d1 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Tue, 28 Apr 2026 07:52:55 -0700
+Subject: [PATCH 5/7] ipu-bridge : bkc backport
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ 7.0.0/drivers/media/pci/intel/ipu-bridge.c | 25 +++++++++++++++++++++-
+ 1 file changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/7.0.0/drivers/media/pci/intel/ipu-bridge.c b/7.0.0/drivers/media/pci/intel/ipu-bridge.c
+index 32cc95a..7d0614c 100644
+--- a/7.0.0/drivers/media/pci/intel/ipu-bridge.c
++++ b/7.0.0/drivers/media/pci/intel/ipu-bridge.c
+@@ -36,6 +36,9 @@
+  */
+ #define IVSC_DEV_NAME "intel_vsc"
+ 
++#define PHY_MODE_DPHY  0
++#define PHY_MODE_CPHY  1
++
+ /*
+  * Extend this array with ACPI Hardware IDs of devices known to be working
+  * plus the number of link-frequencies expected by their drivers, along with
+@@ -97,6 +100,8 @@ static const struct ipu_sensor_config ipu_supported_sensors[] = {
+ 	IPU_SENSOR_CONFIG("SONY471A", 1, 200000000),
+ 	/* Toshiba T4KA3 */
+ 	IPU_SENSOR_CONFIG("XMCC0003", 1, 321468000),
++	/* Lontium lt6911gxd */
++	IPU_SENSOR_CONFIG("INTC1124", 0),
+ };
+ 
+ /*
+@@ -345,6 +350,7 @@ int ipu_bridge_parse_ssdb(struct acpi_device *adev, struct ipu_sensor *sensor)
+ 
+ 	sensor->link = ssdb.link;
+ 	sensor->lanes = ssdb.lanes;
++	sensor->phyconfig = ssdb.phyconfig;
+ 	sensor->mclkspeed = ssdb.mclkspeed;
+ 	sensor->rotation = ipu_bridge_parse_rotation(adev, &ssdb);
+ 	sensor->orientation = ipu_bridge_parse_orientation(adev);
+@@ -363,6 +369,7 @@ static void ipu_bridge_create_fwnode_properties(
+ {
+ 	struct ipu_property_names *names = &sensor->prop_names;
+ 	struct software_node *nodes = sensor->swnodes;
++	u8 bus_type;
+ 
+ 	sensor->prop_names = prop_names;
+ 
+@@ -420,9 +427,16 @@ static void ipu_bridge_create_fwnode_properties(
+ 			PROPERTY_ENTRY_REF_ARRAY("lens-focus", sensor->vcm_ref);
+ 	}
+ 
++	if (sensor->phyconfig == PHY_MODE_DPHY)
++		bus_type = V4L2_FWNODE_BUS_TYPE_CSI2_DPHY;
++	else if (sensor->phyconfig == PHY_MODE_CPHY)
++		bus_type = V4L2_FWNODE_BUS_TYPE_CSI2_CPHY;
++	else
++		bus_type = V4L2_FWNODE_BUS_TYPE_GUESS;
++
+ 	sensor->ep_properties[0] = PROPERTY_ENTRY_U32(
+ 					sensor->prop_names.bus_type,
+-					V4L2_FWNODE_BUS_TYPE_CSI2_DPHY);
++					bus_type);
+ 	sensor->ep_properties[1] = PROPERTY_ENTRY_U32_ARRAY_LEN(
+ 					sensor->prop_names.data_lanes,
+ 					bridge->data_lanes, sensor->lanes);
+@@ -442,6 +456,15 @@ static void ipu_bridge_create_fwnode_properties(
+ 	sensor->ipu_properties[1] = PROPERTY_ENTRY_REF_ARRAY(
+ 					sensor->prop_names.remote_endpoint,
+ 					sensor->remote_ref);
++
++	/*
++	 * TODO: Remove the bus_type property for IPU
++	 * 1. keep fwnode property list no change.
++	 * 2. IPU driver needs to get bus_type from remote sensor ep.
++	 */
++	sensor->ipu_properties[2] = PROPERTY_ENTRY_U32(
++					sensor->prop_names.bus_type,
++					bus_type);
+ }
+ 
+ static void ipu_bridge_init_swnode_names(struct ipu_sensor *sensor)
+-- 
+2.43.0
+

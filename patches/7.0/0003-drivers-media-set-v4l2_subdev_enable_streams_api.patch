@@ -1,0 +1,26 @@
+From a9274d07c5c9921c70ba1fb3189e88fc30b55baa Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Tue, 28 Apr 2026 05:10:52 -0700
+Subject: [PATCH 3/7] drivers: media: set v4l2_subdev_enable_streams_api
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ 7.0.0/drivers/media/v4l2-core/v4l2-subdev.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/7.0.0/drivers/media/v4l2-core/v4l2-subdev.c b/7.0.0/drivers/media/v4l2-core/v4l2-subdev.c
+index 32e6f60..9cf0075 100644
+--- a/7.0.0/drivers/media/v4l2-core/v4l2-subdev.c
++++ b/7.0.0/drivers/media/v4l2-core/v4l2-subdev.c
+@@ -56,7 +56,7 @@ struct v4l2_subdev_stream_config {
+  * 'v4l2_subdev_enable_streams_api' to 1 below.
+  */
+ 
+-static bool v4l2_subdev_enable_streams_api;
++static bool v4l2_subdev_enable_streams_api = true;
+ #endif
+ 
+ /*
+-- 
+2.43.0
+
