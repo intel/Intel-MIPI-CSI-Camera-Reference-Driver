@@ -616,14 +616,23 @@ static int set_serdes_subdev(struct ipu_isys_subdev_info **serdes_sd,
 	size_t subdev_size = subdev_num * sizeof(*serdes_sdinfo);
 	unsigned int port = (*pdata)->suffix - SUFFIX_BASE;
 
+	if (subdev_num > PORT_NR) {
+		dev_err(dev, "IPU ACPI: Invalid subdev_num %u (max %d)\n",
+			subdev_num, PORT_NR);
+		return -EINVAL;
+	}
+
 	serdes_sdinfo = kzalloc(subdev_size, GFP_KERNEL);
-	if (!serdes_sdinfo)
+	if (!serdes_sdinfo) {
+		dev_err(dev, "IPU ACPI: Failed to allocate serdes_sdinfo\n");
 		return -ENOMEM;
+	}
 
 	for (i = 0; i < subdev_num; i++) {
 		module_pdata[i] = kzalloc(sizeof(*module_pdata[i]), GFP_KERNEL);
 		if (!module_pdata[i]) {
 			kfree(serdes_sdinfo);
+			dev_err(dev, "IPU ACPI: Failed to allocate module_pdata for port %d\n", i);
 			return -ENOMEM;
 		}
 
@@ -680,7 +689,7 @@ static int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
 		/* use ascii */
 		/* port for start from 0 */
 		if (port >= 0) {
-			snprintf(pdata->suffix, sizeof(pdata->suffix), "%s", port + SUFFIX_BASE);
+			snprintf(pdata->suffix, sizeof(pdata->suffix), "%c", port + SUFFIX_BASE);
 			pr_info("IPU ACPI: create %s on port %d",
 				sensor_name, port);
 		} else
@@ -696,6 +705,7 @@ static int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
 		(*sensor_sd)->i2c.board_info.platform_data = pdata;
 	} else if (connect == TYPE_SERDES) {
 		struct serdes_platform_data *pdata;
+		int ret;
 
 		pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
 		if (!pdata)
@@ -716,7 +726,11 @@ static int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
 		pdata->ser_nlanes = lanes;
 		pdata->des_port = des_port;
 		strscpy(pdata->ser_name, (*sensor_sd)->i2c.board_info.type, I2C_NAME_SIZE);
-		set_serdes_subdev(sensor_sd, dev, &pdata, sensor_name, hid_name, lanes, addr, subdev_num);
+		ret =set_serdes_subdev(sensor_sd, dev, &pdata, sensor_name, hid_name, lanes, addr, subdev_num);
+		if (ret) {
+			kfree(pdata);
+			return ret;
+		}
 
 		(*sensor_sd)->i2c.board_info.platform_data = pdata;
 		pdata->deser_board_info = &(*sensor_sd)->i2c.board_info;
