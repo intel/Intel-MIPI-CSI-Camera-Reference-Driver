@@ -877,8 +877,9 @@ static int ar0830_write_firmware_window (struct ar0830 *ar0830)
 	int regAddr = FIRMWARE_REG_START_ADDR;
 	int length = 0;
 	int i,j;
+	size_t num_blocks = ar0830->firmware->size / FIRMWARE_BLOCK_SIZE;
 
-	for (i = 0; i < ar0830->firmware->size / FIRMWARE_BLOCK_SIZE; i++) {
+	for (i = 0; i + 1 < num_blocks; i++) {
 		buf = buf + FIRMWARE_BLOCK_SIZE;
 		for (j = 0; j < MAX_REGISTERS_PER_BLOCK; j++) {
 			if (*(buf + OFFSET_BASE + j * OFFSET_STEP) == REG_VALUE_4)
