@@ -670,9 +670,9 @@ static int imx586_set_stream(struct v4l2_subdev *sd, int enable)
 	/* vflip and hflip cannot change during streaming */
 	__v4l2_ctrl_grab(imx586->vflip, enable);
 	__v4l2_ctrl_grab(imx586->hflip, enable);
-	v4l2_subdev_unlock_state(state);
 
 unlock:
+	v4l2_subdev_unlock_state(state);
 	mutex_unlock(&imx586_mutex);
 	return ret;
 }
