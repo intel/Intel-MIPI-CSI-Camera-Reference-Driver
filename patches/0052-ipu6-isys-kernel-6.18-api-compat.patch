@@ -1,0 +1,60 @@
+From 2a6e46f02437f06647eba21d83122a48599ec376 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Tue, 2 Jun 2026 17:42:52 +0000
+Subject: [PATCH 52/59] ipu6-isys: kernel 6.18 api compat
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c    |  4 ++++
+ .../drivers/media/pci/intel/ipu6/ipu6-isys-video.c   | 12 ++++++++++++
+ 2 files changed, 16 insertions(+)
+
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
+index 5f2f836..fc58fe5 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-csi2.c
+@@ -98,7 +98,11 @@ s64 ipu6_isys_csi2_get_link_freq(struct ipu6_isys_csi2 *csi2)
+ 	if (WARN(!ext_sd, "Failed to get subdev for %s\n", csi2->asd.sd.name))
+ 		return -ENODEV;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
++	return v4l2_get_link_freq(src_pad, 0, 0);
++#else
+ 	return v4l2_get_link_freq(ext_sd->ctrl_handler, 0, 0);
++#endif
+ }
+ 
+ static int csi2_subscribe_event(struct v4l2_subdev *sd, struct v4l2_fh *fh,
+diff --git a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+index 927d92e..426cf3b 100644
+--- a/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
++++ b/ipu6-drivers/drivers/media/pci/intel/ipu6/ipu6-isys-video.c
+@@ -1063,6 +1063,17 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
+ 	if (!state)
+ 		return 0;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
++	/* Use routing API for 6.18+ */
++	struct v4l2_subdev_route *route;
++	for_each_active_route(&state->routing, route) {
++		if (route->sink_pad == r_pad->index) {
++			stream_id = route->sink_stream;
++			break;
++		}
++	}
++#else
++	/* Use stream_configs for earlier kernels */
+ 	for (i = 0; i < state->stream_configs.num_configs; i++) {
+ 		struct v4l2_subdev_stream_config *cfg =
+ 			&state->stream_configs.configs[i];
+@@ -1071,6 +1082,7 @@ static u32 get_remote_pad_stream(struct media_pad *r_pad)
+ 			break;
+ 		}
+ 	}
++#endif
+ 
+ 	v4l2_subdev_unlock_state(state);
+ 
+-- 
+2.43.0
+

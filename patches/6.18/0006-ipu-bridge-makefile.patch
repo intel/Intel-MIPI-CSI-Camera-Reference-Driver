@@ -1,0 +1,42 @@
+From 344f74896aa8864b89221553bc1a5a7c0d36a9b7 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Tue, 28 Apr 2026 06:09:09 -0700
+Subject: [PATCH 6/9] ipu-bridge : makefile
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ 6.18.0/drivers/media/pci/intel/Kconfig  | 5 -----
+ 6.18.0/drivers/media/pci/intel/Makefile | 5 +----
+ 2 files changed, 1 insertion(+), 9 deletions(-)
+
+diff --git a/6.18.0/drivers/media/pci/intel/Kconfig b/6.18.0/drivers/media/pci/intel/Kconfig
+index d9fcddc..3fa2b72 100644
+--- a/6.18.0/drivers/media/pci/intel/Kconfig
++++ b/6.18.0/drivers/media/pci/intel/Kconfig
+@@ -1,9 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+-
+-source "drivers/media/pci/intel/ipu3/Kconfig"
+-source "drivers/media/pci/intel/ipu6/Kconfig"
+-source "drivers/media/pci/intel/ivsc/Kconfig"
+-
+ config IPU_BRIDGE
+ 	tristate "Intel IPU Bridge"
+ 	depends on ACPI || COMPILE_TEST
+diff --git a/6.18.0/drivers/media/pci/intel/Makefile b/6.18.0/drivers/media/pci/intel/Makefile
+index 3a2cc65..16dc2d2 100644
+--- a/6.18.0/drivers/media/pci/intel/Makefile
++++ b/6.18.0/drivers/media/pci/intel/Makefile
+@@ -2,7 +2,4 @@
+ #
+ # Makefile for the IPU drivers
+ #
+-obj-$(CONFIG_IPU_BRIDGE) += ipu-bridge.o
+-obj-y	+= ipu3/
+-obj-y	+= ivsc/
+-obj-$(CONFIG_VIDEO_INTEL_IPU6)	+= ipu6/
++obj-$(CONFIG_IPU_BRIDGE) += ipu-bridge.o
+\ No newline at end of file
+-- 
+2.43.0
+
