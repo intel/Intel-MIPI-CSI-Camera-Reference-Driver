@@ -873,16 +873,22 @@ static int ar0830_request_firmware (struct ar0830 *ar0830)
 static int ar0830_write_firmware_window (struct ar0830 *ar0830)
 {
 	int ret = 0;
-	u8 *buf = (u8 *)ar0830->firmware->data;
+	const u8 *buf = ar0830->firmware->data;
+	const u8 *fw_end = buf + ar0830->firmware->size;
 	u8 wbuf[4];
 	int regAddr = FIRMWARE_REG_START_ADDR;
 	int length = 0;
 	int i,j;
 	size_t num_blocks = ar0830->firmware->size / FIRMWARE_BLOCK_SIZE;
 
-	for (i = 0; i + 1 < num_blocks; i++) {
+	for (i = 0; i  < num_blocks; i++) {
 		buf = buf + FIRMWARE_BLOCK_SIZE;
 		for (j = 0; j < MAX_REGISTERS_PER_BLOCK; j++) {
+			size_t needed = OFFSET_BASE + j * OFFSET_STEP + REG_VALUE_4 + 1;
+
+			/* Guard against reading past the firmware buffer. */
+			if ((size_t)(fw_end - buf) < needed)
+				break;
 			if (*(buf + OFFSET_BASE + j * OFFSET_STEP) == REG_VALUE_4)
 			{
 				wbuf[0] = *(buf + OFFSET_BASE  + j * OFFSET_STEP + 1);
