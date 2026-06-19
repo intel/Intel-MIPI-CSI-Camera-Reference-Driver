@@ -233,6 +233,53 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+
+### MIPI Camera Configuration for IPU8
+
+Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+
+#### Connected to C-PHY of MAX96724 AIC
+
+![AIC jumper connections](max96724-fabb-cphy.png)
+
+|                            | Camera1 Link options | Camera2 Link Options |
+|---                         |---                   | ---                  |
+| Sensor Model               | User Custom          | User Custom          |
+| Custom HID                 | <sensor_acpi_hid>    | <sensor_acpi_hid>    |
+| Lanes Clock division       | 4 4 2 2              | 4 4 2 2              |
+| CRD Version                | CRD-D                | CRD-D                |
+| GPIO control               | No Control Logic     | No Control Logic     |
+| Camera position            | Front                | Back                 |
+| Flash Support              | Disabled             | Disabled             |
+| Privacy LED                | Driver default       | Driver default       |
+| Rotation                   | 180                  | 0                    |
+| Voltage Rail               |                      | 3 voltage rail       |
+| PPR Value                  | 2                    | 2                    |
+| PPR Unit                   | 4                    | 4                    |
+| PhyConfiguration           | CPHY                 | CPHY                 |
+| Camera module name         | MAX96724             | MAX96724             |
+| MIPI port                  | 0                    | 2                    |
+| LaneUsed                   | x4                   | x4                   |
+| MCLK                       | 19200000             | 19200000             |
+| EEPROM Type                | ROM_NONE             | ROM_NONE             |
+| VCM Type                   | VCM_NONE             | VCM_NONE             |
+| Number of I2C Components   | 3                    | 3                    |
+| I2C Channel                | I2C1                 | I2C0                 |
+| Device 0                   |                      |                      |
+| I2C Address                | 27                   | 27                   |
+| Device Type                | Sensor               | Sensor               |
+| Device 1                   |                      |                      |
+| I2C Address                | 44                   | 44                   |
+| Device Type                | Sensor               | Sensor               |
+| Device 2                   |                      |                      |
+| I2C Address                | 54                   | 54                   |
+| Device Type                | Sensor               | Sensor               |
+| Customize Device ID List   |                      |                      |
+| Customize Device ID Number | 17                   | 17                   |
+| Customize Device ID Number | 18                   | 18                   |
+| Customize Device ID Number | 19                   | 19                   |
+| Flash Driver Selection     | Disabled             | Disabled             |
+
 ## Camera Configuration File Setup
 
 #### Setup for IPU6EP
