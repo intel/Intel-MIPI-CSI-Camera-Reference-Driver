@@ -162,10 +162,15 @@ Name (PRT5, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
         #if DES_LANES == 4
+            #if DES_PHY_TYPE == 1
+            Package () { "mipi-img-clock-lanes", 5 }, // DPHY uses alternate CKCP PHY0 clock lane
+            #else
+            Package () { "mipi-img-clock-lanes", 0 },
+            #endif
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
         #else
+        Package () { "mipi-img-clock-lanes", 0 },
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
         Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } },
