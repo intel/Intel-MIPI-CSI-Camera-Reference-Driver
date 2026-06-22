@@ -59,8 +59,8 @@ index 927d92ea9..f84461367 100644
 +	/* Use routing API for 7.0+ */
 +	struct v4l2_subdev_route *route;
 +	for_each_active_route(&state->routing, route) {
-+		if (route->sink_pad == r_pad->index) {
-+			stream_id = route->sink_stream;
++		if (route->source_pad == r_pad->index) {
++			stream_id = route->source_stream;
 +			break;
 +		}
 +	}
