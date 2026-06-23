@@ -55,7 +55,7 @@ Replace target system with recommended [ipu6epmtl](../../config/ar0234/ipu6epmtl
 > **Note:** Add config below only if using x2 GMSL sensors.
 
     sudo cp -r ../../config/ar0234/ipu6epmtl /etc/camera
-    sudo sed -i '/availableSensors/c\        <availableSensors value="ar0234-1-0,ar0234-2-0"/>' /etc/camera/ipu6epmtl/libcamhal_profile.xml
+    sudo sed -i '/availableSensors/c\        <availableSensors value="ar0234"/>' /etc/camera/ipu6epmtl/libcamhal_profile.xml
 
 ## Camera Tuning File Setup
 
@@ -149,7 +149,7 @@ For AIC MAX96724
 | Number of Stream | Command Pipeline |
 |---|---|
 | x1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
-| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234x2-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234x2-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 ## Streaming Result
 
