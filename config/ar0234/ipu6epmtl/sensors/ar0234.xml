@@ -15,8 +15,16 @@
 -->
 
 <CameraSettings>
-    <Sensor name="ar0234-2" description="AR0234 GMSL Sensor 2" virtualChannel="true" vcGroupId="0">
-        <MediaCtlConfig id="0" mediaCfg="1" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
+    <SensorCommonConfig name="max9x">
+        <MediaCtlConfig id="0" mediaCfg="1">
+            <format name="ar0234 a-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
+            <format name="max9x a-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
+            <format name="max9x a-0" pad="2" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
+            <format name="max9x a" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
+            <format name="max9x a" pad="4" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
+            <format name="Intel IPU6 CSI2 0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
+            <format name="Intel IPU6 CSI2 0" pad="1" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
+
             <format name="ar0234 b-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
             <format name="max9x b-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
             <format name="max9x b-0" pad="2" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
@@ -25,18 +33,30 @@
             <format name="Intel IPU6 CSI2 0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
             <format name="Intel IPU6 CSI2 0" pad="2" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
 
+            <link srcName="ar0234 a-0" srcPad="0" sinkName="max9x a-0" sinkPad="0" enable="true"/>
+            <link srcName="max9x a-0" srcPad="2" sinkName="max9x a" sinkPad="4" enable="true"/>
+            <link srcName="max9x a" srcPad="0" sinkName="Intel IPU6 CSI2 0" sinkPad="0" enable="true"/>
+            <link srcName="Intel IPU6 CSI2 0" srcPad="1" sinkName="Intel IPU6 ISYS Capture 0" sinkPad="0" enable="true"/>
+
             <link srcName="ar0234 b-0" srcPad="0" sinkName="max9x b-0" sinkPad="0" enable="true"/>
             <link srcName="max9x b-0" srcPad="2" sinkName="max9x a" sinkPad="5" enable="true"/>
             <link srcName="max9x a" srcPad="0" sinkName="Intel IPU6 CSI2 0" sinkPad="0" enable="true"/>
             <link srcName="Intel IPU6 CSI2 0" srcPad="2" sinkName="Intel IPU6 ISYS Capture 1" sinkPad="0" enable="true"/>
 
+            <route name="max9x a-0" sinkPad="0" sinkStream="0" srcPad="2" srcStream="0" flag="1"/>
+            <route name="max9x a" sinkPad="4" sinkStream="0" srcPad="0" srcStream="0" flag="1"/>
+            <route name="Intel IPU6 CSI2 0" sinkPad="0" sinkStream="0" srcPad="1" srcStream="0" flag="1"/>
+
             <route name="max9x b-0" sinkPad="0" sinkStream="0" srcPad="2" srcStream="1" flag="1"/>
             <route name="max9x a" sinkPad="5" sinkStream="1" srcPad="0" srcStream="1" flag="1"/>
             <route name="Intel IPU6 CSI2 0" sinkPad="0" sinkStream="1" srcPad="2" srcStream="1" flag="1"/>
-
-            <videonode name="Intel IPU6 ISYS Capture 1" videoNodeType="VIDEO_GENERIC"/>
+        </MediaCtlConfig>
+    </SensorCommonConfig>
+    <Sensor name="ar0234-1" description="AR0234 GMSL Sensor 1" virtualChannel="true" vcGroupId="0">
+        <MediaCtlConfig id="0" mediaCfg="1" sensorCommonConfig="max9x" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
+            <videonode name="Intel IPU6 ISYS Capture 0" videoNodeType="VIDEO_GENERIC"/>
             <videonode name="Intel IPU6 CSI2 0" videoNodeType="VIDEO_ISYS_RECEIVER"/>
-            <videonode name="ar0234 b-0" videoNodeType="VIDEO_PIXEL_ARRAY"/>
+            <videonode name="ar0234 a-0" videoNodeType="VIDEO_PIXEL_ARRAY"/>
         </MediaCtlConfig>
         <StaticMetadata>
             <!-- list of stream config info. Meanings of each part is "format,widthxheight,field(0 is none, 7 is alternate),mcId" -->
@@ -65,7 +85,7 @@
         <!-- <TuningMode, cmc tag, aiq tag, isp tag, others tag>  -->
         <lardTags value="VIDEO,DFLT,DFLT,DFLT,DFLT"/>
         <supportedISysSizes value="1280x960,1920x1200"/> <!-- ascending order request -->
-	<supportedISysFormat value="V4L2_PIX_FMT_SGRBG10"/>
+	    <supportedISysFormat value="V4L2_PIX_FMT_SGRBG10"/>
         <enableAIQ value="true"/>
         <iSysRawFormat value="V4L2_PIX_FMT_SGRBG10"/>
         <pSysFormat value="V4L2_PIX_FMT_NV12"/>
@@ -81,40 +101,10 @@
         <enablePSysProcessor value="true"/>
         <useCrlModule value = "false"/>
         <forceFlushIpuBuffer value="true"/>
-        <vcAggregator value="max9x a,1"/>
+        <vcAggregator value="max9x a,0"/>
     </Sensor>
-    <Sensor name="ar0234x2-2" description="AR0234 x2 GMSL Sensor 2" virtualChannel="true" vcGroupId="0">
-	<MediaCtlConfig id="0" mediaCfg="1" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
-	    <format name="ar0234 a-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-            <format name="max9x a-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-            <format name="max9x a-0" pad="2" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-            <format name="max9x a" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-            <format name="max9x a" pad="4" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-            <format name="Intel IPU6 CSI2 0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-	    <format name="Intel IPU6 CSI2 0" pad="1" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-	    <format name="ar0234 b-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-            <format name="max9x b-0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="0"/>
-            <format name="max9x b-0" pad="2" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
-            <format name="max9x a" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
-            <format name="max9x a" pad="5" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
-            <format name="Intel IPU6 CSI2 0" pad="0" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
-            <format name="Intel IPU6 CSI2 0" pad="2" width="1280" height="960" format="V4L2_MBUS_FMT_SGRBG10_1X10" stream="1"/>
-
-            <link srcName="ar0234 a-0" srcPad="0" sinkName="max9x a-0" sinkPad="0" enable="true"/>
-            <link srcName="max9x a-0" srcPad="2" sinkName="max9x a" sinkPad="4" enable="true"/>
-            <link srcName="ar0234 b-0" srcPad="0" sinkName="max9x b-0" sinkPad="0" enable="true"/>
-            <link srcName="max9x b-0" srcPad="2" sinkName="max9x a" sinkPad="5" enable="true"/>
-            <link srcName="max9x a" srcPad="0" sinkName="Intel IPU6 CSI2 0" sinkPad="0" enable="true"/>
-	    <link srcName="Intel IPU6 CSI2 0" srcPad="1" sinkName="Intel IPU6 ISYS Capture 0" sinkPad="0" enable="true"/>
-	    <link srcName="Intel IPU6 CSI2 0" srcPad="2" sinkName="Intel IPU6 ISYS Capture 1" sinkPad="0" enable="true"/>
-
-            <route name="max9x a-0" sinkPad="0" sinkStream="0" srcPad="2" srcStream="0" flag="1"/>
-            <route name="max9x a" sinkPad="4" sinkStream="0" srcPad="0" srcStream="0" flag="1"/>
-            <route name="Intel IPU6 CSI2 0" sinkPad="0" sinkStream="0" srcPad="1" srcStream="0" flag="1"/>
-            <route name="max9x b-0" sinkPad="0" sinkStream="0" srcPad="2" srcStream="1" flag="1"/>
-            <route name="max9x a" sinkPad="5" sinkStream="1" srcPad="0" srcStream="1" flag="1"/>
-	    <route name="Intel IPU6 CSI2 0" sinkPad="0" sinkStream="1" srcPad="2" srcStream="1" flag="1"/>
-
+    <Sensor name="ar0234-2" description="AR0234 GMSL Sensor 2" virtualChannel="true" vcGroupId="0">
+        <MediaCtlConfig id="0" mediaCfg="1" sensorCommonConfig="max9x" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
             <videonode name="Intel IPU6 ISYS Capture 1" videoNodeType="VIDEO_GENERIC"/>
             <videonode name="Intel IPU6 CSI2 0" videoNodeType="VIDEO_ISYS_RECEIVER"/>
             <videonode name="ar0234 b-0" videoNodeType="VIDEO_PIXEL_ARRAY"/>
@@ -146,7 +136,7 @@
         <!-- <TuningMode, cmc tag, aiq tag, isp tag, others tag>  -->
         <lardTags value="VIDEO,DFLT,DFLT,DFLT,DFLT"/>
         <supportedISysSizes value="1280x960,1920x1200"/> <!-- ascending order request -->
-	<supportedISysFormat value="V4L2_PIX_FMT_SGRBG10"/>
+	    <supportedISysFormat value="V4L2_PIX_FMT_SGRBG10"/>
         <enableAIQ value="true"/>
         <iSysRawFormat value="V4L2_PIX_FMT_SGRBG10"/>
         <pSysFormat value="V4L2_PIX_FMT_NV12"/>
