@@ -1063,7 +1063,11 @@ static int isx031_probe(struct i2c_client *client)
 	}
 
 	isx031->sd.state_lock = isx031->sd.ctrl_handler->lock;
-	v4l2_subdev_init_finalize(&isx031->sd);
+	ret = v4l2_subdev_init_finalize(&isx031->sd);
+	if (ret) {
+		dev_err(&client->dev, "Failed to finalize V4L2 subdev: %d\n", ret);
+		goto err_media_cleanup;
+	}
 
 	if (isx031->platform_data && isx031->platform_data->suffix[0])
 		snprintf(isx031->sd.name, sizeof(isx031->sd.name), "isx031 %s",
