@@ -1130,6 +1130,8 @@ static const struct v4l2_subdev_internal_ops imx415_internal_ops = {
 	.init_state = imx415_init_state,
 };
 
+static void imx415_subdev_cleanup(struct imx415 *sensor);
+
 static int imx415_subdev_init(struct imx415 *sensor)
 {
 	struct i2c_client *client = to_i2c_client(sensor->dev);
@@ -1153,7 +1155,11 @@ static int imx415_subdev_init(struct imx415 *sensor)
 	}
 
 	sensor->subdev.state_lock = sensor->subdev.ctrl_handler->lock;
-	v4l2_subdev_init_finalize(&sensor->subdev);
+	ret = v4l2_subdev_init_finalize(&sensor->subdev);
+	if (ret < 0) {
+		imx415_subdev_cleanup(sensor);
+		return ret;
+	}
 
 	return 0;
 }
