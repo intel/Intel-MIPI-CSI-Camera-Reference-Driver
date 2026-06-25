@@ -287,6 +287,23 @@ static void update_inta(struct device *dev,
 	}
 }
 
+static void update_chara(struct device *dev,
+		char msg[MSG_LEN],
+		char *old_arr,
+		const char *new_arr,
+		size_t size)
+{
+	int i;
+
+	for (i = 0; i < size; i++) {
+		if (old_arr[i] != new_arr[i]) {
+			dev_info(dev, "%s[%d] %d -> %d", msg, i,
+				 (int)old_arr[i], (int)new_arr[i]);
+			old_arr[i] = new_arr[i];
+		}
+	}
+}
+
 static void update_str(struct device *dev,
 		char msg[MSG_LEN],
 		char old_str[MSG_LEN],
@@ -385,9 +402,9 @@ static void update_serdes_subdev(struct device *dev,
 					update_int(dev, "mPdata fsin",
 						   (unsigned int *)&old_mpdata->fsin,
 						   new_mpdata->fsin);
-				update_inta(dev, "mPdata gpio_powerup_seq",
-						(int *)old_mpdata->gpio_powerup_seq,
-						(int *)new_mpdata->gpio_powerup_seq,
+				update_chara(dev, "mPdata gpio_powerup_seq",
+						old_mpdata->gpio_powerup_seq,
+						new_mpdata->gpio_powerup_seq,
 						SERDES_MAX_GPIO_POWERUP_SEQ);
 			}
 		}
