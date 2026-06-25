@@ -560,7 +560,7 @@ static int ar0233_probe(struct i2c_client *client)
                 return ret;
         }
 
-        if (ar0233->platform_data && ar0233->platform_data->suffix)
+        if (ar0233->platform_data && ar0233->platform_data->suffix[0])
                 snprintf(ar0233->sd.name, sizeof(ar0233->sd.name), "ar0233 %s",
                          ar0233->platform_data->suffix);
 
