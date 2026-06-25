@@ -1105,8 +1105,8 @@ int max9x_verify_devid(struct max9x_common *common)
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
 	struct regmap *phys_map = common->phys_map;
-	unsigned int dev_id, dev_rev, chip_type;
-	int ret;
+	unsigned int dev_id, dev_rev;
+	int chip_type, ret;
 
 	/*
 	 * Fetch and output chip name + revision
@@ -1126,9 +1126,9 @@ int max9x_verify_devid(struct max9x_common *common)
 	}
 
 	chip_type = max9x_get_chip_type(dev_id);
-	if (chip_type == -1) {
+	if (chip_type < 0) {
 		dev_warn(dev, "Unknown chip ID 0x%x", dev_id);
-		return -1;
+		return -EINVAL;
 	}
 	common->des = &max9x_chips[chip_type];
 	common->type = common->des->serdes_type;
