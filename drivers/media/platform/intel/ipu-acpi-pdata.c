@@ -693,12 +693,9 @@ static int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
 		pr_debug("IPU ACPI: %s - Direct connection", __func__);
 		/* use ascii */
 		/* port for start from 0 */
-		if (port >= 0) {
-			snprintf(pdata->suffix, sizeof(pdata->suffix), "%c", port + SUFFIX_BASE);
-			pr_info("IPU ACPI: create %s on port %d",
-				sensor_name, port);
-		} else
-			dev_err(dev, "INVALID MIPI PORT");
+		snprintf(pdata->suffix, sizeof(pdata->suffix), "%c", port + SUFFIX_BASE);
+		pr_info("IPU ACPI: create %s on port %d",
+			sensor_name, port);
 
 		pdata->port = port;
 		pdata->lanes = lanes;
@@ -718,12 +715,9 @@ static int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
 
 		pr_debug("IPU ACPI: %s - Serdes connection", __func__);
 		/* use ascii */
-		if (port >= 0) {
-			pdata->suffix = port + SUFFIX_BASE;
-			pr_info("IPU ACPI: create %s on mipi port %d",
-				sensor_name, port);
-		} else
-			pr_err("IPU ACPI: Invalid MIPI Port : %d", port);
+		pdata->suffix = port + SUFFIX_BASE;
+		pr_info("IPU ACPI: create %s on mipi port %d",
+			sensor_name, port);
 
 		pdata->link_freq_mbps = link_freq;
 		pdata->bus_type = (*sensor_sd)->csi2->bus_type;
@@ -775,8 +769,7 @@ static void set_serdes_info(struct device *dev, const char *sensor_name,
 
 	/* ser_gpio is random numbering. re-order and only update serdes_info.ser_gpio if valid. */
 	for (int i = 0; i < MAX_SER_GPIO_NUM; i++) {
-		if (ser_gpio[i].chip_hwnum >= 0 && 
-			ser_gpio[i].chip_hwnum < MAX_SER_GPIO_NUM &&
+		if (ser_gpio[i].chip_hwnum < MAX_SER_GPIO_NUM &&
 			ser_gpio[i].con_id != NULL) {
 
 			serdes_info.ser_gpio[ser_gpio[i].chip_hwnum] = ser_gpio[i];
