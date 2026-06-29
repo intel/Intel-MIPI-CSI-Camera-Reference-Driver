@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Vunny Sodhi <vunny.sodhi@intel.com>
+Date: Mon, 29 Jun 2026 00:00:00 +0800
+Subject: [PATCH] media: ipu7: sync ACPI csi2 config with ep-aware isys ABI
+
+The IPU7 "get source pad according to csi2 ep fwnode" change extends
+struct ipu7_isys_csi2_config with a new fwnode endpoint pointer:
+
+    struct fwnode_handle *ep;
+
+However, the ACPI/platform-data side still defines and allocates the older
+shorter ipu_isys_csi2_config without that field. When the patched IPU7
+isys code reads csi2->ep on the ACPI path it reads beyond the end of the
+allocated object and may pass garbage into
+fwnode_graph_get_remote_endpoint(), leading to a rare fresh-boot OOPS.
+
+Synchronize the ACPI-side struct definition with the IPU7-side layout so
+the object size matches and ep is zero-initialized on the ACPI path.
+
+Symptom:
+- Rare fresh-boot OOPS in fwnode_graph_get_remote_endpoint()
+- Non-canonical fwnode pointer observed in the crash log
+
+Observed crash:
+  Oops: general protection fault, probably for non-canonical address
+        0x616c63752e75706b: 0000 [#1] SMP NOPTI
+  CPU: 1 ... Tainted: G     U     OE       6.18.23-nonrt-000
+  RIP: 0010:fwnode_graph_get_remote_endpoint+0x13/0x50
+  RDI: 616c63752e757063
+  Call Trace:
+   ? isys_complete_ext_device_registration.isra.0+0x3f/0x260 [intel_ipu7_isys]
+   isys_probe+0xa4a/0xda0 [intel_ipu7_isys]
+   auxiliary_bus_probe+0x45/0x90
+   really_probe+0xf1/0x3c0
+   __driver_probe_device+0x8c/0x180
+   driver_probe_device+0x24/0xd0
+   __driver_attach+0x10b/0x210
+   bus_add_driver+0x14e/0x290
+   driver_register+0x5e/0x130
+   __auxiliary_driver_register+0x73/0xf0
+
+Root cause:
+- ABI/layout mismatch between the IPU7 csi2 config struct and the ACPI
+  csi2 config struct after adding the ep field
+
+Solution:
+- Add the missing ep field to the ACPI-side struct definition in
+  include/media/ipu-acpi.h (the header consumed by the ipu-acpi-pdata
+  module in this DKMS tree), with a fwnode_handle forward declaration
+
+---
+ include/media/ipu-acpi.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/include/media/ipu-acpi.h b/include/media/ipu-acpi.h
+index a9b6687..6a9de61 100644
+--- a/include/media/ipu-acpi.h
++++ b/include/media/ipu-acpi.h
+@@ -27,10 +27,13 @@
+ 
+ #include <media/v4l2-mediabus.h>
+ 
++struct fwnode_handle;
++
+ struct ipu_isys_csi2_config {
+ 	unsigned int nlanes;
+ 	unsigned int port;
+ 	enum v4l2_mbus_type bus_type;
++	struct fwnode_handle *ep;
+ };
+ 
+ struct ipu_isys_subdev_i2c_info {
+-- 
+2.51.1
