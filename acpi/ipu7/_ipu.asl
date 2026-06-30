@@ -38,7 +38,7 @@ Scope (\_SB.PC00.IPU0)
     {
         ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
         Package () { 
-            Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } }
+            Package () { "mipi-img-data-lanes", Package () { 1, 2 } }
         },
     })
 }
