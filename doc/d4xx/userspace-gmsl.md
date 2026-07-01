@@ -2,57 +2,25 @@
 
 This document provides details of the configuration settings for the D457 GMSL sensor using maxim-serdes driver.
 
+>**Note:** Before going through this document, please make sure you have gone through [../acpi/kernelspace.md](../acpi/kernelspace.md) and [../acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md) to understand the ACPI enumeration and userspace configuration for GMSL sensors.
+
 ## Compile ACPI ASL file based on use case
 
 ### SSDT for 2x + 2x D457 on MAX96724 for IPU75XA
 
-Currently we only provide SSDT for 2x + 2x D457 use case on MAX96724 for IPU75XA. If you want to have different connection, please modify the SSDT before compiling.
+Currently we only provide [SSDT](../../acpi/ipu7/max96724_rs_d457.asl) for 2x + 2x D457 use case on MAX96724 for IPU75XA. If you want to have different connection, please modify the SSDT before compiling.
 
->**Note:** MAX96724 only have 4 pipes, and for now only legacy mode is supported, which means only 4 streams can be streamed at the same time per deserializer. This is why we only provide SSDT for 2x on each DES use case.
+>**Note:** MAX96724 only has 4 pipes, and for now only legacy mode is supported, which means only 4 streams can be streamed at the same time per deserializer. This is why we only provide SSDT for 2x on each DES use case.
 
->**Note:** for 2x + 2x D457 3D sensor use case
+> Follow [This section in ../acpi/kernelspace.md](../acpi/kernelspace.md#compile-and-load-acpi-asl-source-on-canonical-ubuntu-2404-or-2604) to compile and load the ASL source file into kernel.
 
-    ../../script/gen_ssdt.sh ../../acpi/ipu7/max96724_rs_d457.asl
-    sudo update-grub
-    sudo reboot
+## Configure pipeline using mc-setup.sh
 
-## Configure pipeline using mc-setup.sh for D4XX GMSL 3D sensor
+Run `../../script/acpi/mc-setup.sh` or refer to [Configure pipeline for 3D sensors](../acpi/userspace-gmsl.md#construct-pipeline-for-3d-sensors) for configuring the streams separately.
 
-Please refer to [Configure pipeline for 3D sensors](../acpi/userspace-gmsl.md#construct-pipeline-for-3d-sensors).
+After configuring the pipeline, it is recommended to run [sanity streaming test using v4l2-ctl](./userspace-gmsl.md#sanity-streaming-test-using-v4l2-ctl) on each node based on the output of mc-setup.sh.
 
->**Note:** MAX96724 only support 4 active routing (matching with 4 internal pipes) at the same time, so maximum only 4 streams can be enabled on each DES, and by default it is 2 streams (Depth+RGB) from each D457 (assuming 2x D457 connected on each DES).
-
-After configuring the pipeline, it is recommended to run sanity streaming test using v4l2-ctl on each nodes. Please refer to [Sanity Streaming Test using v4l2-ctl](./userspace-gmsl.md#sanity-streaming-test-using-v4l2-ctl) for more details.
-
-## Create symlinks using upstream-rs-enum.sh for RealSense SDK
-
->**Note:** This step is only necessary to stream with RealSense SDK. If you are using v4l2src or v4l2-ctl, you can skip this step and use the video device directly.
-
-By running the script below, it creates symlinks for video devices that will be used for streaming with RealSense SDK. Symlink that is created will need to be used with librealsense PR [#15007](https://github.com/IntelRealSense/librealsense/pull/15007).
-
-    sudo ../../script/d4xx/upstream-rs-enum.sh
-
-### Sample Video Node Symlink
-
-The symlink for capture node should be the same as the output of mc-setup.sh command. The syntax looks like video-rs-{stream-type}-{index}, and the stream type can be depth, color, ir or imu. The index starts from 0 for link 0 on DES0, then incremented by 1 for link 1, link 2 and link 3. 
-
-For example, if Depth and RGB stream from Link 0 on DES0 are enabled, the symlink for Depth stream will be video-rs-depth-0 and the symlink for RGB stream will be video-rs-color-0, and both of them will point to the corresponding video node allocated by kernel.
-
-| Sample Capture Node | Sample symlink |
-|---|---|
-| Intel IPU7 ISYS Capture 0 | video-rs-depth-0 -> /dev/video0 |
-| Intel IPU7 ISYS Capture 1 | video-rs-color-0 -> /dev/video4 |
-
-### Sample Subdev Symlink
-
-The subdev symlink is created with syntax video-rs-{stream-type}-sd-{index}, and the stream type and index follow the same rule as capture node symlink, except that it is pointing to the subdev node instead of video capture node. The subdev node is used for configuration of the sensor, and it is required to be used with librealsense PR [#15007](https://github.com/IntelRealSense/librealsense/pull/15007).
-
-| Sample Entity | Sample symlink |
-|---|---|
-| D4XX depth 19-0010 | /dev/video-rs-depth-sd-0 -> /dev/v4l-subdev10 |
-| D4XX ir 19-0010 | /dev/video-rs-ir-sd-0 -> /dev/v4l-subdev11 |
-| D4XX rgb 19-0010 | /dev/video-rs-color-sd-0 -> /dev/v4l-subdev12 |
-| D4XX imu 19-0010 | /dev/video-rs-imu-sd-0 -> /dev/v4l-subdev13 |
+>**Note:** MAX96724 only supports 4 active routing (matching with 4 internal pipes) at the same time, so maximum only 4 streams can be enabled on each DES, and by default it is 2 streams (Depth+RGB) from each D457 (assuming 2x D457 connected on each DES).
 
 ## Sensor Verification
 
@@ -66,40 +34,37 @@ Upon running mc-setup script, `media-ctl -p` command should show
 
 ![media-ctl output after mc-setup](mc-setup-media-ctl-output.png)
 
-### Known Issue
-
->**1.** All RGB stream can only stream once if there are no Depth stream configured.
-> To stream RGB stream again, you need to reconfigure pipeline using ../../script/acpi/mc-setup.sh with Depth stream enabled, then you need to start & stop Depth stream first before any stream can work properly.
-
 ## Sensor stream verification
 
 ### Sanity Streaming Test using v4l2-ctl
 
->Pro: v4l2-ctl can directly be used once mc-setup is completed without any libcamhal configuration files setup, even leaner than v4l2src since it does not need gstreamer.
+Follow [Sanity Streaming Test using v4l2-ctl](../acpi/userspace-gmsl.md#sanity-streaming-test-using-v4l2-ctl) according to mc-setup.sh output.
 
->Con: no preview window, only show streaming status in terminal.
+#### Sample Command for v4l2-ctl
 
-After running mc-setup, Run basic sanity tests using v4l2-ctl to make sure all streams are working properly. For example, if Depth and RGB stream from Link 0 on DES0 are enabled, run command below should show streaming in terminal without error.
+>Note: Please use the respective video node that is shown in the output of mc-setup.sh.
 
-    v4l2-ctl -d /dev/video0 --stream-mmap
-    v4l2-ctl -d /dev/video4 --stream-mmap
+| Stream | Link Number | Command Pipeline                      |
+| ---    | ---         | ---                                   |
+| depth  | des0 link 0 | v4l2-ctl -d /dev/video0 --stream-mmap |
+| depth  | des0 link 1 | v4l2-ctl -d /dev/video1 --stream-mmap |
+| rgb    | des0 link 0 | v4l2-ctl -d /dev/video4 --stream-mmap |
+| rgb    | des0 link 1 | v4l2-ctl -d /dev/video5 --stream-mmap |
 
 ### Gstreamer streaming using v4l2src
 
->Pro: v4l2src can directly be used once mc-setup is completed without any libcamhal configuration files setup.
-
->Con: v4l2src does not support DMABuf which might hit some performance issue.
+Follow [Gstreamer streaming using v4l2src](../acpi/userspace-gmsl.md#gstreamer-streaming-using-v4l2src) according to mc-setup.sh output.
 
 #### Sample Command for v4l2src
 
-Note: please use the respective video node that is shown in the output of mc-setup.sh.
+>Note: Please use the respective video node that is shown in the output of mc-setup.sh.
 
 | Stream | Link Number | Command Pipeline |
 | --- | --- | --- |
-| depth | link 0 | gst-launch-1.0 v4l2src device=/dev/video0 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| depth | link 1 | gst-launch-1.0 v4l2src device=/dev/video1 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| rgb | link 0 | gst-launch-1.0 v4l2src device=/dev/video4 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| rgb | link 1 | gst-launch-1.0 v4l2src device=/dev/video5 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| depth  | des0 link 0 | gst-launch-1.0 v4l2src device=/dev/video0 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| depth  | des0 link 1 | gst-launch-1.0 v4l2src device=/dev/video1 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| rgb    | des0 link 0 | gst-launch-1.0 v4l2src device=/dev/video4 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| rgb    | des0 link 1 | gst-launch-1.0 v4l2src device=/dev/video5 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
 
 ### Gstreamer streaming using icamerasrc
 
@@ -109,17 +74,7 @@ Note: please use the respective video node that is shown in the output of mc-set
 
 Follow section [Camera Configuration File Setup for IPU75XA](./userspace-gmsl.md#camera-configuration-file-setup-for-ipu75xa) to setup config file for icamerasrc.
 
-Follow section [Environment Setup](./userspace-gmsl.md#environment-setup) to setup environment for icamerasrc.
-
-#### Camera Configuration File Setup for IPU75XA
-
-Replace target system with recommended [ipu75xa](../../config/d4xx/ipu75xa) setting
-
-> **Note:** Add config below only if using 2x + 2x D457 3D sensor use case.
-
-    sudo cp -r ../../config/d4xx/ipu75xa /etc/camera
-
-## Environment Setup
+#### Environment Setup
 
 Export environment variables below
 
@@ -137,20 +92,20 @@ Export environment variables below
 
 #### Sample Command for icamerasrc
 
-##### Sensor Device Selection
+> Note: Icamerasrc and libcamhal config only enabled RGB stream from a D457 sensor, since only RGB stream is human-viewable frame. The Depth stream requires additional conversion to be meaningful data. Please refer to [Realsense SDK section](./userspace-gmsl.md#verify-stream-using-realsense-sdk) for more details.
 
-For 2x + 2x D457 use case, use Link Number 1,2,5,6.
+##### Sensor Device Selection
 
 | Link Number | Command Pipeline |
 |---|---|
-| 1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
-| 2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
-| 3 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
-| 4 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
-| 5 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-5 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
-| 6 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-6 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
-| 7 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-7 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
-| 8 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-8 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des0 link 0 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des0 link 1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des0 link 2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des0 link 3 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des1 link 0 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-5 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des1 link 1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-6 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des1 link 2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-7 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
+| des1 link 3 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-8 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
 
 > **Note**: Refer to icamerasrc device-name property for more sensor details.
 
@@ -188,7 +143,7 @@ For AIC MAX96724
 | --- | --- | --- |
 | RGB | YUYV | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 device-name=d4xx-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=YUYV,width=640,height=480' ! glimagesink sync=false |
 
-#### Number of Stream (Single Stream / Multi Stream) Selection
+##### Number of Stream (Single Stream / Multi Stream) Selection
 
 | Stream | Number of Stream | Command Pipeline |
 | --- | --- | --- |
@@ -198,15 +153,47 @@ For AIC MAX96724
 
 ### Verify stream using RealSense SDK
 
-Dependency
+Pre-requisite:
 
-    librealsense PR [#15007](https://github.com/IntelRealSense/librealsense/pull/15007) 
+-Completed [Pipeline Configuration](./userspace-gmsl.md#configure-pipeline-using-mc-setupsh)
 
-    Requires Pipeline Configuration using ../../script/acpi/mc-setup.sh
+-Completed [Symlinks Creation](./userspace-gmsl.md#create-symlinks-using-upstream-rs-enumsh)
 
-    Requires Symlinks Creation using ../../script/d4xx/upstream-rs-enum.sh
+-Completed [librealsense SDK compilation](./userspace-gmsl.md#compile-librealsense-sdk-from-source)
 
-Clone librealsense repo
+#### Create symlinks using upstream-rs-enum.sh
+
+>**Note:** This step is only necessary to stream with RealSense SDK. If you are using v4l2src or v4l2-ctl, you can skip this step and use the video device directly.
+
+By running the script below, it creates symlinks for video devices that will be used for streaming with RealSense SDK. Symlink that is created will need to be used with librealsense PR [#15007](https://github.com/IntelRealSense/librealsense/pull/15007).
+
+    sudo ../../script/d4xx/upstream-rs-enum.sh
+
+##### Sample Video Node Symlink
+
+The symlink for capture node should be the same as the output of mc-setup.sh command. The syntax looks like video-rs-{stream-type}-{index}, and the stream type can be depth, color, ir or imu. The index starts from 0 for link 0 on DES0, then incremented by 1 for link 1, link 2 and link 3.
+
+For example, if Depth and RGB stream from Link 0 on DES0 are enabled, the symlink for Depth stream will be video-rs-depth-0 and the symlink for RGB stream will be video-rs-color-0, and both of them will point to the corresponding video node allocated by kernel.
+
+| Sample Capture Node       | Sample symlink                               |
+| ---                       | ---                                          |
+| Intel IPU7 ISYS Capture 0 | video-rs-depth-0 -> /dev/video0              |
+| Intel IPU7 ISYS Capture 1 | video-rs-color-0 -> /dev/video4              |
+
+##### Sample Subdev Symlink
+
+The subdev symlink is created with syntax video-rs-{stream-type}-sd-{index}, and the stream type and index follow the same rule as capture node symlink, except that it is pointing to the subdev node instead of video capture node. The subdev node is used for configuration of the sensor, and it is required to be used with librealsense PR [#15007](https://github.com/IntelRealSense/librealsense/pull/15007).
+
+| Sample Entity      | Sample symlink                                |
+| ---                | ---                                           |
+| D4XX depth 19-0010 | /dev/video-rs-depth-sd-0 -> /dev/v4l-subdev10 |
+| D4XX ir 19-0010    | /dev/video-rs-ir-sd-0 -> /dev/v4l-subdev11    |
+| D4XX rgb 19-0010   | /dev/video-rs-color-sd-0 -> /dev/v4l-subdev12 |
+| D4XX imu 19-0010   | /dev/video-rs-imu-sd-0 -> /dev/v4l-subdev13   |
+
+#### Compile librealsense SDK from source
+
+There are changes in SDK to support Intel IPU that is currently in review.
 
     git clone https://github.com/realsenseai/librealsense.git
     cd librealsense
@@ -217,21 +204,44 @@ Clone librealsense repo
     make -j2
     cd Release
 
+#### Sample Tools from Realsense SDK
+
 Verify stream using realsense-viewer (output in graphical interface).
 
->**Note:** realsense-viewer will show output in a graphical interface and require user to manually select the streams on the GUI.
-
     ./realsense-viewer
+
+Sample Output as shown below
+
+![realsense-viewer output](realsense-viewer-output.png)
 
 Verify multiple streams using rs-multicam (output in graphical interface)
 
     ./rs-multicam
 
+Sample Output as shown below
+
+![rs-multicam output](rs-multicam-output.png)
+
 Verify single Depth Stream using rs-depth (only Terminal output)
 
     ./rs-depth
+
+Sample Output as shown below
+
+![rs-depth output](rs-depth-output.png)
 
 Verify single Color Stream using rs-color (only Terminal output)
 
     ./rs-color
 
+Sample Output as shown below
+
+![rs-color output](rs-color-output.png)
+
+## Known Issue
+
+1. RGB stream can only be streamed one time if no Depth stream is configured and streamed.
+   Workaround: To start RGB stream repetitively, you need to reconfigure pipeline using ../../script/acpi/mc-setup.sh with Depth stream enabled, then you need to start & stop Depth stream first before any stream can work properly.
+
+2. D457 might hit unrecoverable I2C error over long period of read/write. Reboot will not resolve the issue.
+   Workaround: Power Cycle the sensor.
