@@ -71,6 +71,7 @@ IPU8 represents NVL platforms.
 | [config/](config)   | Host middleware configuration files |
 | [doc/](doc)         | Documentation guide for kernelspace and userspace configuration |
 | [include/](include) | Header files for driver compilation |
+| [acpi/](acpi)       | Host ASL source files for different configurations |
 
 ## Getting Started Guide
 
@@ -99,8 +100,8 @@ Install these software dependencies in your target system:
 
 | IPU Version | ipu-camera-bins                          | ipu-camera-hal                           | icamerasrc                               |
 |-------------|------------------------------------------|------------------------------------------|------------------------------------------|
-| IPU6        | 0b102acf2d95f86ec85f0299e0dc779af5fdfb81 | a647a0a0c660c1e43b00ae9e06c0a74428120f3a | 4fb31db76b618aae72184c59314b839dedb42689 |
-| IPU7        | 2ef0857570b2dde3c2072fdacf22fdfff1a89bf2 | 3b9388ecdb682b6e7e9f57a4192b4612bfb43410 | 4fb31db76b618aae72184c59314b839dedb42689 |
+| IPU6        | d9421fef539f24fc80c27002d5da753e193b0670 | f93eec544a5234bf0b610b3f76d64c8fa711c364 | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
+| IPU7        | d235697c3bb41d56402d4805a7b82fdc938c077a | ea085c325e7a67a811a0baa5ce2d1b8f5641ea02 | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
 
 ## Setup Procedure
 
