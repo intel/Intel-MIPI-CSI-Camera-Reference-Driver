@@ -2,13 +2,17 @@
 
 This document details the steps to validate ACPI-enumerated GMSL sensors, providing essential information for system integration.
 
-For Kernel space ASL source file creation and compilation, please refer to [ACPI Kernel Space ASL Compilation](./kernelspace.md).
+For Kernel space ASL source file creation and compilation, please refer to [kernelspace.md](./kernelspace.md).
 
 ## Construct pipeline using mc-setup.sh
 
 Instead of using XML or JSON file to describe the media-ctl pipeline, and let libcamhal to perform the configuration, mc-setup script is provided to directly construct media-ctl pipeline based on the current ACPI enumeration based on ASL source file. This way, libcamhal config files (xml or json) can be generic without the naming and topology dependency, and can be reused for different hardware setup as long as mc-setup is maintained properly and extended when there is new hardware or configuration need.
 
 Currently mc-setup only supports d4xx and isx031 GMSL sensors, max9295a serializer, max96724 and max9296 deserializer. Feel free to extend mc-setup.sh for other sensors or different use case based on current implementation. The script is located in ../../script/acpi/mc-setup.sh. Please refer to the script for more details of the implementation and usage. Below sections describe how to construct media-ctl pipeline for 2D YUV sensors and 3D sensors, and how to verify the streaming of sensors.
+
+Provided that ACPI enumeration is successful, just run below command to construct media-ctl pipeline for all available links on all available deserializers.
+
+    ../../script/acpi/mc-setup.sh
 
 ### Construct pipeline for 2D YUV sensors
 
@@ -31,9 +35,24 @@ Currently mc-setup only supports d4xx and isx031 GMSL sensors, max9295a serializ
 
 >**Note:** MAX96724 only supports 4 active routing (matching with 4 internal pipes) at the same time, so maximum only 4 streams can be enabled on each DES, and by default it is 2 streams (Depth+RGB) from each D457 (assuming 2x D457 connected on each DES).
 
-![mc-setup.sh output](mc-setup-output.png)
+Below is the sample output of mc-setup.sh for 2x D457 sensors on DES0, 2x D457 sensors on DES1.
+From there it shows that which stream from the sensor can be captured from which /dev/videoX node, which user can get the frames using v4l2-ctl, v4l2src, icamerasrc or any other v4l2 compatible application.
+
+![mc-setup.sh output](../d4xx/mc-setup-output.png)
 
 ## Sensor stream verification
+
+### Sanity Streaming Test using v4l2-ctl
+
+>Pro: v4l2-ctl can be used directly once mc-setup is completed; it is also more lightweight than v4l2src since it does not require GStreamer.
+
+>Con: no preview window; it only shows streaming status in terminal.
+
+#### Sample Command for v4l2-ctl
+
+v4l2-ctl -d /dev/video{X} --stream-mmap
+
+You should see something like ![v4l2-ctl-stream-output](./v4l2-ctl-stream-output.png) in terminal, which means the stream is working properly.
 
 ### Gstreamer streaming using v4l2src
 
@@ -45,32 +64,28 @@ Currently mc-setup only supports d4xx and isx031 GMSL sensors, max9295a serializ
 
 | Sensor | Link Number  | Command Pipeline |
 | --- | --- | --- |
-| isx031 | link0 | gst-launch-1.0 v4l2src device=/dev/video0 ! 'video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| isx031 | link1 | gst-launch-1.0 v4l2src device=/dev/video1 ! 'video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| d457 depth | link 0 | gst-launch-1.0 v4l2src device=/dev/video0 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| d457 depth | link 1 | gst-launch-1.0 v4l2src device=/dev/video1 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| d457 rgb | link 0 | gst-launch-1.0 v4l2src device=/dev/video4 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
-| d457 rgb | link 1 | gst-launch-1.0 v4l2src device=/dev/video5 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| isx031 | des0 link 0 | gst-launch-1.0 v4l2src device=/dev/video0 ! 'video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| isx031 | des0 link 1 | gst-launch-1.0 v4l2src device=/dev/video1 ! 'video/x-raw,format=UYVY,width=1920,height=1536,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| d457 depth | des0 link 0 | gst-launch-1.0 v4l2src device=/dev/video0 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| d457 depth | des0 link 1 | gst-launch-1.0 v4l2src device=/dev/video1 ! 'video/x-raw,format=UYVY,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| d457 rgb | des0 link 0 | gst-launch-1.0 v4l2src device=/dev/video4 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
+| d457 rgb | des0 link 1 | gst-launch-1.0 v4l2src device=/dev/video5 ! 'video/x-raw,format=YUY2,width=640,height=480,framerate=30/1,pixel-aspect-ratio=1/1' ! glimagesink |
 
 ### Gstreamer streaming using icamerasrc
 
 >Pro: icamerasrc support DMABuf which can have better performance.
 
->Con: Have dependency on [ipu7-camera-hal PR](https://github.com/intel/ipu7-camera-hal/pull/44)
+>Con: Have dependency on [ipu7-camera-hal PR44](https://github.com/intel/ipu7-camera-hal/pull/44)
 
-Follow section [Camera Configuration File Setup for IPU75XA](./userspace-gmsl.md#camera-configuration-file-setup-for-ipu75xa) to setup config file for icamerasrc.
+Pre-requisite:
 
-Follow section [Environment Setup](./userspace-gmsl.md#environment-setup) to setup environment for icamerasrc.
+>**ipu7-camera-hal already cloned and compiled previously**
 
-#### Camera Configuration File Setup for IPU75XA
+    cd ipu7-camera-hal
+    git fetch origin pull/44/head:pr-44
+    git checkout pr-44
 
-Replace target system with recommended [ipu75xa](../../config/acpi/ipu75xa) setting
-
-> **Note:** Add config below only if using x1 GMSL sensor.
-
-    sudo cp -r ../../config/acpi/ipu75xa /etc/camera
-
-#### Environment Setup
+**Rebuild and Reinstall** ipu7-camera-hal
 
 Export environment variables below
 
@@ -88,7 +103,8 @@ Export environment variables below
 
 #### Sample Command for icamerasrc
 
-The list below keeps track of the validated sensor and their respective configuration for icamerasrc. 3D sensors will need separate config file, and can be found in their respective directories, i.e. d4xx sensor config file is located in ../../config/d4xx/ directory.
+The list below keeps track of the validated sensor and their respective configuration for icamerasrc.
+3D sensors require separate config file, and can be found in their respective directories, i.e. d4xx sensor config file is located in ../../config/d4xx/ .
 
 | Sensor | drm-format | width | height |
 | --- | --- | --- | --- |
