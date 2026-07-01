@@ -127,7 +127,7 @@ Add following line to /etc/default/grub for GRUB to load SSDT initramfs. Update 
 
 >To revert back to Legacy setup using BIOS and ipu-acpi, remove below line from in /etc/default/grub, update-grub and reboot.
 
-    sed -i '/GRUB_EARLY_INITRD_LINUX_CUSTOM/d' /etc/default/grub
+    sudo sed -i '/GRUB_EARLY_INITRD_LINUX_CUSTOM/d' /etc/default/grub
     sudo update-grub
     sudo reboot
 
