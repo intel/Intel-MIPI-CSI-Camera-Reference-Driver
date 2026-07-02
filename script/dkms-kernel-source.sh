@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+set -euo pipefail
+
 if [[ -z "${kernelver:-}" ]]; then
   kernelver="$(uname -r)"
 fi
@@ -22,8 +24,16 @@ major=$(echo "$kernelver" | cut -d- -f1| cut -d. -f1)
 minor=$(echo "$kernelver" | cut -d- -f1| cut -d. -f2)
 patch=$(echo "$kernelver" | cut -d- -f1| cut -d. -f3)
 
-if ! [[ "$major" =~ ^[0-9]+$ ]]; then major=0; fi
-if ! [[ "$minor" =~ ^[0-9]+$ ]]; then minor=0; fi
+# Fail fast on an unparseable version rather than silently fetching linux-0.0*.
+if ! [[ "$major" =~ ^[0-9]+$ ]] || (( major < 1 )); then
+  echo "dkms-kernel-source.sh: could not parse kernel major version from '${kernelver}'" >&2
+  exit 1
+fi
+if ! [[ "$minor" =~ ^[0-9]+$ ]]; then
+  echo "dkms-kernel-source.sh: could not parse kernel minor version from '${kernelver}'" >&2
+  exit 1
+fi
+# patch is optional (e.g. "6.17" has no third component); default to 0 if absent.
 if ! [[ "$patch" =~ ^[0-9]+$ ]]; then patch=0; fi
 
 echo "Downloading major $major minor $minor patch $patch"
@@ -46,7 +56,7 @@ fi
 # tarballs for currently-maintained series; once a series (e.g. 6.17) reaches
 # EOL its base tarball is removed and returns 404. The GitHub archive and
 # git.kernel.org snapshot endpoints regenerate a .tar.gz for *any* tag on
-# demand, so they are used as fallbacks that always work for released versions.
+# demand, so they can be used as fallbacks that always work for released versions.
 mirrors=(
     "https://github.com/torvalds/linux/archive/refs/tags/${gittag}.tar.gz"
     "https://cdn.kernel.org/pub/linux/kernel/v${major}.x/${tarball}"
@@ -82,9 +92,12 @@ for candidate in "${kernelprefix}.tar.xz" "${kernelprefix}.tar.gz"; do
     local_size=$(stat -c %s "$candidate")
     for url in "${mirrors[@]}"; do
         [[ "$(local_name_for "$url")" == "$candidate" ]] || continue
-        remote_size=$(curl -fsSLI "$url" 2>/dev/null \
+        remote_size=$(curl -fsSLI \
+            --connect-timeout 15 --max-time 60 \
+            --retry 2 --retry-delay 2 --retry-connrefused \
+            "$url" 2>/dev/null \
             | awk 'BEGIN{IGNORECASE=1} /^content-length:/ {gsub("\r",""); print $2}' \
-            | tail -1)
+            | tail -1 || true)
         if [[ -n "$remote_size" && "$local_size" == "$remote_size" ]]; then
             echo "dkms-kernel-source.sh: reusing cached ${candidate} (${local_size} bytes)"
             archive="$candidate"
@@ -97,7 +110,14 @@ if [[ -z "$archive" ]]; then
     for url in "${mirrors[@]}"; do
         out="$(local_name_for "$url")"
         echo "Downloading $url"
-        if wget --no-check-certificate -q --show-progress "$url" -O "$out"; then
+        # timeout gives a hard overall ceiling so a slow-but-alive mirror that
+        # trickles bytes under the read-timeout can't stall the DKMS build;
+        # wget's own connect/read timeouts and limited retries handle the
+        # common connect/stall cases and exit 124 on timeout -> next mirror.
+        if timeout 600 wget -q --show-progress \
+            --connect-timeout=15 --read-timeout=120 \
+            --tries=3 --waitretry=2 \
+            "$url" -O "$out"; then
             if [[ -s "$out" ]] && verify_archive "$out"; then
                 archive="$out"
                 break
@@ -110,12 +130,17 @@ if [[ -z "$archive" ]]; then
     done
     if [[ -z "$archive" ]]; then
         echo "dkms-kernel-source.sh: all mirrors failed for ${kernelprefix}" >&2
-        return 1
+        exit 1
     fi
 fi
 
+# Read just the first archive entry. Process substitution + read avoids a
+# SIGPIPE on tar (from head closing the pipe early) tripping pipefail/set -e,
+# and splitting on '/' via IFS yields the top-level directory name.
+IFS=/ read -r archive_root _ < <(tar -tf "$archive")
 for arg in "$@"; do
-    echo "Extracting: $kernelprefix/$arg"
-    tar -xvf "$archive" "$kernelprefix/$arg" \
-      --xform="s,^${kernelprefix//./\\.}/,$major.$minor.0/,"
+    echo "Extracting: $archive_root/$arg"
+    tar -xvf "$archive" \
+       --xform="s,^${archive_root//./\\.}/,$major.$minor.0/," \
+       "$archive_root/$arg"
 done
