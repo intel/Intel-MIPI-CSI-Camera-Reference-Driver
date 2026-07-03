@@ -86,7 +86,23 @@ verify_archive() {
 
 archive=""
 
+# Persistent cache directory so repeated DKMS builds (e.g. across kernel
+# reinstalls) don't re-download the same multi-hundred-MB tarball.
+cache_dir="/usr/src"
+
+# Reuse a previously cached tarball from /usr/src/ if it's still valid; this
+# skips the network entirely on subsequent builds.
+for candidate in "${kernelprefix}.tar.xz" "${kernelprefix}.tar.gz"; do
+    cached="${cache_dir}/${candidate}"
+    [[ -s "$cached" ]] && verify_archive "$cached" || continue
+    echo "dkms-kernel-source.sh: reusing cached ${cached}"
+    cp "$cached" "$candidate"
+    archive="$candidate"
+    break
+done
+
 # Reuse a previously downloaded, still-valid tarball if the remote size matches.
+if [[ -z "$archive" ]]; then
 for candidate in "${kernelprefix}.tar.xz" "${kernelprefix}.tar.gz"; do
     [[ -s "$candidate" ]] && verify_archive "$candidate" || continue
     local_size=$(stat -c %s "$candidate")
@@ -105,6 +121,7 @@ for candidate in "${kernelprefix}.tar.xz" "${kernelprefix}.tar.gz"; do
         fi
     done
 done
+fi
 
 if [[ -z "$archive" ]]; then
     for url in "${mirrors[@]}"; do
@@ -131,6 +148,11 @@ if [[ -z "$archive" ]]; then
     if [[ -z "$archive" ]]; then
         echo "dkms-kernel-source.sh: all mirrors failed for ${kernelprefix}" >&2
         exit 1
+    fi
+    # Populate the persistent cache (best-effort) so future builds skip the
+    # download. Failure to write (e.g. read-only /usr/src) is non-fatal.
+    if cp "$archive" "${cache_dir}/${archive}" 2>/dev/null; then
+        echo "dkms-kernel-source.sh: cached ${archive} to ${cache_dir}/"
     fi
 fi
 
