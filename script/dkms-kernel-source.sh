@@ -156,10 +156,13 @@ if [[ -z "$archive" ]]; then
     fi
 fi
 
-# Read just the first archive entry. Process substitution + read avoids a
-# SIGPIPE on tar (from head closing the pipe early) tripping pipefail/set -e,
-# and splitting on '/' via IFS yields the top-level directory name.
-IFS=/ read -r archive_root _ < <(tar -tf "$archive")
+# Read the first archive entry to determine the top-level directory name.
+# tar may receive SIGPIPE because we close the stream early; suppress that noise.
+IFS=/ read -r archive_root _ < <(tar -tf "$archive" 2>/dev/null || true)
+if [[ -z "${archive_root:-}" ]]; then
+    echo "dkms-kernel-source.sh: could not determine archive root directory from ${archive}" >&2
+    exit 1
+fi
 for arg in "$@"; do
     echo "Extracting: $archive_root/$arg"
     tar -xvf "$archive" \
