@@ -1551,10 +1551,7 @@ static struct v4l2_mbus_framefmt *__max9x_get_ffmt(struct v4l2_subdev *sd,
 		return ERR_PTR(-EINVAL);
 	}
 
-	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY)
-		return v4l2_subdev_state_get_format(v4l2_state, fmt->pad, fmt->stream);
-
-	return &common->v4l.ffmts[fmt->pad];
+	return v4l2_subdev_state_get_format(v4l2_state, fmt->pad, fmt->stream);
 }
 
 static int max9x_get_fmt(struct v4l2_subdev *sd,
