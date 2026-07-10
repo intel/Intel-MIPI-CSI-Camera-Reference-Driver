@@ -6,6 +6,9 @@ This document describes the configuration settings for the D457 GMSL sensor usin
 > [acpi/kernelspace.md](../acpi/kernelspace.md) \
 > [acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md)
 
+> **If firmware update is required:** refer to [firmware-update.md](./firmware-update.md).
+> Firmware update is required to resolve the long-duration test case issue for the D457 and to support the external frame sync feature.
+
 ---
 ## ACPI Setup - ASL Configuration
 
@@ -635,7 +638,7 @@ For more details, please refer to icamerasrc device-name property for more detai
 ### Verify Stream Using RealSense SDK
 
 >Prerequisites:\
->1. Completed [Pipeline Configuration](./userspace-gmsl.md#configure-pipeline-using-mc-setupsh)\
+>1. Completed [Pipeline Configuration](./userspace-gmsl.md#advanced-pipeline-configuration---per-stream-configuration)\
 >2. Completed [Symlinks Creation](./userspace-gmsl.md#create-symlinks-using-upstream-rs-enumsh)\
 >3. Completed [librealsense SDK compilation](./userspace-gmsl.md#compile-librealsense-sdk-from-source)
 
