@@ -1,0 +1,33 @@
+name: checkpatch review
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  my_review:
+    name: checkpatch review
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Download latest checkpatch.pl from kernel tree
+        run: |
+          base="https://raw.githubusercontent.com/torvalds/linux/master/scripts"
+          for f in checkpatch.pl spelling.txt const_structs.checkpatch; do
+            curl -fsSL "${base}/${f}" -o "$GITHUB_WORKSPACE/${f}"
+          done
+          chmod +x "$GITHUB_WORKSPACE/checkpatch.pl"
+      - name: Run checkpatch review
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # FILE_PATH_CHANGES only prompts to update MAINTAINERS, which this
+          # repository does not maintain, so ignore that type.
+          git fetch --no-tags --prune origin "${BASE_REF}"
+          MERGE_BASE="$(git merge-base "origin/${BASE_REF}" "${HEAD_SHA}")"
+          ./checkpatch.pl --no-tree --show-types --ignore FILE_PATH_CHANGES \
+            --git "${MERGE_BASE}..${HEAD_SHA}"
