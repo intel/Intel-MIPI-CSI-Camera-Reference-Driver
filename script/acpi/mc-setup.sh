@@ -144,6 +144,12 @@ declare -A STREAM_NODE=(
     [imu]=3
     [yuv]=0
 )
+
+# Keep capture-node groups consistent across 2-link and 4-link deserializers:
+# depth uses offsets 0..3, rgb 4..7,
+# TODO: ir and imu to have different offsets.
+CSI2_STREAM_STRIDE=4
+
 # STREAM_MUXPAD: sink pad on a d4xx-style mux subdev. Only needed for streams
 # that flow through such a mux, usually a 3D sensor.
 declare -A STREAM_MUXPAD=(
@@ -530,13 +536,14 @@ print_topology() {
 # applied to every link discovered under every deserializer.
 #
 # Capture-node layout (per DES) -- STREAM-MAJOR:
-#     csi2_pad = STREAM_NODE[s] * DES_MAX_LINKS[d] + l
+#     csi2_pad = STREAM_NODE[s] * CSI2_STREAM_STRIDE + l
 #     node     = CAPTURE_BASE[d] + csi2_pad
-# Nodes are grouped by stream type across links: e.g. for a 4-link max96724
-# with d4xx, depth lands on nodes base+0..3, rgb on base+4..7, etc. For
-# 1-stream sensors like isx031, 4 links land on base+0..3 directly. The
-# CSI2 RX cap is IPU7_NR_OF_CSI2_SRC_PADS (16 with the D4XX patch applied;
-# 8 otherwise); the resulting pad must stay within that.
+# Nodes are grouped by stream type in fixed groups of four for both max9296a
+# and max96724: depth lands on base+0..3, rgb on base+4..7, etc. Unused links
+# leave gaps on 2-link deserializers. For 1-stream sensors like isx031, links
+# land on base+0..3 directly. The CSI2 RX cap is IPU*_NR_OF_CSI2_SRC_PADS;
+# set IPU_CSI2_SRC_PADS to match (commonly 8 or 16). The resulting pad must
+# stay within that.
 #
 # v4l2 source_stream tag at the deserializer source pad / CSI2 sink pad is
 # allocated separately as a compact per-DES sequential id (0..3), because
@@ -683,15 +690,18 @@ for k in "${!CFG_LINKS[@]}"; do
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
     for s in ${CFG_STREAMS[$k]}; do
-        pad=$(( STREAM_NODE[$s] * DES_MAX_LINKS[d] + l ))
+        pad=$(( STREAM_NODE[$s] * CSI2_STREAM_STRIDE + l ))
         if (( pad >= IPU_CSI2_SRC_PADS )); then
-            die "DES${d} link ${l} stream ${s}: csi2_pad ${pad} exceeds IPU7 cap (${IPU_CSI2_SRC_PADS}); rebuild with the D4XX patch (raises cap to 16) or reduce active links/streams"
+            die "DES${d} link ${l} stream ${s}: csi2_pad ${pad} exceeds CSI2 src-pad cap "\
+            "(${IPU_CSI2_SRC_PADS}); reduce active links/streams or rebuild the kernel with a "\
+            "higher *_NR_OF_CSI2_SRC_PADS"
         fi
         CSI2_PAD["${k}_${s}"]=$pad
 
         ds=${DES_STREAM_NEXT[$d]:-0}
         if (( ds >= 4 )); then
-            die "DES${d}: too many streams routed through deserializer source pad (max96724 supports 4 unique source_streams)"
+            die "DES${d}: too many streams routed through deserializer source pad (maxim-serdes "\
+            "supports 4 unique source_streams)"
         fi
         DES_STREAM["${k}_${s}"]=$ds
         DES_STREAM_NEXT[$d]=$(( ds + 1 ))
