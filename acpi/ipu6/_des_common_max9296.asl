@@ -111,7 +111,7 @@ Name (PRT2, Package()
         #else
         Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } },
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { 700000000 } }, // 700 MHz link frequency (DDR => 1.4 Gbps lane rate)
     },
 })
 
