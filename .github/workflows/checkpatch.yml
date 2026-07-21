@@ -26,8 +26,10 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           # FILE_PATH_CHANGES only prompts to update MAINTAINERS, which this
-          # repository does not maintain, so ignore that type.
+          # repository does not maintain. FSF_MAILING_ADDRESS also matches
+          # required wording in the verbatim GPLv2 license text.
           git fetch --no-tags --prune origin "${BASE_REF}"
           MERGE_BASE="$(git merge-base "origin/${BASE_REF}" "${HEAD_SHA}")"
-          ./checkpatch.pl --no-tree --show-types --ignore FILE_PATH_CHANGES \
+          ./checkpatch.pl --no-tree --show-types \
+            --ignore FILE_PATH_CHANGES,FSF_MAILING_ADDRESS \
             --git "${MERGE_BASE}..${HEAD_SHA}"
