@@ -50,7 +50,11 @@ Name (_CRS, ResourceTemplate () // _CRS: Current Resource Settings
     I2cSerialBusV2 (
         DES_I2C_ADDR,           // SlaveAddress (e.g. 0x0027 based on Deserializer Hardware)
         ControllerInitiated,    // SlaveMode
-        0x00061A80,             // ConnectionSpeed
+#ifdef I2C_SPEED
+        I2C_SPEED,              // I2C ConnectionSpeed (e.g. 100000 for 100kHz)
+#else
+        400000,                 // I2C ConnectionSpeed (400000 for 400kHz)
+#endif
         AddressingMode7Bit,     // AddressingMode
         DES_I2C_BUS,            // ResourceSource (e.g. "\\_SB.PC00.I2C1") based on Board design
         0x00,                   // ResourceSourceIndex

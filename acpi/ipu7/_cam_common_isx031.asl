@@ -44,7 +44,11 @@ Name(_CRS, ResourceTemplate ()  // _CRS: Current Resource Settings
     I2cSerialBusV2 (
         0x001A,                 // SlaveAddress (0x1A based on ISX031 hardware)
         ControllerInitiated,    // SlaveMode
-        0x00061A80,             // ConnectionSpeed
+#ifdef I2C_SPEED
+        I2C_SPEED,              // I2C ConnectionSpeed (e.g. 100000 for 100kHz)
+#else
+        400000,                 // I2C ConnectionSpeed (400000 for 400kHz)
+#endif
         AddressingMode7Bit,     // AddressingMode
         DESCH_SER_PATH,         // ResourceSource (Path to parent SER, e.g. "\\_SB.PC00.DESx.CHxx.SERx")
         0x00,                   // ResourceSourceIndex
