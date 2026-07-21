@@ -15,7 +15,7 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
       <a href="#setup-procedure">Setup Procedure</a>
       <ul>
         <li><a href="#kernel-driver-dkms-build">Kernel Driver DKMS Build</a></li>
-        <li><a href="#"bios-configuration>BIOS Configuration</a></li>
+        <li><a href="#bios-configuration">BIOS Configuration</a></li>
         <li><a href="#sensor-xml-configuration-file-setup">Sensor XML Configuration File Setup</a></li>
         <li><a href="#setup-verification">Setup Verification</a></li>
       </ul>
@@ -23,6 +23,7 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#security">Security</a></li>
     <li><a href="#code-of-conduct">Code of Conduct</a></li>
+    <li><a href="#license">License</a></li>
   </ol>
 </details>
 
@@ -64,7 +65,6 @@ IPU8 represents NVL platforms.
 |                    | 24.04.4         | 7.0 IOT Next    |
 
 ## Directory Structure
-
 | Directory | Description |
 |-----------|-------------|
 | [drivers/](drivers) | Host Linux kernel drivers for supported sensors |
@@ -149,5 +149,11 @@ For security concerns, please see [SECURITY.md](SECURITY.md).
 ## Code of Conduct
 
 This project follows our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## License
+
+Files in config/ and script/ are licensed under the Apache License 2.0. See [LICENSE-APACHE](LICENSE-APACHE) for details.
+
+Files in acpi/, drivers/ and include/ are licensed under the GPL-2.0 License. See [LICENSE-GPL](LICENSE-GPL) for details.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
