@@ -2,6 +2,35 @@
 
 This document details the configuration settings for the ISX031 GMSL sensor, providing essential information for system integration. The table below presents the key parameters and their respective values used during system setup and validation.
 
+## Table of Contents
+
+- [BIOS Configuration Table](#bios-configuration-table)
+  - [Disable C States](#disable-c-states)
+  - [Sensor ACPI HID](#sensor-acpi-hid)
+  - [MIPI Camera Configuration for IPU6EP](#mipi-camera-configuration-for-ipu6ep)
+  - [MIPI Camera Configuration for IPU6EPMTL](#mipi-camera-configuration-for-ipu6epmtl)
+    - [Connected to MAX9296 AIC](#connected-to-max9296-aic)
+    - [Connected to D-PHY of MAX96724 AIC](#connected-to-d-phy-of-max96724-aic-rev-b)
+  - [MIPI Camera Configuration for IPU75XA](#mipi-camera-configuration-for-ipu75xa)
+    - [Connected to C-PHY of MAX96724 AIC](#connected-to-c-phy-of-max96724-aic-rev-b)
+    - [Connected to D-PHY of MAX96724 AIC (via C-to-D-PHY adaptor)](#connected-to-d-phy-of-max96724-aic-via-c-to-d-phy-adaptor)
+  - [MIPI Camera Configuration for IPU8](#mipi-camera-configuration-for-ipu8)
+    - [Connected to C-PHY of MAX96724 AIC](#connected-to-c-phy-of-max96724-aic-rev-b-1)
+- [Camera Configuration File Setup](#camera-configuration-file-setup)
+  - [Setup for IPU6EP](#setup-for-ipu6ep)
+  - [Setup for IPU6EPMTL](#setup-for-ipu6epmtl)
+  - [Setup for IPU75XA](#setup-for-ipu75xa)
+- [Environment Setup](#environment-setup)
+- [Sensor Verification](#sensor-verification)
+- [Sample Userspace Command](#sample-userspace-command)
+  - [Sensor Device Selection](#sensor-device-selection)
+    - [How to relate Sensor Number with AIC Link Port](#how-to-relate-sensor-number-with-aic-link-port)
+  - [Frame Buffer Memory Type (IO Mode) Selection](#frame-buffer-memory-type-io-mode-selection)
+  - [Sensor Resolution Selection](#sensor-resolution-selection)
+  - [Sensor Format Selection](#sensor-format-selection)
+  - [Number of Stream (Single Stream / Multi Stream) Selection](#number-of-stream-single-stream--multi-stream-selection)
+- [Streaming Result](#streaming-result)
+
 ## BIOS Configuration Table
 
 > **Note:** No External Clock required.
