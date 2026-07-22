@@ -90,18 +90,20 @@ ccflags-y := -I$(src)/include
 ifneq (,$(filter 1,$(KERNEL_EQ_6_17) $(KERNEL_EQ_6_18) $(KERNEL_EQ_7_0)))
 # IPU7 driver configs
 export CONFIG_VIDEO_INTEL_IPU7=m
+export CONFIG_VIDEO_INTEL_IPU7_ISYS_RESET=y
 export CONFIG_VIDEO_INTEL_IPU6=m
 export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
 
-subdir-ccflags-y += -DIPU8_INSYS_NEW_ABI
-subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU7
-subdir-ccflags-y += -DCONFIG_VIDEO_INTEL_IPU6
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU7) += -DCONFIG_VIDEO_INTEL_IPU7 -DIPU8_INSYS_NEW_ABI
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU7_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU7_ISYS_RESET
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6) += -DCONFIG_VIDEO_INTEL_IPU6
+subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
 
 # Build IPU7 drivers from submodule
-obj-m += ipu7-drivers/drivers/media/pci/intel/ipu7/
+obj-$(CONFIG_VIDEO_INTEL_IPU7) += ipu7-drivers/drivers/media/pci/intel/ipu7/
 
 # Build IPU6 drivers from submodule
-obj-m += ipu6-drivers/drivers/media/pci/intel/ipu6/
+obj-$(CONFIG_VIDEO_INTEL_IPU6) += ipu6-drivers/drivers/media/pci/intel/ipu6/
 
 # Select extracted kernel tree based on running kernel
 ifeq ($(KERNEL_EQ_7_0),1)
