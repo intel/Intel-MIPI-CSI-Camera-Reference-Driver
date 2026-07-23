@@ -16,7 +16,7 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
       <ul>
         <li><a href="#kernel-driver-dkms-build">Kernel Driver DKMS Build</a></li>
         <li><a href="#bios-configuration">BIOS Configuration</a></li>
-        <li><a href="#sensor-xml-configuration-file-setup">Sensor XML Configuration File Setup</a></li>
+        <li><a href="#camera-configuration-file-setup">Camera Configuration File Setup</a></li>
         <li><a href="#setup-verification">Setup Verification</a></li>
       </ul>
     </li>
@@ -156,4 +156,4 @@ Files in config/ and script/ are licensed under the Apache License 2.0. See [LIC
 
 Files in acpi/, drivers/ and include/ are licensed under the GPL-2.0 License. See [LICENSE-GPL](LICENSE-GPL) for details.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+ <p align="right">(<a href="#about-this-project">back to top</a>)</p>
