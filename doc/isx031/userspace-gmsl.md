@@ -4,18 +4,24 @@ This document details the configuration settings for the ISX031 GMSL sensor, pro
 
 ## Table of Contents
 
+- [Hardware Connection](#hardware-connection)
+  - [MAX9296 (REV B) Connection](#max9296-rev-b-connection)
+  - [MAX96724 AIC (REV A) Connection](#max96724-aic-rev-a-connection)
+  - [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection)
+  - [MAX96724 AIC (C-PHY) (REV B) Connection](#max96724-aic-c-phy-rev-b-connection)
+  - [MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection](#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection)
 - [BIOS Configuration Table](#bios-configuration-table)
   - [Disable C States](#disable-c-states)
   - [Sensor ACPI HID](#sensor-acpi-hid)
   - [MIPI Camera Configuration for IPU6EP](#mipi-camera-configuration-for-ipu6ep)
   - [MIPI Camera Configuration for IPU6EPMTL](#mipi-camera-configuration-for-ipu6epmtl)
     - [Connected to MAX9296 AIC](#connected-to-max9296-aic)
-    - [Connected to D-PHY of MAX96724 AIC](#connected-to-d-phy-of-max96724-aic-rev-b)
+    - [Connected to D-PHY of MAX96724 AIC (REV B)](#connected-to-d-phy-of-max96724-aic-rev-b)
   - [MIPI Camera Configuration for IPU75XA](#mipi-camera-configuration-for-ipu75xa)
-    - [Connected to C-PHY of MAX96724 AIC](#connected-to-c-phy-of-max96724-aic-rev-b)
-    - [Connected to D-PHY of MAX96724 AIC (via C-to-D-PHY adaptor)](#connected-to-d-phy-of-max96724-aic-via-c-to-d-phy-adaptor)
+    - [Connected to C-PHY of MAX96724 AIC (REV B)](#connected-to-c-phy-of-max96724-aic-rev-b)
+    - [Connected to D-PHY of MAX96724 AIC (REV B) (via C-to-D-PHY adapter)](#connected-to-d-phy-of-max96724-aic-rev-b-via-c-to-d-phy-adapter)
   - [MIPI Camera Configuration for IPU8](#mipi-camera-configuration-for-ipu8)
-    - [Connected to C-PHY of MAX96724 AIC](#connected-to-c-phy-of-max96724-aic-rev-b-1)
+    - [Connected to C-PHY of MAX96724 AIC (REV A)](#connected-to-c-phy-of-max96724-aic-rev-a)
 - [Camera Configuration File Setup](#camera-configuration-file-setup)
   - [Setup for IPU6EP](#setup-for-ipu6ep)
   - [Setup for IPU6EPMTL](#setup-for-ipu6epmtl)
@@ -30,6 +36,47 @@ This document details the configuration settings for the ISX031 GMSL sensor, pro
   - [Sensor Format Selection](#sensor-format-selection)
   - [Number of Stream (Single Stream / Multi Stream) Selection](#number-of-stream-single-stream--multi-stream-selection)
 - [Streaming Result](#streaming-result)
+
+## Hardware Connection
+
+This section describes the physical AIC (Add-In Card) hardware setup, including link port layout and jumper configurations for MIPI PHY selection.
+
+### MAX9296 (REV B) Connection
+
+> **Note:** Samtec cables and an external power supply are required to connect the MAX9296 AIC to the baseboard.
+
+![link-port](max9296-link-port.png)
+
+### MAX96724 AIC (C-PHY) (REV A) Connection
+
+> **Note:** The MAX96724 AIC (REV A) supports only C-PHY connections, selectable via the J14 jumper highlighted in the image below.
+
+![link-port](max96724-faba-cphy.png)
+
+### MAX96724 AIC (C-PHY) (REV B) Connection
+
+> **Note:** The MAX96724 AIC (REV B) supports both C-PHY and D-PHY connections, selectable via the J14 jumper.
+
+Image below shows the C-PHY setup.
+
+
+![AIC jumper connections](max96724-fabb-cphy.png)
+
+### MAX96724 AIC (D-PHY) (REV B) Connection
+
+> **Note:** Ensure the J14 jumper pins are oriented toward the D-PHY connector, as shown in the image below.
+
+Image below shows the D-PHY setup.
+
+![AIC jumper connections](max96724-fabb-dphy.png)
+
+
+### MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection
+
+Image below shows the C-PHY to D-PHY adapter setup.
+
+![AIC jumper connections](max96724-fabb-cphy-dphy.png)
+
 
 ## BIOS Configuration Table
 
@@ -59,6 +106,9 @@ Config path: `Intel Advanced Menu`->`Power & Performance`->`CPU - Power Manageme
 ### MIPI Camera Configuration for IPU6EP
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+
+<details>
+<summary>Click to expand BIOS camera link options</summary>
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -94,11 +144,16 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID List   |                      |                      |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+</details>
+
 ### MIPI Camera Configuration for IPU6EPMTL
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
 #### Connected to MAX9296 AIC
+
+<details>
+<summary>Click to expand BIOS camera link options</summary>
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -136,9 +191,14 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
-#### Connected to D-PHY of MAX96724 AIC
+</details>
 
-![AIC jumper connections](max96724-fabb-dphy.png)
+#### Connected to D-PHY of MAX96724 AIC (REV B)
+
+> **Note:** Refer to [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection) for hardware connection and jumper setup.
+
+<details>
+<summary>Click to expand BIOS camera link options</summary>
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -176,13 +236,18 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+</details>
+
 ### MIPI Camera Configuration for IPU75XA
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
-#### Connected to C-PHY of MAX96724 AIC
+#### Connected to C-PHY of MAX96724 AIC (REV B)
 
-![AIC jumper connections](max96724-fabb-cphy.png)
+> **Note:** Refer to [MAX96724 AIC (C-PHY) (REV B) Connection](#max96724-aic-c-phy-rev-b-connection) for hardware connection and jumper setup.
+
+<details>
+<summary>Click to expand BIOS camera link options</summary>
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -222,7 +287,14 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
-#### Connected to D-PHY of MAX96724 AIC (via C-to-D-PHY adaptor)
+</details>
+
+#### Connected to D-PHY of MAX96724 AIC (REV B) (via C-to-D-PHY adapter)
+
+> **Note:** Refer to [MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection](#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection) for hardware connection and jumper setup.
+
+<details>
+<summary>Click to expand BIOS camera link options</summary>
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -262,14 +334,19 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+</details>
+
 
 ### MIPI Camera Configuration for IPU8
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
-#### Connected to C-PHY of MAX96724 AIC
+#### Connected to C-PHY of MAX96724 AIC (REV A)
 
-![AIC jumper connections](max96724-fabb-cphy.png)
+> **Note:** Refer to [MAX96724 AIC (REV A) Connection](#max96724-aic-rev-a-connection) for hardware connection.
+
+<details>
+<summary>Click to expand BIOS camera link options</summary>
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -308,6 +385,8 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 18                   | 18                   |
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
+
+</details>
 
 ## Camera Configuration File Setup
 
@@ -402,16 +481,12 @@ Upon setup completion, verify sensor with:
 |---            |---            |
 | A             | 1             |
 | B             | 2             |
+| C             | 3             |
+| D             | 4             |
 
-For AIC MAX9296
+> **Note:** Link ports C and D are only applicable for MAX96724 AIC.
 
-![link-port](max9296-link-port.png)
-
-For AIC MAX96724
-
-![link-port](max96724-link-port.png)
-
-![link-port](max96724-link-port2.png)
+Refer to [MAX9296 (REV B) Connection](#max9296-rev-b-connection) or [MAX96724 AIC (REV A) Connection](#max96724-aic-rev-a-connection) under Hardware Connection for the physical link port layout.
 
 #### Frame Buffer Memory Type (IO Mode) Selection
 
