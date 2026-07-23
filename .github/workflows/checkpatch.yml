@@ -7,7 +7,7 @@ permissions:
 jobs:
   my_review:
     name: checkpatch review
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
