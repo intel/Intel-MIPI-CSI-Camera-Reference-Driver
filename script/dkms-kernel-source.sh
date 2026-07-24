@@ -156,16 +156,60 @@ if [[ -z "$archive" ]]; then
     fi
 fi
 
-# Read the first archive entry to determine the top-level directory name.
-# tar may receive SIGPIPE because we close the stream early; suppress that noise.
-IFS=/ read -r archive_root _ < <(tar -tf "$archive" 2>/dev/null || true)
+# Cache the archive listing once. Decompressing a ~150MB xz kernel tarball is
+# expensive (several seconds), and we consult the listing both to determine
+# the top-level directory and to enumerate matching members for every arg.
+mapfile -t archive_members < <(tar -tf "$archive" 2>/dev/null || true)
+if [[ ${#archive_members[@]} -eq 0 ]]; then
+    echo "dkms-kernel-source.sh: failed to list contents of ${archive}" >&2
+    exit 1
+fi
+
+# The first entry gives us the top-level directory name.
+IFS=/ read -r archive_root _ <<<"${archive_members[0]}"
 if [[ -z "${archive_root:-}" ]]; then
     echo "dkms-kernel-source.sh: could not determine archive root directory from ${archive}" >&2
     exit 1
 fi
 for arg in "$@"; do
-    echo "Extracting: $archive_root/$arg"
+    prefix="$archive_root/$arg"
+    echo "Extracting: $prefix"
+
+    # Some archives do not contain explicit directory entries. When POST_ADD
+    # passes a directory, expand members below that prefix. Avoid passing both
+    # the directory entry and its children to tar, which can trigger false
+    # "Not found in archive" errors on compressed one-pass reads.
+    if ! members_output="$(
+        printf '%s\n' "${archive_members[@]}" | awk -v p="$prefix" '
+            {
+                if (index($0, p "/") == 1 && $0 != p "/") {
+                    print $0
+                    found_descendants = 1
+                } else if ($0 == p || $0 == p "/") {
+                    exact = $0
+                }
+            }
+            END {
+                if (!found_descendants && exact != "") {
+                    print exact
+                }
+            }
+        '
+    )"; then
+        echo "dkms-kernel-source.sh: failed to enumerate archive members for '$prefix'" >&2
+        exit 1
+    fi
+
+    members=()
+    [[ -n "$members_output" ]] && mapfile -t members <<<"$members_output"
+
+    if [[ ${#members[@]} -eq 0 ]]; then
+        echo "dkms-kernel-source.sh: no archive members matched '$prefix'" >&2
+        exit 1
+    fi
+
     tar -xvf "$archive" \
        --xform="s,^${archive_root//./\\.}/,$major.$minor.0/," \
-       "$archive_root/$arg"
+         -- \
+       "${members[@]}"
 done

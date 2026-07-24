@@ -1,0 +1,164 @@
+name: dkms build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  ubuntu-dkms:
+    name: Ubuntu ${{ matrix.os_version }} DKMS (${{ matrix.kernel_family }})
+    runs-on: [self-hosted, linux]
+    container: ubuntu:${{ matrix.os_version }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      KERNEL_FAMILY: ${{ matrix.kernel_family }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os_version: '24.04', kernel_family: '6.12-intel' }
+          - { os_version: '24.04', kernel_family: '6.17-intel' }
+          - { os_version: '24.04', kernel_family: '6.18-intel' }
+          - { os_version: '24.04', kernel_family: '6.17' }
+          - { os_version: '24.04', kernel_family: '7.0' }
+          - { os_version: '26.04', kernel_family: '7.0' }
+    steps:
+      - name: Bootstrap git for checkout
+        run: |
+          apt-get update -q
+          apt-get install -y --no-install-recommends git ca-certificates
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+
+          # -intel matrix rows need the public Intel Linux Overlay (01.org).
+          # Canonical rows use only the Ubuntu default archives.
+          if [[ "${KERNEL_FAMILY}" == *-intel ]]; then
+            apt-get install -y --no-install-recommends curl gnupg
+            curl -fsSL https://download.01.org/intel-linux-overlay/ubuntu/E6FA98203588250569758E97D176E3162086EE4C.gpg \
+              | gpg --dearmor >/usr/share/keyrings/intel-linux-overlay.gpg
+            echo 'deb [signed-by=/usr/share/keyrings/intel-linux-overlay.gpg] https://download.01.org/intel-linux-overlay/ubuntu noble main kernels non-free multimedia' \
+              >/etc/apt/sources.list.d/intel-linux-overlay.list
+          fi
+
+          codename=$(. /etc/os-release && echo "$VERSION_CODENAME")
+          sed -i "s/${codename}-updates/${codename}-updates ${codename}-proposed/" /etc/apt/sources.list.d/ubuntu.sources
+          apt-get update -q
+          apt-get install -y --no-install-recommends \
+            build-essential ca-certificates curl dkms git kmod patch wget xz-utils
+
+      - name: Download header files
+        env:
+          OS_VERSION: ${{ matrix.os_version }}
+        run: |
+          set -euo pipefail
+          if [[ "${KERNEL_FAMILY}" == *-intel ]]; then
+            apt-get install -y "linux-headers-${KERNEL_FAMILY}"
+          fi
+          # 24.04 LTS needs HWE-edge / OEM meta-packages for newer kernels.
+          # 26.04+ ship newer kernels natively via linux-headers-generic.
+          if [[ "${OS_VERSION}" == "24.04" ]]; then
+            apt-get install -y \
+              linux-headers-generic \
+              linux-headers-generic-hwe-24.04-edge \
+              linux-headers-oem-24.04a \
+              linux-headers-oem-24.04b
+          else
+            apt-get install -y linux-headers-generic
+          fi
+
+      - name: Compile driver
+        run: |
+          set -euo pipefail
+          expect_intel=0
+          target_family="${KERNEL_FAMILY}"
+          if [[ "${KERNEL_FAMILY}" == *-intel ]]; then
+            expect_intel=1
+            target_family="${KERNEL_FAMILY%-intel}"
+          fi
+          target_regex="^${target_family//./\\.}([-.+].*|[a-z].*)?$"
+
+          package_name="$(sed -n 's/^PACKAGE_NAME="\(.*\)"/\1/p' dkms.conf)"
+          package_version="$(sed -n 's/^PACKAGE_VERSION="\(.*\)"/\1/p' dkms.conf)"
+          [[ -n "${package_name}" && -n "${package_version}" ]] \
+            || { echo "Failed to parse PACKAGE_NAME/PACKAGE_VERSION from dkms.conf" >&2; exit 1; }
+
+          # Derive upstream kernel source paths from dkms.conf POST_ADD+= lines
+          # so this workflow stays in sync when dkms.conf changes.
+          mapfile -t post_add_paths < <(
+            awk -F'"' '/^POST_ADD\+=/ {
+              n = split($2, a, " ")
+              for (i = 1; i <= n; i++) if (a[i] != "" && !seen[a[i]]++) print a[i]
+            }' dkms.conf
+          )
+          (( ${#post_add_paths[@]} > 0 )) \
+            || { echo "Failed to derive post_add_paths from dkms.conf" >&2; exit 1; }
+          echo "Derived post_add_paths from dkms.conf:"
+          printf '  %s\n' "${post_add_paths[@]}"
+
+          echo "Target kernel family: ${target_family} (expect_intel=${expect_intel})"
+          matched=0
+          failed=()
+
+          for kdir in /lib/modules/*/build; do
+            [[ -d "${kdir}" ]] || continue
+            kver="${kdir%/build}"; kver="${kver##*/}"
+
+            if [[ "${kver}" == *azure* ]]; then
+              echo "Skipping ${kver} (GitHub runner kernel)"; continue
+            fi
+            if [[ ! "${kver}" =~ ${target_regex} ]]; then
+              echo "Skipping ${kver} (family mismatch)"; continue
+            fi
+            is_intel=0; [[ "${kver}" == *-intel* ]] && is_intel=1
+            if (( is_intel != expect_intel )); then
+              echo "Skipping ${kver} (intel/canonical mismatch)"; continue
+            fi
+
+            (( matched += 1 ))
+            echo "=== Testing ${kver} ==="
+            dkms remove -m "${package_name}" -v "${package_version}" --all >/dev/null 2>&1 || true
+
+            # Neuter POST_ADD during `dkms add` — we run the source-fetch
+            # script manually below with the correct kernelver.
+            cp dkms.conf dkms.conf.ci.bak
+            sed -i 's|^POST_ADD=.*|POST_ADD="/bin/true"|' dkms.conf
+            if ! dkms add .; then
+              failed+=("${kver} (add)")
+              mv dkms.conf.ci.bak dkms.conf
+              continue
+            fi
+            mv dkms.conf.ci.bak dkms.conf
+
+            src="/usr/src/${package_name}-${package_version}"
+            build="/var/lib/dkms/${package_name}/${package_version}/build"
+            ( cd "${src}" && env kernelver="${kver}" bash ./script/dkms-kernel-source.sh "${post_add_paths[@]}" )
+            mkdir -p "${build}"
+            cp -a "${src}/." "${build}/"
+
+            echo "running: dkms build -k ${kver}"
+            dkms build -m "${package_name}" -v "${package_version}" -k "${kver}" || failed+=("${kver}")
+          done
+
+          if (( matched == 0 )); then
+            echo "#### No installed kernel headers matched target family ${target_family}"
+            exit 1
+          fi
+          if (( ${#failed[@]} > 0 )); then
+            echo "#### Failed kernels: ${failed[*]}"
+            exit 1
+          fi
+          echo "#### All builds succeeded for target family ${target_family}"
