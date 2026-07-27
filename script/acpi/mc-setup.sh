@@ -100,10 +100,12 @@
 declare -A SENSOR_MODEL=(
     [INTC10CD]=d4xx
     [INTC113C]=isx031
+    [INTC10C0]=ar0234
 )
 declare -A SENSOR_PREFIX=(
     [INTC10CD]="DS5 mux"
     [INTC113C]="isx031"
+    [INTC10C0]="ar0234"
 )
 
 # ---- Serializer / Deserializer HID -> v4l entity prefix ---------------------
@@ -128,10 +130,12 @@ declare -A MAX_LINKS_BY_PREFIX=(
 declare -A MODEL_STREAMS=(
     [d4xx]="depth rgb ir imu"
     [isx031]="yuv"
+    [ar0234]="raw"
 )
 declare -A MODEL_DEFAULT_STREAMS=(
     [d4xx]="depth rgb"
     [isx031]="yuv"
+    [ar0234]="raw"
 )
 
 # STREAM_NODE: per-stream capture-node index (also used as the v4l2
@@ -143,6 +147,7 @@ declare -A STREAM_NODE=(
     [ir]=2
     [imu]=3
     [yuv]=0
+    [raw]=0
 )
 
 # Keep capture-node groups consistent across 2-link and 4-link deserializers:
@@ -171,6 +176,7 @@ declare -A STREAM_FMT=(
     [ir]=${STREAM_FMT_ir:-VYUY8_1X16}
     [imu]=${STREAM_FMT_imu:-Y8_1X8}
     [yuv]=${STREAM_FMT_yuv:-UYVY8_1X16}
+    [raw]=${STREAM_FMT_raw:-SGRBG10_1X10}
 )
 declare -A STREAM_SIZE=(
     [depth]=${STREAM_SIZE_depth:-$D4XX_SIZE}
@@ -178,6 +184,7 @@ declare -A STREAM_SIZE=(
     [ir]=${STREAM_SIZE_ir:-$D4XX_SIZE}
     [imu]=${STREAM_SIZE_imu:-38x1}
     [yuv]=${STREAM_SIZE_yuv:-1920x1536}
+    [raw]=${STREAM_SIZE_raw:-1280x960}
 )
 
 # ---- Media-bus -> V4L2 pixelformat fourcc (used on capture nodes) -----------
@@ -186,6 +193,7 @@ declare -A MBUS_TO_PIXFMT=(
     [YUYV8_1X16]="YUYV"
     [VYUY8_1X16]="Y8I "   # IR -> interleaved 8-bit greyscale
     [Y8_1X8]="GREY"
+    [SGRBG10_1X10]="BA10"  # AR0234 RAW Bayer SGRBG 10-bit
 )
 
 # =============================================================================
@@ -781,7 +789,7 @@ for k in "${!CFG_LINKS[@]}"; do
 
             unset is_selected
             ;;
-        isx031)
+        isx031|ar0234)
             ser_route_parts=()
             for s in "${sel_streams[@]}"; do
                 sid=${STREAM_NODE[$s]}
@@ -843,6 +851,9 @@ for k in "${!CFG_LINKS[@]}"; do
                 ;;
             isx031)
                 mc_v "\"isx031 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
+                ;;
+            ar0234)
+                mc_v "\"ar0234 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
                 ;;
         esac
         mc_v "\"${ser_pfx} ${ser}\":0/${sid} [fmt:${fmt}/${size} field:none]"
