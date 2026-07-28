@@ -50,30 +50,13 @@
 #   MAX_LINKS_max96724       Default: 4
 #   MAX_LINKS_max9296a       Default: 2
 #
-# D4XX default frame size (used for depth/rgb/ir when STREAM_SIZE_* unset):
-#   D4XX_WIDTH               Default: 640
-#   D4XX_HEIGHT              Default: 480
-#
-# Per-stream media-bus code overrides (STREAM_FMT_<token>):
-#   STREAM_FMT_depth         Default: UYVY8_1X16
-#   STREAM_FMT_rgb           Default: YUYV8_1X16
-#   STREAM_FMT_ir            Default: VYUY8_1X16
-#   STREAM_FMT_imu           Default: Y8_1X8
-#   STREAM_FMT_yuv           Default: UYVY8_1X16
-#
-# Per-stream frame size overrides (STREAM_SIZE_<token>):
-#   STREAM_SIZE_depth        Default: ${D4XX_WIDTH}x${D4XX_HEIGHT}
-#   STREAM_SIZE_rgb          Default: ${D4XX_WIDTH}x${D4XX_HEIGHT}
-#   STREAM_SIZE_ir           Default: ${D4XX_WIDTH}x${D4XX_HEIGHT}
-#   STREAM_SIZE_imu          Default: 38x1
-#   STREAM_SIZE_yuv          Default: 1920x1536
-#
 # IPU7 CSI2 RX source-pad cap:
 #   IPU_CSI2_SRC_PADS        Default: 16 (use 8 without the D4XX IPU7 patch).
 #
 # Example:
-#   DES_HID=INTC1139 D4XX_WIDTH=1280 D4XX_HEIGHT=720 \
-#       ./mc-setup.sh link=0,stream=depth,rgb link=1,stream=depth
+#   DES_HID=INTC1139 ./mc-setup.sh \
+#       link=0,stream=depth,res=1280x720,format=UYVY8_1X16 \
+#       link=1,stream=depth
 #
 # =============================================================================
 # USER CONFIGURATION
@@ -88,7 +71,7 @@
 #   3. List the model's stream tokens in MODEL_STREAMS and pick defaults in
 #      MODEL_DEFAULT_STREAMS.
 #   4. For each new stream token, set STREAM_NODE (and STREAM_MUXPAD if it
-#      flows through a d4xx-style mux), STREAM_FMT, STREAM_SIZE.
+#      flows through a d4xx-style mux).
 #   5. If your new media-bus code isn't covered, extend MBUS_TO_PIXFMT.
 #   6. If the sensor needs custom media-ctl wiring beyond a plain serializer
 #      pass-through (e.g. a mux subdev), extend the per-model case statements
@@ -167,29 +150,6 @@ declare -A STREAM_MUXPAD=(
     [rgb]=2
     [ir]=3
     [imu]=4
-)
-
-# ---- Per-stream media-bus format and frame size -----------------------------
-# Env-var overrides take precedence; use `STREAM_FMT_<token>` / `STREAM_SIZE_<token>`.
-D4XX_WIDTH=${D4XX_WIDTH:-640}
-D4XX_HEIGHT=${D4XX_HEIGHT:-480}
-D4XX_SIZE="${D4XX_WIDTH}x${D4XX_HEIGHT}"
-
-declare -A STREAM_FMT=(
-    [depth]=${STREAM_FMT_depth:-UYVY8_1X16}
-    [rgb]=${STREAM_FMT_rgb:-YUYV8_1X16}
-    [ir]=${STREAM_FMT_ir:-VYUY8_1X16}
-    [imu]=${STREAM_FMT_imu:-Y8_1X8}
-    [yuv]=${STREAM_FMT_yuv:-UYVY8_1X16}
-    [raw]=${STREAM_FMT_raw:-SGRBG10_1X10}
-)
-declare -A STREAM_SIZE=(
-    [depth]=${STREAM_SIZE_depth:-$D4XX_SIZE}
-    [rgb]=${STREAM_SIZE_rgb:-$D4XX_SIZE}
-    [ir]=${STREAM_SIZE_ir:-$D4XX_SIZE}
-    [imu]=${STREAM_SIZE_imu:-38x1}
-    [yuv]=${STREAM_SIZE_yuv:-1920x1536}
-    [raw]=${STREAM_SIZE_raw:-1280x960}
 )
 
 # ---- Media-bus -> V4L2 pixelformat fourcc (used on capture nodes) -----------
@@ -633,8 +593,8 @@ print_topology() {
 # -------- per-sensor media-ctl programming -----------------------------------
 #
 # CLI:
-#     mc-mixed.sh                                      # default per-model streams, all DES
-#     mc-mixed.sh [des=D,]link=N,stream=<csv> ...
+#     mc-setup.sh                                      # default per-model streams, all DES
+#     mc-setup.sh [des=D,]link=N[,stream=<csv>][,res=WxH][,format=MBUS_CODE] ...
 #
 # When des= is omitted, des=0 is assumed (matches the legacy single-DES CLI).
 #
@@ -642,7 +602,7 @@ print_topology() {
 #     d4xx:   depth | rgb | ir | imu
 #     isx031: yuv
 #
-# Default streams when no link is specified:
+# Default streams when no stream is specified for a link:
 #     d4xx   -> depth,rgb
 #     isx031 -> yuv
 # applied to every link discovered under every deserializer.
@@ -666,11 +626,26 @@ print_topology() {
 # =============================================================================
 # Per-sensor stream lookups
 # =============================================================================
-# Thin wrappers over the STREAM_FMT / STREAM_SIZE / MODEL_STREAMS tables
-# declared at the top of the file.
 
-stream_fmt()  { echo "${STREAM_FMT[$1]:-}"; }
-stream_size() { echo "${STREAM_SIZE[$1]:-}"; }
+# Query one sensor source pad and print "<mbus-code> <width>x<height>".
+sensor_active_format() {
+    local model=$1 cam=$2 stream=$3 sid=$4 entity pad output fmt size
+
+    case "$model" in
+        d4xx)  entity="D4XX ${stream} ${cam}"; pad=0 ;;
+        isx031) entity="isx031 ${cam}"; pad="0/${sid}" ;;
+        *) return 1 ;;
+    esac
+
+    output=$(media-ctl --get-v4l2 "\"${entity}\":${pad}" 2>/dev/null) || return 1
+    if [[ $output =~ fmt:([[:alnum:]_]+)/([0-9]+x[0-9]+) ]]; then
+        fmt=${BASH_REMATCH[1]}
+        size=${BASH_REMATCH[2]}
+        echo "$fmt $size"
+        return 0
+    fi
+    return 1
+}
 
 # Is stream token $1 declared as valid for model $2?
 stream_valid_for_model() {
@@ -728,6 +703,8 @@ print_topology
 declare -a CFG_DES=()
 declare -a CFG_LINKS=()
 declare -a CFG_STREAMS=()
+declare -a CFG_RES=()
+declare -a CFG_FORMAT=()
 
 if [ "$#" -eq 0 ]; then
     # Default: program every discovered link with its model's default streams.
@@ -737,17 +714,21 @@ if [ "$#" -eq 0 ]; then
             CFG_DES+=("$d")
             CFG_LINKS+=("$l")
             CFG_STREAMS+=("${MODEL_DEFAULT_STREAMS[${CAM_MODEL[$key]}]}")
+            CFG_RES+=("")
+            CFG_FORMAT+=("")
         done
     done
 else
     for arg in "$@"; do
-        des=""; link=""; streams=""
+        des=""; link=""; streams=""; res=""; format=""
         IFS=',' read -ra parts <<<"$arg"
         for kv in "${parts[@]}"; do
             case "$kv" in
                 des=*)    des=${kv#des=} ;;
                 link=*)   link=${kv#link=} ;;
                 stream=*) streams+="${streams:+ }${kv#stream=}" ;;
+                res=*)    res=${kv#res=} ;;
+                format=*) format=${kv#format=} ;;
                 *)
                     if is_known_stream "$kv"; then
                         streams+="${streams:+ }$kv"
@@ -758,8 +739,11 @@ else
             esac
         done
         [ -n "$link" ]    || die "missing link= in '$arg'"
-        [ -n "$streams" ] || die "missing stream= in '$arg'"
         [[ $link =~ ^[0-9]+$ ]] || die "link must be numeric (got '$link')"
+        [ -z "$res" ] || [[ $res =~ ^[0-9]+x[0-9]+$ ]] \
+            || die "res must be WIDTHxHEIGHT (got '$res')"
+        [ -z "$format" ] || [[ $format =~ ^[[:alnum:]_]+$ ]] \
+            || die "format must be a media-bus code (got '$format')"
         # Default des=0 when only one DES is present and des= was omitted.
         if [ -z "$des" ]; then
             if [ "$NUM_DES" -gt 1 ]; then
@@ -771,6 +755,7 @@ else
         (( des < NUM_DES )) || die "des=$des out of range (have ${NUM_DES} DES)"
         key="${des}_${link}"
         [ -n "${CAM_MODEL[$key]:-}" ] || die "no camera discovered on DES${des} link ${link}"
+        [ -n "$streams" ] || streams=${MODEL_DEFAULT_STREAMS[${CAM_MODEL[$key]}]}
         for s in $streams; do
             stream_valid_for_model "$s" "${CAM_MODEL[$key]}" \
                 || die "stream '$s' invalid for ${CAM_MODEL[$key]} on DES${des} link ${link}"
@@ -778,6 +763,8 @@ else
         CFG_DES+=("$des")
         CFG_LINKS+=("$link")
         CFG_STREAMS+=("$streams")
+        CFG_RES+=("$res")
+        CFG_FORMAT+=("$format")
     done
     # Reject duplicate (des,link) entries.
     declare -A seen=()
@@ -787,6 +774,31 @@ else
         seen[$sk]=1
     done
 fi
+
+# Resolve each selected stream's format and size. A per-link CLI value wins;
+# otherwise preserve the active format currently reported by the sensor.
+declare -A CFG_STREAM_FMT=()
+declare -A CFG_STREAM_SIZE=()
+for k in "${!CFG_LINKS[@]}"; do
+    d=${CFG_DES[$k]}
+    l=${CFG_LINKS[$k]}
+    key="${d}_${l}"
+    model=${CAM_MODEL[$key]}
+    cam=${CAM_BA[$key]}
+    for s in ${CFG_STREAMS[$k]}; do
+        sid=${STREAM_NODE[$s]}
+        detected_fmt=""
+        detected_size=""
+        if [ -z "${CFG_FORMAT[$k]}" ] || [ -z "${CFG_RES[$k]}" ]; then
+            detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
+                die "cannot read active format from ${model} sensor on" \
+                    "DES${d} link ${l}, stream ${s}"
+            read -r detected_fmt detected_size <<<"$detected"
+        fi
+        CFG_STREAM_FMT["${k}_${s}"]=${CFG_FORMAT[$k]:-$detected_fmt}
+        CFG_STREAM_SIZE["${k}_${s}"]=${CFG_RES[$k]:-$detected_size}
+    done
+done
 
 # IPU7 CSI2 RX source-pad cap (16 with the D4XX patch, 8 otherwise).
 IPU_CSI2_SRC_PADS=${IPU_CSI2_SRC_PADS:-16}
@@ -953,8 +965,8 @@ for k in "${!CFG_LINKS[@]}"; do
         sid=${STREAM_NODE[$s]}
         csi2_pad=${CSI2_PAD["${k}_${s}"]}
         des_stream=${DES_STREAM["${k}_${s}"]}
-        fmt=$(stream_fmt "$s")
-        size=$(stream_size "$s")
+        fmt=${CFG_STREAM_FMT["${k}_${s}"]}
+        size=${CFG_STREAM_SIZE["${k}_${s}"]}
 
         case "$model" in
             d4xx)
@@ -982,9 +994,9 @@ for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     for s in ${CFG_STREAMS[$k]}; do
         node=$(( CAPTURE_BASE[d] + CSI2_PAD["${k}_${s}"] ))
-        pixfmt=$(mbus_to_pixfmt "$(stream_fmt "$s")")
+        pixfmt=$(mbus_to_pixfmt "${CFG_STREAM_FMT["${k}_${s}"]}")
         [ -z "$pixfmt" ] && continue
-        size=$(stream_size "$s")
+        size=${CFG_STREAM_SIZE["${k}_${s}"]}
         w=${size%x*}
         h=${size#*x}
         v4l2-ctl -d "/dev/video${node}" \
