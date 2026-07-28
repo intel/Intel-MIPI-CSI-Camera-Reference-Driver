@@ -595,6 +595,8 @@ print_topology() {
 # CLI:
 #     mc-setup.sh                                      # default per-model streams, all DES
 #     mc-setup.sh [des=D,]link=N[,stream=<csv>][,res=WxH][,format=MBUS_CODE] ...
+#     mc-setup.sh [des=D,]link=N,stream=[TOKEN,res=WxH,format=MBUS_CODE],\
+#                                      [TOKEN,res=WxH,format=MBUS_CODE] ...
 #
 # When des= is omitted, des=0 is assumed (matches the legacy single-DES CLI).
 #
@@ -705,6 +707,8 @@ declare -a CFG_LINKS=()
 declare -a CFG_STREAMS=()
 declare -a CFG_RES=()
 declare -a CFG_FORMAT=()
+declare -A CFG_STREAM_RES=()
+declare -A CFG_STREAM_FORMAT=()
 
 if [ "$#" -eq 0 ]; then
     # Default: program every discovered link with its model's default streams.
@@ -721,6 +725,49 @@ if [ "$#" -eq 0 ]; then
 else
     for arg in "$@"; do
         des=""; link=""; streams=""; res=""; format=""
+        declare -A arg_stream_res=()
+        declare -A arg_stream_format=()
+
+        # Parse bracketed per-stream settings before splitting the remaining
+        # link-level options on commas.
+        if [[ $arg == *",stream=["* ]]; then
+            stream_specs=${arg#*,stream=}
+            arg=${arg%%,stream=*}
+            while [ -n "$stream_specs" ]; do
+                if [[ $stream_specs =~ ^\[([^][]+)\](,(.*))?$ ]]; then
+                    stream_spec=${BASH_REMATCH[1]}
+                    stream_specs=${BASH_REMATCH[3]}
+                else
+                    die "invalid bracketed stream specification in '$stream_specs'"
+                fi
+
+                IFS=',' read -ra stream_parts <<<"$stream_spec"
+                s=${stream_parts[0]}
+                is_known_stream "$s" || die "unknown stream '$s' in '$stream_spec'"
+                [ -z "${arg_stream_res[$s]+x}" ] && \
+                    [ -z "${arg_stream_format[$s]+x}" ] && \
+                    [[ " $streams " != *" $s "* ]] \
+                    || die "stream '$s' specified more than once"
+                streams+="${streams:+ }$s"
+                for stream_kv in "${stream_parts[@]:1}"; do
+                    case "$stream_kv" in
+                        res=*)
+                            arg_stream_res[$s]=${stream_kv#res=}
+                            [[ ${arg_stream_res[$s]} =~ ^[0-9]+x[0-9]+$ ]] \
+                                || die "res must be WIDTHxHEIGHT (got '${arg_stream_res[$s]}')"
+                            ;;
+                        format=*)
+                            arg_stream_format[$s]=${stream_kv#format=}
+                            [[ ${arg_stream_format[$s]} =~ ^[[:alnum:]_]+$ ]] \
+                                || die "format must be a media-bus code" \
+                                    "(got '${arg_stream_format[$s]}')"
+                            ;;
+                        *) die "unrecognized stream option '$stream_kv' in '$stream_spec'" ;;
+                    esac
+                done
+            done
+        fi
+
         IFS=',' read -ra parts <<<"$arg"
         for kv in "${parts[@]}"; do
             case "$kv" in
@@ -765,6 +812,12 @@ else
         CFG_STREAMS+=("$streams")
         CFG_RES+=("$res")
         CFG_FORMAT+=("$format")
+        k=$((${#CFG_LINKS[@]} - 1))
+        for s in $streams; do
+            CFG_STREAM_RES["${k}_${s}"]=${arg_stream_res[$s]:-}
+            CFG_STREAM_FORMAT["${k}_${s}"]=${arg_stream_format[$s]:-}
+        done
+        unset arg_stream_res arg_stream_format
     done
     # Reject duplicate (des,link) entries.
     declare -A seen=()
@@ -787,16 +840,18 @@ for k in "${!CFG_LINKS[@]}"; do
     cam=${CAM_BA[$key]}
     for s in ${CFG_STREAMS[$k]}; do
         sid=${STREAM_NODE[$s]}
+        requested_fmt=${CFG_STREAM_FORMAT["${k}_${s}"]:-${CFG_FORMAT[$k]}}
+        requested_size=${CFG_STREAM_RES["${k}_${s}"]:-${CFG_RES[$k]}}
         detected_fmt=""
         detected_size=""
-        if [ -z "${CFG_FORMAT[$k]}" ] || [ -z "${CFG_RES[$k]}" ]; then
+        if [ -z "$requested_fmt" ] || [ -z "$requested_size" ]; then
             detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
                 die "cannot read active format from ${model} sensor on" \
                     "DES${d} link ${l}, stream ${s}"
             read -r detected_fmt detected_size <<<"$detected"
         fi
-        CFG_STREAM_FMT["${k}_${s}"]=${CFG_FORMAT[$k]:-$detected_fmt}
-        CFG_STREAM_SIZE["${k}_${s}"]=${CFG_RES[$k]:-$detected_size}
+        CFG_STREAM_FMT["${k}_${s}"]=${requested_fmt:-$detected_fmt}
+        CFG_STREAM_SIZE["${k}_${s}"]=${requested_size:-$detected_size}
     done
 done
 
@@ -852,7 +907,9 @@ for k in "${!CFG_LINKS[@]}"; do
     for s in ${CFG_STREAMS[$k]}; do
         csi2_pad=${CSI2_PAD["${k}_${s}"]}
         node=$(( CAPTURE_BASE[d] + csi2_pad ))
-        echo -e "\t\t Stream\t\t [${s}] --> \t/dev/video${node}"
+        printf "                 Stream          %-8s %-10s %-12s -->  /dev/video%s\n" \
+            "[${s}]" "${CFG_STREAM_SIZE["${k}_${s}"]}" \
+            "${CFG_STREAM_FMT["${k}_${s}"]}" "$node"
     done
 done
 
