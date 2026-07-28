@@ -588,6 +588,7 @@ print_topology() {
             "$i" "${MIPI_PREFIX[$i]}" "${MIPI_BA[$i]}" \
             "${MIPI_CSI2[$i]}" "${MIPI_CAP[$i]}"
     done
+    echo ""
 }
 
 # -------- per-sensor media-ctl programming -----------------------------------
@@ -629,17 +630,23 @@ print_topology() {
 # Per-sensor stream lookups
 # =============================================================================
 
-# Query one sensor source pad and print "<mbus-code> <width>x<height>".
-sensor_active_format() {
-    local model=$1 cam=$2 stream=$3 sid=$4 entity pad output fmt size
+sensor_entity_pad() {
+    local model=$1 cam=$2 stream=$3 sid=$4
 
     case "$model" in
-        d4xx)  entity="D4XX ${stream} ${cam}"; pad=0 ;;
-        isx031) entity="isx031 ${cam}"; pad="0/${sid}" ;;
+        d4xx)   SENSOR_ENTITY="D4XX ${stream} ${cam}"; SENSOR_PAD=0; SENSOR_SID=0 ;;
+        isx031) SENSOR_ENTITY="isx031 ${cam}"; SENSOR_PAD=0; SENSOR_SID=$sid ;;
         *) return 1 ;;
     esac
+}
 
-    output=$(media-ctl --get-v4l2 "\"${entity}\":${pad}" 2>/dev/null) || return 1
+# Query one sensor source pad and print "<mbus-code> <width>x<height>".
+sensor_active_format() {
+    local model=$1 cam=$2 stream=$3 sid=$4 output fmt size
+
+    sensor_entity_pad "$model" "$cam" "$stream" "$sid" || return 1
+    output=$(media-ctl --get-v4l2 \
+        "\"${SENSOR_ENTITY}\":${SENSOR_PAD}/${SENSOR_SID}" 2>/dev/null) || return 1
     if [[ $output =~ fmt:([[:alnum:]_]+)/([0-9]+x[0-9]+) ]]; then
         fmt=${BASH_REMATCH[1]}
         size=${BASH_REMATCH[2]}
@@ -647,6 +654,89 @@ sensor_active_format() {
         return 0
     fi
     return 1
+}
+
+# Print the requested format/size after checking the sensor's advertised
+# format-resolution combinations. Retain the active value for unsupported
+# fields.
+sensor_validate_format_size() {
+    local model=$1 cam=$2 stream=$3 sid=$4 requested_fmt=$5 requested_size=$6
+    local active_fmt=$7 active_size=$8 context=$9 dev codes line code name
+    local selected_fmt selected_size selected_code sizes supported
+    local min_w min_h max_w max_h req_w req_h
+    local range_re
+
+    range_re='Size[[:space:]]Range:[[:space:]]([0-9]+)x([0-9]+)'
+    range_re+='[[:space:]]-[[:space:]]([0-9]+)x([0-9]+)'
+
+    selected_fmt=${requested_fmt:-$active_fmt}
+    selected_size=${requested_size:-$active_size}
+    sensor_entity_pad "$model" "$cam" "$stream" "$sid" || return 1
+    dev=$(media-ctl -e "$SENSOR_ENTITY" 2>/dev/null) || {
+        echo "$selected_fmt $selected_size"
+        return 0
+    }
+
+    codes=$(v4l2-ctl -d "$dev" --list-subdev-mbus-codes \
+        pad="$SENSOR_PAD",stream="$SENSOR_SID" 2>/dev/null) || {
+        echo "$selected_fmt $selected_size"
+        return 0
+    }
+    while IFS= read -r line; do
+        if [[ $line =~ (0x[[:xdigit:]]+):[[:space:]]+MEDIA_BUS_FMT_([[:alnum:]_]+) ]]; then
+            code=${BASH_REMATCH[1]}
+            name=${BASH_REMATCH[2]^^}
+            if [ "$name" = "${selected_fmt^^}" ]; then
+                selected_code=$code
+                selected_fmt=$name
+            fi
+        fi
+    done <<<"$codes"
+
+    if [ -z "$selected_code" ]; then
+        [ -z "$requested_fmt" ] || printf \
+            "WARN: %s: format '%s' is unsupported; retaining current active format '%s'\n" \
+            "$context" "$requested_fmt" "$active_fmt" >&2
+        selected_fmt=$active_fmt
+        while IFS= read -r line; do
+            if [[ $line =~ (0x[[:xdigit:]]+):[[:space:]]+MEDIA_BUS_FMT_([[:alnum:]_]+) ]]; then
+                code=${BASH_REMATCH[1]}
+                name=${BASH_REMATCH[2]^^}
+                [ "$name" = "${active_fmt^^}" ] && selected_code=$code
+            fi
+        done <<<"$codes"
+    fi
+
+    if [ -n "$requested_size" ] && [ -n "$selected_code" ]; then
+        sizes=$(v4l2-ctl -d "$dev" --list-subdev-framesizes \
+            pad="$SENSOR_PAD",stream="$SENSOR_SID",code="$selected_code" 2>/dev/null) || sizes=""
+        supported=0
+        while IFS= read -r line; do
+            if [[ $line =~ $range_re ]]; then
+                min_w=${BASH_REMATCH[1]}; min_h=${BASH_REMATCH[2]}
+                max_w=${BASH_REMATCH[3]}; max_h=${BASH_REMATCH[4]}
+                req_w=${requested_size%x*}; req_h=${requested_size#*x}
+                if (( req_w >= min_w && req_w <= max_w && req_h >= min_h && req_h <= max_h )); then
+                    supported=1
+                    break
+                fi
+            elif [[ $line =~ Size:[[:space:]]Discrete[[:space:]]([0-9]+)x([0-9]+) ]]; then
+                req_w=${requested_size%x*}; req_h=${requested_size#*x}
+                if (( req_w == BASH_REMATCH[1] && req_h == BASH_REMATCH[2] )); then
+                    supported=1
+                    break
+                fi
+            fi
+        done <<<"$sizes"
+        if [ -n "$sizes" ] && (( ! supported )); then
+            printf "WARN: %s: resolution '%s' is unsupported with format '%s'; " \
+                "$context" "$requested_size" "$selected_fmt" >&2
+            printf "retaining current active resolution '%s'\n" "$active_size" >&2
+            selected_size=$active_size
+        fi
+    fi
+
+    echo "$selected_fmt $selected_size"
 }
 
 # Is stream token $1 declared as valid for model $2?
@@ -828,8 +918,8 @@ else
     done
 fi
 
-# Resolve each selected stream's format and size. A per-link CLI value wins;
-# otherwise preserve the active format currently reported by the sensor.
+# Resolve and validate each selected stream's format and size. Requested values
+# win when the sensor advertises support; otherwise retain its active settings.
 declare -A CFG_STREAM_FMT=()
 declare -A CFG_STREAM_SIZE=()
 for k in "${!CFG_LINKS[@]}"; do
@@ -842,16 +932,14 @@ for k in "${!CFG_LINKS[@]}"; do
         sid=${STREAM_NODE[$s]}
         requested_fmt=${CFG_STREAM_FORMAT["${k}_${s}"]:-${CFG_FORMAT[$k]}}
         requested_size=${CFG_STREAM_RES["${k}_${s}"]:-${CFG_RES[$k]}}
-        detected_fmt=""
-        detected_size=""
-        if [ -z "$requested_fmt" ] || [ -z "$requested_size" ]; then
-            detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
-                die "cannot read active format from ${model} sensor on" \
-                    "DES${d} link ${l}, stream ${s}"
-            read -r detected_fmt detected_size <<<"$detected"
-        fi
-        CFG_STREAM_FMT["${k}_${s}"]=${requested_fmt:-$detected_fmt}
-        CFG_STREAM_SIZE["${k}_${s}"]=${requested_size:-$detected_size}
+        detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
+            die "cannot read active format from ${model} sensor on" \
+                "DES${d} link ${l}, stream ${s}"
+        read -r detected_fmt detected_size <<<"$detected"
+        validated=$(sensor_validate_format_size "$model" "$cam" "$s" "$sid" \
+            "$requested_fmt" "$requested_size" "$detected_fmt" "$detected_size" \
+            "DES${d} link ${l} stream ${s}")
+        read -r CFG_STREAM_FMT["${k}_${s}"] CFG_STREAM_SIZE["${k}_${s}"] <<<"$validated"
     done
 done
 
