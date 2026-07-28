@@ -754,10 +754,35 @@ is_known_stream() { [ -n "${STREAM_NODE[$1]+x}" ]; }
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
+check_media_tools() {
+    local missing=() tool
+    for tool in media-ctl v4l2-ctl; do
+        command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+    done
+    [ "${#missing[@]}" -eq 0 ] && return 0
+
+    echo "Missing required command(s): ${missing[*]}; installing v4l-utils..." >&2
+    command -v apt-get >/dev/null 2>&1 \
+        || die "apt-get not found; install v4l-utils manually"
+
+    local apt=(apt-get)
+    if (( EUID != 0 )); then
+        command -v sudo >/dev/null 2>&1 \
+            || die "root privileges are required to install v4l-utils"
+        apt=(sudo apt-get)
+    fi
+    "${apt[@]}" install -y v4l-utils \
+        || die "failed to install v4l-utils"
+
+    for tool in media-ctl v4l2-ctl; do
+        command -v "$tool" >/dev/null 2>&1 \
+            || die "$tool is still unavailable after installing v4l-utils"
+    done
+}
+
 # Require media-ctl >= 1.30 (older releases lack the streams/routing API used here).
 check_media_ctl_version() {
     local required_major=1 required_minor=30
-    command -v media-ctl >/dev/null 2>&1 || die "media-ctl not found in PATH"
 
     local ver
     ver=$(media-ctl --version 2>/dev/null | awk '/^media-ctl[[:space:]]+[0-9]+\./ {print $2; exit}')
@@ -777,6 +802,7 @@ check_media_ctl_version() {
 
 # -------- main ----------------------------------------------------------------
 
+check_media_tools
 check_media_ctl_version
 discover || exit 1
 
