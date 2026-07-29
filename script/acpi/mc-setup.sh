@@ -596,8 +596,8 @@ print_topology() {
 # CLI:
 #     mc-setup.sh                                      # default per-model streams, all DES
 #     mc-setup.sh [des=D,]link=N[,stream=<csv>][,res=WxH][,format=MBUS_CODE] ...
-#     mc-setup.sh [des=D,]link=N,stream=[TOKEN,res=WxH,format=MBUS_CODE],\
-#                                      [TOKEN,res=WxH,format=MBUS_CODE] ...
+#     mc-setup.sh [des=D,]link=N,stream=[TOKEN,res=WxH,format=MBUS_CODE,fps=FPS],\
+#                                      [TOKEN,res=WxH,format=MBUS_CODE,fps=FPS] ...
 #
 # When des= is omitted, des=0 is assumed (matches the legacy single-DES CLI).
 #
@@ -651,6 +651,20 @@ sensor_active_format() {
         fmt=${BASH_REMATCH[1]}
         size=${BASH_REMATCH[2]}
         echo "$fmt $size"
+        return 0
+    fi
+    return 1
+}
+
+sensor_active_fps() {
+    local model=$1 cam=$2 stream=$3 sid=$4 dev output
+
+    sensor_entity_pad "$model" "$cam" "$stream" "$sid" || return 1
+    dev=$(media-ctl -e "$SENSOR_ENTITY" 2>/dev/null) || return 1
+    output=$(v4l2-ctl -d "$dev" --get-subdev-fps \
+        pad="$SENSOR_PAD",stream="$SENSOR_SID" 2>/dev/null) || return 1
+    if [[ $output =~ Frames[[:space:]]per[[:space:]]second:[[:space:]]([0-9.]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
         return 0
     fi
     return 1
@@ -739,6 +753,70 @@ sensor_validate_format_size() {
     echo "$selected_fmt $selected_size"
 }
 
+sensor_validate_fps() {
+    local model=$1 cam=$2 stream=$3 sid=$4 fmt=$5 size=$6
+    local requested_fps=$7 active_fps=$8 context=$9 dev codes line code name
+    local interval_args intervals candidate selected_fps supported=0
+
+    selected_fps=${requested_fps:-$active_fps}
+    [ -n "$requested_fps" ] || { echo "$selected_fps"; return; }
+    sensor_entity_pad "$model" "$cam" "$stream" "$sid" || return 1
+    dev=$(media-ctl -e "$SENSOR_ENTITY" 2>/dev/null) || {
+        echo "$selected_fps"
+        return
+    }
+    codes=$(v4l2-ctl -d "$dev" --list-subdev-mbus-codes \
+        pad="$SENSOR_PAD",stream="$SENSOR_SID" 2>/dev/null) || {
+        echo "$selected_fps"
+        return
+    }
+    while IFS= read -r line; do
+        if [[ $line =~ (0x[[:xdigit:]]+):[[:space:]]+MEDIA_BUS_FMT_([[:alnum:]_]+) ]]; then
+            name=${BASH_REMATCH[2]^^}
+            [ "$name" = "${fmt^^}" ] && code=${BASH_REMATCH[1]}
+        fi
+    done <<<"$codes"
+    [ -n "$code" ] || { echo "$selected_fps"; return; }
+
+    interval_args="pad=${SENSOR_PAD},stream=${SENSOR_SID},code=${code}"
+    interval_args+=",width=${size%x*},height=${size#*x}"
+    intervals=$(v4l2-ctl -d "$dev" --list-subdev-frameintervals \
+        "$interval_args" 2>/dev/null) || intervals=""
+    while IFS= read -r line; do
+        if [[ $line =~ \(([0-9.]+)[[:space:]]fps\) ]]; then
+            candidate=${BASH_REMATCH[1]}
+            awk -v a="$candidate" -v b="$requested_fps" \
+                'BEGIN { exit !((a - b < 0.0005) && (b - a < 0.0005)) }' && {
+                selected_fps=$candidate
+                supported=1
+                break
+            }
+        fi
+    done <<<"$intervals"
+    if (( ! supported )); then
+        printf "WARN: %s: FPS '%s' is unsupported with %s/%s; " \
+            "$context" "$requested_fps" "$fmt" "$size" >&2
+        printf "retaining current active FPS '%s'\n" "$active_fps" >&2
+        selected_fps=$active_fps
+    fi
+    echo "$selected_fps"
+}
+
+sensor_set_fps() {
+    local model=$1 cam=$2 stream=$3 sid=$4 fps=$5 context=$6 dev output
+
+    sensor_entity_pad "$model" "$cam" "$stream" "$sid" || return 1
+    dev=$(media-ctl -e "$SENSOR_ENTITY" 2>/dev/null) || return 1
+    v4l2-ctl -d "$dev" --set-subdev-fps \
+        pad="$SENSOR_PAD",stream="$SENSOR_SID",fps="$fps" >/dev/null \
+        || { echo "WARN: ${context}: failed to set FPS '${fps}'" >&2; return 1; }
+    output=$(v4l2-ctl -d "$dev" --get-subdev-fps \
+        pad="$SENSOR_PAD",stream="$SENSOR_SID" 2>/dev/null) || return 1
+    [[ $output =~ Frames[[:space:]]per[[:space:]]second:[[:space:]]([0-9.]+) ]] \
+        || return 1
+    echo "${BASH_REMATCH[1]}"
+}
+
 # Is stream token $1 declared as valid for model $2?
 stream_valid_for_model() {
     local s=$1 model=$2 t
@@ -825,6 +903,7 @@ declare -a CFG_RES=()
 declare -a CFG_FORMAT=()
 declare -A CFG_STREAM_RES=()
 declare -A CFG_STREAM_FORMAT=()
+declare -A CFG_STREAM_FPS_REQUEST=()
 
 if [ "$#" -eq 0 ]; then
     # Default: program every discovered link with its model's default streams.
@@ -843,6 +922,7 @@ else
         des=""; link=""; streams=""; res=""; format=""
         declare -A arg_stream_res=()
         declare -A arg_stream_format=()
+        declare -A arg_stream_fps=()
 
         # Parse bracketed per-stream settings before splitting the remaining
         # link-level options on commas.
@@ -877,6 +957,11 @@ else
                             [[ ${arg_stream_format[$s]} =~ ^[[:alnum:]_]+$ ]] \
                                 || die "format must be a media-bus code" \
                                     "(got '${arg_stream_format[$s]}')"
+                            ;;
+                        fps=*)
+                            arg_stream_fps[$s]=${stream_kv#fps=}
+                            [[ ${arg_stream_fps[$s]} =~ ^[0-9]+([.][0-9]+)?$ ]] \
+                                || die "fps must be numeric (got '${arg_stream_fps[$s]}')"
                             ;;
                         *) die "unrecognized stream option '$stream_kv' in '$stream_spec'" ;;
                     esac
@@ -932,8 +1017,9 @@ else
         for s in $streams; do
             CFG_STREAM_RES["${k}_${s}"]=${arg_stream_res[$s]:-}
             CFG_STREAM_FORMAT["${k}_${s}"]=${arg_stream_format[$s]:-}
+            CFG_STREAM_FPS_REQUEST["${k}_${s}"]=${arg_stream_fps[$s]:-}
         done
-        unset arg_stream_res arg_stream_format
+        unset arg_stream_res arg_stream_format arg_stream_fps
     done
     # Reject duplicate (des,link) entries.
     declare -A seen=()
@@ -948,6 +1034,7 @@ fi
 # win when the sensor advertises support; otherwise retain its active settings.
 declare -A CFG_STREAM_FMT=()
 declare -A CFG_STREAM_SIZE=()
+declare -A CFG_STREAM_FPS=()
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
@@ -966,6 +1053,20 @@ for k in "${!CFG_LINKS[@]}"; do
             "$requested_fmt" "$requested_size" "$detected_fmt" "$detected_size" \
             "DES${d} link ${l} stream ${s}")
         read -r CFG_STREAM_FMT["${k}_${s}"] CFG_STREAM_SIZE["${k}_${s}"] <<<"$validated"
+        active_fps=$(sensor_active_fps "$model" "$cam" "$s" "$sid") || active_fps=""
+        if [ -n "$active_fps" ]; then
+            CFG_STREAM_FPS["${k}_${s}"]=$(sensor_validate_fps \
+                "$model" "$cam" "$s" "$sid" \
+                "${CFG_STREAM_FMT["${k}_${s}"]}" \
+                "${CFG_STREAM_SIZE["${k}_${s}"]}" \
+                "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" "$active_fps" \
+                "DES${d} link ${l} stream ${s}")
+        else
+            [ -z "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" ] || \
+                echo "WARN: DES${d} link ${l} stream ${s}: FPS control unavailable" >&2
+            CFG_STREAM_FPS["${k}_${s}"]="n/a"
+            CFG_STREAM_FPS_REQUEST["${k}_${s}"]=""
+        fi
     done
 done
 
@@ -1021,9 +1122,10 @@ for k in "${!CFG_LINKS[@]}"; do
     for s in ${CFG_STREAMS[$k]}; do
         csi2_pad=${CSI2_PAD["${k}_${s}"]}
         node=$(( CAPTURE_BASE[d] + csi2_pad ))
-        printf "                 Stream          %-8s %-10s %-12s -->  /dev/video%s\n" \
+        printf "                 Stream          %-8s %-10s %-12s %7s FPS -->  /dev/video%s\n" \
             "[${s}]" "${CFG_STREAM_SIZE["${k}_${s}"]}" \
-            "${CFG_STREAM_FMT["${k}_${s}"]}" "$node"
+            "${CFG_STREAM_FMT["${k}_${s}"]}" \
+            "${CFG_STREAM_FPS["${k}_${s}"]}" "$node"
     done
 done
 
@@ -1150,6 +1252,13 @@ for k in "${!CFG_LINKS[@]}"; do
                 mc_v "\"ar0234 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
                 ;;
         esac
+            if [ -n "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" ]; then
+                actual_fps=$(sensor_set_fps "$model" "$cam" "$s" "$sid" \
+                    "${CFG_STREAM_FPS["${k}_${s}"]}" \
+                    "DES${d} link ${l} stream ${s}") || \
+                    die "cannot configure FPS on DES${d} link ${l}, stream ${s}"
+                CFG_STREAM_FPS["${k}_${s}"]=$actual_fps
+            fi
         mc_v "\"${ser_pfx} ${ser}\":0/${sid} [fmt:${fmt}/${size} field:none]"
         mc_v "\"${ser_pfx} ${ser}\":1/${sid} [fmt:${fmt}/${size} field:none]"
         mc_v "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\":${l}/${sid} [fmt:${fmt}/${size} field:none]"
