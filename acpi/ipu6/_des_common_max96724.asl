@@ -1,5 +1,4 @@
 /*
-/*
  * SPDX-License-Identifier: GPL-2.0
  * Copyright (c) 2026 Intel Corporation.
  *
@@ -165,13 +164,13 @@ Name (PRT5, Package()
     {
         #if DES_LANES == 4
             #if DES_PHY_TYPE == 1
-            Package () { "mipi-img-clock-lanes", 5 }, // DPHY uses alternate CKCP PHY0 clock lane
+            Package () { "mipi-img-clock-lane", 5 }, // DPHY uses alternate CKCP PHY0 clock lane
             #else
-            Package () { "mipi-img-clock-lanes", 0 },
+            Package () { "mipi-img-clock-lane", 0 },
             #endif
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
         #else
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0 },
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
         Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } },

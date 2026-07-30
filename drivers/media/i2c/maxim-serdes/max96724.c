@@ -515,25 +515,6 @@ static int max96724_init_phy(struct max_des *des, struct max_des_phy *phy)
 				 MAX96724_MIPI_TX10_CSI2_CPHY_EN, is_cphy);
 	if (ret)
 		return ret;
-
-	switch (phy->mipi.clock_lane) {
-	case 0:
-		val = MAX96724_MIPI_PHY0_CLK_PHY3;
-		break;
-	case 5:
-		val = MAX96724_MIPI_PHY0_CLK_PHY0;
-		break;
-	default:
-		dev_err(priv->dev, "Invalid clock lane %u for PHY %u\n",
-			phy->mipi.clock_lane, phy->index);
-		return -EINVAL;
-	}
-
-	ret = regmap_assign_bits(priv->regmap, MAX96724_MIPI_PHY0,
-		MAX96724_MIPI_PHY0_CLK_PHY0 | MAX96724_MIPI_PHY0_CLK_PHY3, val);
-	if (ret)
-		return ret;
-
 	/* Configure lane mapping. */
 	val = 0;
 	for (i = 0; i < num_hw_data_lanes ; i++) {
