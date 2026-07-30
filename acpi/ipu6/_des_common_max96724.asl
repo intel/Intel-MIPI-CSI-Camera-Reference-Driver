@@ -1,4 +1,5 @@
 /*
+/*
  * SPDX-License-Identifier: GPL-2.0
  * Copyright (c) 2026 Intel Corporation.
  *
@@ -105,7 +106,7 @@ Name (PRT0, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0 },
         Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4} },
     },
 })
@@ -115,7 +116,7 @@ Name (PRT1, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0 },
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },
     },
 
@@ -126,7 +127,7 @@ Name (PRT2, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0 },
         Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } },
     },
 })
@@ -136,7 +137,7 @@ Name (PRT3, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0 },
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },
     },
 
@@ -147,7 +148,7 @@ Name (PRT4, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0},
         #if DES_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
         #else
@@ -182,7 +183,7 @@ Name (PRT6, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0},
         #if DES_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
         #else
@@ -197,7 +198,7 @@ Name (PRT7, Package()
     ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
     Package ()
     {
-        Package () { "mipi-img-clock-lanes", 0 },
+        Package () { "mipi-img-clock-lane", 0 },
         #if DES_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
         #else
