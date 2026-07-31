@@ -1,7 +1,7 @@
-From ce0bdb0a496906c9c4b595bfc6f95173c19c1305 Mon Sep 17 00:00:00 2001
+From ed393a90a63dc8e61db4ac0b8e48f42981948a0c Mon Sep 17 00:00:00 2001
 From: Florent Pirou <florent.pirou@intel.com>
 Date: Fri, 16 Jan 2026 03:22:26 -0700
-Subject: [PATCH 10/13] drivers: media: set v4l2_subdev_enable_streams_api=true
+Subject: [PATCH 09/12] drivers: media: set v4l2_subdev_enable_streams_api=true
  for WA 6.18
 
 Signed-off-by: Florent Pirou <florent.pirou@intel.com>
@@ -10,10 +10,10 @@ Signed-off-by: Florent Pirou <florent.pirou@intel.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c b/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c
-index 4f64ac1..b2b7125 100644
+index 25e66bf..cf6ac8a 100644
 --- a/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c
 +++ b/6.18.0/drivers/media/v4l2-core/v4l2-subdev.c
-@@ -32,7 +32,7 @@
+@@ -56,7 +56,7 @@ struct v4l2_subdev_stream_config {
   * 'v4l2_subdev_enable_streams_api' to 1 below.
   */
  
@@ -23,5 +23,5 @@ index 4f64ac1..b2b7125 100644
  
  /*
 -- 
-2.25.1
+2.43.0
 

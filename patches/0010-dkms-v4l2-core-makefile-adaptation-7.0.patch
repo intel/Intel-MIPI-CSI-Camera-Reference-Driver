@@ -1,7 +1,7 @@
-From 2bda71610890498595695874cf79714aac8cabdc Mon Sep 17 00:00:00 2001
+From 268c835970c391fefe92e2c326159d1916127800 Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Tue, 28 Apr 2026 05:09:24 -0700
-Subject: [PATCH 11/13] dkms : v4l2-core makefile adaptation 7.0
+Subject: [PATCH 10/12] dkms : v4l2-core makefile adaptation 7.0
 
 Signed-off-by: florent pirou <florent.pirou@intel.com>
 ---
@@ -33,5 +33,5 @@ index 6ce623a..6a7394c 100644
  MODULE_ALIAS_CHARDEV_MAJOR(VIDEO_MAJOR);
 +MODULE_VERSION(DRIVER_VERSION_SUFFIX);
 -- 
-2.25.1
+2.43.0
 

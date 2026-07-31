@@ -1,7 +1,7 @@
-From 36f284f942076f6cfce62fe5653e71dfbce60502 Mon Sep 17 00:00:00 2001
+From 92687857b4c71b41aca231e2a429426b53710608 Mon Sep 17 00:00:00 2001
 From: florent pirou <florent.pirou@intel.com>
 Date: Tue, 28 Apr 2026 05:14:40 -0700
-Subject: [PATCH 12/13] dkms: disable tuner build in v4l2-core 7.0
+Subject: [PATCH 11/12] dkms: disable tuner build in v4l2-core 7.0
 
 Signed-off-by: florent pirou <florent.pirou@intel.com>
 ---
@@ -20,5 +20,5 @@ index e7bcbf4..6ae8206 100644
 +# obj-$(CONFIG_VIDEO_TUNER) += tuner.o
  obj-$(CONFIG_VIDEO_DEV) += v4l2-dv-timings.o videodev.o
 -- 
-2.25.1
+2.43.0
 
