@@ -57,6 +57,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_I2C_BUS "\\_SB.PC00.I2C1"
             #define DES_PATH "\\_SB.PC00.DES0"
             #define DES_REF \_SB.PC00.DES0
+            #define LINK_FREQ 700000000
             #include "_des_common_max9296.asl"
 
             // Channel 0 (RS D457)
@@ -146,6 +147,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DES_I2C_BUS
             #undef DES_PATH
             #undef DES_REF
+            #undef LINK_FREQ
         }
 
         Device (DES1)
@@ -159,6 +161,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_I2C_BUS "\\_SB.PC00.I2C0"
             #define DES_PATH "\\_SB.PC00.DES1"
             #define DES_REF \_SB.PC00.DES1
+            #define LINK_FREQ 700000000
             #include "_des_common_max9296.asl"
 
             // Channel 0 (RS D457)
@@ -248,6 +251,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DES_I2C_BUS
             #undef DES_PATH
             #undef DES_REF
+            #undef LINK_FREQ
         }
     }
 }

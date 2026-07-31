@@ -9,7 +9,12 @@
  *   DES_TO_MIPI_PORT       - DES connected to MIPI Port (e.g. 0/1/2/3) of IPU0 Device, used as IPU remote port in CSI2Bus
  *   DES_I2C_ADDR           - DES I2C slave address (e.g. 0x0048 for MAX9296A), used in I2cSerialBusV2
  *   DES_I2C_BUS            - DES I2C bus path string (e.g. "\\_SB.PC00.I2C1"), used in I2cSerialBusV2
+ *   LINK_FREQ              - Optional link frequency; defaults to 700 MHz
  */
+
+#ifndef LINK_FREQ
+#define LINK_FREQ 700000000
+#endif
 
 Name (_UID, Zero)               // _UID: Unique ID
 
@@ -111,7 +116,7 @@ Name (PRT2, Package()
         #else
         Package () { "mipi-img-data-lanes", Package () { 1, 2, 3, 4 } },
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 700000000 } }, // 700 MHz link frequency (DDR => 1.4 Gbps lane rate)
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } },
     },
 })
 

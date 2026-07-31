@@ -10,7 +10,12 @@
  *   DES_I2C_ADDR           - DES I2C slave address (e.g. 0x0027 for MAX96724), used in I2cSerialBusV2
  *   DES_I2C_BUS            - DES I2C bus path string (e.g. "\\_SB.PC00.I2C1"), used in I2cSerialBusV2
  *   DES_PIPE_STR_AUTOSELECT - MAX96724 specific property
+ *   LINK_FREQ              - Optional link frequency; defaults to 1 GHz
  */
+
+#ifndef LINK_FREQ
+#define LINK_FREQ 1000000000
+#endif
 
 Name (_UID, Zero)               // _UID: Unique ID
 
@@ -148,7 +153,7 @@ Name (PRT4, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } },
     },
 })
 
@@ -163,7 +168,7 @@ Name (PRT5, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } },
     },
 })
 
@@ -178,7 +183,7 @@ Name (PRT6, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } },
     },
 })
 
@@ -193,6 +198,6 @@ Name (PRT7, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } },
     },
 })
