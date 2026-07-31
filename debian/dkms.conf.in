@@ -1,6 +1,6 @@
 PACKAGE_NAME="intel-mipi-gmsl-dkms"
 PACKAGE_VERSION="@DKMS_PACKAGE_VERSION@"
-BUILD_EXCLUSIVE_KERNEL="^(7\.([0])\.)|^(6\.(1[278])\.)|^6\.(1[27])rt-intel|^6\.(1[27])-intel"
+BUILD_EXCLUSIVE_KERNEL="^(7\.([0])\.)|^(6\.(1[278])\.)|^6\.(1[278])rt-intel|^6\.(1[278])-intel"
 VERSION_SUFFIX="${PACKAGE_VERSION}"
 
 KBASE=${dkms_tree}/${PACKAGE_NAME}/${PACKAGE_VERSION}/build
@@ -53,16 +53,14 @@ PATCH[$((++j))]="0007-dkms-v4l2-core-makefile-adaptation-6.18.patch"
 PATCH_MATCH[$j]="^(6.1[8])"
 PATCH[$((++j))]="0008-dkms-disable-tuner-build-in-v4l2-core-6.18.patch"
 PATCH_MATCH[$j]="^(6.1[8])"
-PATCH[$((++j))]="0009-Revert-media-v4l2-subdev-Make-struct-v4l2_subdev_str.patch"
-PATCH_MATCH[$j]="^(6.1[8])"
-PATCH[$((++j))]="0010-drivers-media-set-v4l2_subdev_enable_streams_api-tru.patch"
+PATCH[$((++j))]="0009-drivers-media-set-v4l2_subdev_enable_streams_api-tru.patch"
 PATCH_MATCH[$j]="^(6.1[8])"
 # kernel patches for Linux 7.0
-PATCH[$((++j))]="0011-dkms-v4l2-core-makefile-adaptation-7.0.patch"
+PATCH[$((++j))]="0010-dkms-v4l2-core-makefile-adaptation-7.0.patch"
 PATCH_MATCH[$j]="^(7.[0])"
-PATCH[$((++j))]="0012-dkms-disable-tuner-build-in-v4l2-core-7.0.patch"
+PATCH[$((++j))]="0011-dkms-disable-tuner-build-in-v4l2-core-7.0.patch"
 PATCH_MATCH[$j]="^(7.[0])"
-PATCH[$((++j))]="0013-drivers-media-set-v4l2_subdev_enable_streams_api-tru.patch"
+PATCH[$((++j))]="0012-drivers-media-set-v4l2_subdev_enable_streams_api-tru.patch"
 PATCH_MATCH[$j]="^(7.[0])"
 
 # IPU6 drivers OoT patches
