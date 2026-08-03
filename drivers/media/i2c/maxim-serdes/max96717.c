@@ -149,10 +149,12 @@
 
 #define MAX96717_MIPI_RX0			0x330
 #define MAX96717_MIPI_RX0_NONCONTCLK_EN		BIT(6)
+#define MAX96717_MIPI_RX0_RESET				BIT(3)
 #define MAX96717_MIPI_RX0_PHY_CFG			GENMASK(2, 0)
 #define MAX96717_MIPI_RX0_PHY_CFG_A_ONLY	0b100
 #define MAX96717_MIPI_RX0_PHY_CFG_B_ONLY	0b101
 #define MAX96717_MIPI_RX0_PHY_CFG_A_AND_B	0b110
+#define MAX96717_MIPI_RX0_PHY_CFG_1x4		0b000
 
 #define MAX96717_MIPI_RX1			0x331
 #define MAX96717_MIPI_RX1_CTRL1_NUM_LANES	GENMASK(5, 4)
@@ -1492,6 +1494,20 @@ static int max96717_init(struct max_ser *ser)
 					MAX96717_MIPI_RX0_PHY_CFG,
 					FIELD_PREP(MAX96717_MIPI_RX0_PHY_CFG,
 							MAX96717_MIPI_RX0_PHY_CFG_A_AND_B));
+		if (ret)
+			return ret;
+	} else if (priv->info->num_phys == 1) {
+		ret = regmap_update_bits(priv->regmap, MAX96717_MIPI_RX0,
+					MAX96717_MIPI_RX0_RESET,
+					FIELD_PREP(MAX96717_MIPI_RX0_RESET, 1));
+		if (ret)
+			return ret;
+
+		ret = regmap_update_bits(priv->regmap, MAX96717_MIPI_RX0,
+				MAX96717_MIPI_RX0_RESET | MAX96717_MIPI_RX0_PHY_CFG,
+				FIELD_PREP(MAX96717_MIPI_RX0_RESET, 0) |
+				FIELD_PREP(MAX96717_MIPI_RX0_PHY_CFG,
+					MAX96717_MIPI_RX0_PHY_CFG_1x4));
 		if (ret)
 			return ret;
 	}
