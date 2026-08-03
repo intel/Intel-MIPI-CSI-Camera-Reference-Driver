@@ -14,7 +14,7 @@ defaults:
 jobs:
   ubuntu-dkms:
     name: Ubuntu ${{ matrix.os_version }} DKMS (${{ matrix.kernel_family }})
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     container: ubuntu:${{ matrix.os_version }}
     env:
       DEBIAN_FRONTEND: noninteractive
