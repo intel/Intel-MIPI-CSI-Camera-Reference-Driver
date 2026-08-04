@@ -756,10 +756,9 @@ sensor_validate_format_size() {
 sensor_validate_fps() {
     local model=$1 cam=$2 stream=$3 sid=$4 fmt=$5 size=$6
     local requested_fps=$7 active_fps=$8 context=$9 dev codes line code name
-    local interval_args intervals candidate selected_fps supported=0
+    local interval_args intervals candidate selected_fps max_fps supported=0
 
     selected_fps=${requested_fps:-$active_fps}
-    [ -n "$requested_fps" ] || { echo "$selected_fps"; return; }
     sensor_entity_pad "$model" "$cam" "$stream" "$sid" || return 1
     dev=$(media-ctl -e "$SENSOR_ENTITY" 2>/dev/null) || {
         echo "$selected_fps"
@@ -782,22 +781,26 @@ sensor_validate_fps() {
     interval_args+=",width=${size%x*},height=${size#*x}"
     intervals=$(v4l2-ctl -d "$dev" --list-subdev-frameintervals \
         "$interval_args" 2>/dev/null) || intervals=""
+    [ -n "$intervals" ] || { echo "$selected_fps"; return; }
     while IFS= read -r line; do
         if [[ $line =~ \(([0-9.]+)[[:space:]]fps\) ]]; then
             candidate=${BASH_REMATCH[1]}
-            awk -v a="$candidate" -v b="$requested_fps" \
+            if [ -z "$max_fps" ] || awk -v a="$candidate" -v b="$max_fps" \
+                'BEGIN { exit !(a > b) }'; then
+                max_fps=$candidate
+            fi
+            awk -v a="$candidate" -v b="$selected_fps" \
                 'BEGIN { exit !((a - b < 0.0005) && (b - a < 0.0005)) }' && {
                 selected_fps=$candidate
                 supported=1
-                break
             }
         fi
     done <<<"$intervals"
-    if (( ! supported )); then
+    if (( ! supported )) && [ -n "$max_fps" ]; then
         printf "WARN: %s: FPS '%s' is unsupported with %s/%s; " \
-            "$context" "$requested_fps" "$fmt" "$size" >&2
-        printf "retaining current active FPS '%s'\n" "$active_fps" >&2
-        selected_fps=$active_fps
+            "$context" "$selected_fps" "$fmt" "$size" >&2
+        printf "using largest supported FPS '%s'\n" "$max_fps" >&2
+        selected_fps=$max_fps
     fi
     echo "$selected_fps"
 }
@@ -1035,6 +1038,7 @@ fi
 declare -A CFG_STREAM_FMT=()
 declare -A CFG_STREAM_SIZE=()
 declare -A CFG_STREAM_FPS=()
+declare -A CFG_STREAM_FPS_APPLY=()
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
@@ -1045,6 +1049,10 @@ for k in "${!CFG_LINKS[@]}"; do
         sid=${STREAM_NODE[$s]}
         requested_fmt=${CFG_STREAM_FORMAT["${k}_${s}"]:-${CFG_FORMAT[$k]}}
         requested_size=${CFG_STREAM_RES["${k}_${s}"]:-${CFG_RES[$k]}}
+        if [ -n "$requested_fmt" ] || [ -n "$requested_size" ] ||
+            [ -n "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" ]; then
+            CFG_STREAM_FPS_APPLY["${k}_${s}"]=1
+        fi
         detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
             die "cannot read active format from ${model} sensor on" \
                 "DES${d} link ${l}, stream ${s}"
@@ -1252,7 +1260,7 @@ for k in "${!CFG_LINKS[@]}"; do
                 mc_v "\"ar0234 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
                 ;;
         esac
-            if [ -n "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" ]; then
+            if [ -n "${CFG_STREAM_FPS_APPLY["${k}_${s}"]:-}" ]; then
                 actual_fps=$(sensor_set_fps "$model" "$cam" "$s" "$sid" \
                     "${CFG_STREAM_FPS["${k}_${s}"]}" \
                     "DES${d} link ${l} stream ${s}") || \
