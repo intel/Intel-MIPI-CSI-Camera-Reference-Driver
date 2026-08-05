@@ -145,10 +145,25 @@ declare -A STREAM_NODE=(
     [single]=0
 )
 
-# Keep capture-node groups consistent across 2-link and 4-link deserializers:
-# depth uses offsets 0..3, rgb 4..7,
-# TODO: ir and imu to have different offsets.
-CSI2_STREAM_STRIDE=4
+# Capture-node placement is independent of STREAM_NODE. Depth and IMU share
+# bank 0..3; RGB and IR share bank 4..7. Rotating IR and IMU by two links gives
+# this D4XX camera 1..4 mapping:
+#   depth=0,1,2,3  rgb=4,5,6,7  ir=6,7,4,5  imu=2,3,0,1
+CSI2_NODE_BANK_SIZE=4
+declare -A STREAM_CAPTURE_BASE=(
+    [depth]=0
+    [rgb]=4
+    [ir]=4
+    [imu]=0
+    [single]=0
+)
+declare -A STREAM_LINK_ROTATION=(
+    [depth]=0
+    [rgb]=0
+    [ir]=2
+    [imu]=2
+    [single]=0
+)
 
 # STREAM_MUXPAD: sink pad on a d4xx-style mux subdev. Only needed for streams
 # that flow through such a mux, usually a 3D sensor.
@@ -623,12 +638,11 @@ print_topology() {
 # Capture-node layout (per DES) -- STREAM-MAJOR:
 #     csi2_pad = STREAM_NODE[s] * CSI2_STREAM_STRIDE + l
 #     node     = CAPTURE_BASE[d] + csi2_pad
-# Nodes are grouped by stream type in fixed groups of four for both max9296a
-# and max96724: depth lands on base+0..3, rgb on base+4..7, etc. Unused links
-# leave gaps on 2-link deserializers. For 1-stream sensors like isx031, links
-# land on base+0..3 directly. The CSI2 RX cap is IPU*_NR_OF_CSI2_SRC_PADS;
-# set IPU_CSI2_SRC_PADS to match (commonly 8 or 16). The resulting pad must
-# stay within that.
+# This keeps all D4XX streams within eight capture nodes using the permutation
+# documented above. Streams that resolve to the same node cannot be enabled
+# together and are rejected. For 1-stream sensors like isx031, links land on
+# base+0..3 directly. The CSI2 RX cap is IPU*_NR_OF_CSI2_SRC_PADS; set
+# IPU_CSI2_SRC_PADS to match (commonly 8 or 16).
 #
 # v4l2 source_stream tag at the deserializer source pad / CSI2 sink pad is
 # allocated separately as a compact per-DES sequential id (0..3), because
@@ -1130,11 +1144,10 @@ done
 # IPU7 CSI2 RX source-pad cap (16 with the D4XX patch, 8 otherwise).
 IPU_CSI2_SRC_PADS=${IPU_CSI2_SRC_PADS:-16}
 
-# Compute csi2_pad per (cfg_index, stream) using a stream-major formula:
-# all 'depth' across links first, then all 'rgb', etc. For 1-stream sensors
-# (isx031) this collapses to csi2_pad == link, so 4 links land on the first
-# four capture nodes.
+# Compute csi2_pad per (cfg_index, stream) using the configured capture bank
+# and link rotation. For isx031 this collapses to csi2_pad == link.
 declare -A CSI2_PAD=()
+declare -A CSI2_PAD_OWNER=()
 # Compact v4l2 source_stream id assigned to each (cfg_index, stream) at the
 # deserializer source pad and at the CSI2 sink pad. The kernel-side max96724
 # / max_des state machine bounds the per-pipe stream-id field at 2 bits
@@ -1148,12 +1161,19 @@ for k in "${!CFG_LINKS[@]}"; do
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
     for s in ${CFG_STREAMS[$k]}; do
-        pad=$(( STREAM_NODE[$s] * CSI2_STREAM_STRIDE + l ))
+        pad=$(( STREAM_CAPTURE_BASE[$s] +
+            (l + STREAM_LINK_ROTATION[$s]) % CSI2_NODE_BANK_SIZE ))
         if (( pad >= IPU_CSI2_SRC_PADS )); then
             die "DES${d} link ${l} stream ${s}: csi2_pad ${pad} exceeds CSI2 src-pad cap "\
             "(${IPU_CSI2_SRC_PADS}); reduce active links/streams or rebuild the kernel with a "\
             "higher *_NR_OF_CSI2_SRC_PADS"
         fi
+        pad_key="${d}_${pad}"
+        if [ -n "${CSI2_PAD_OWNER[$pad_key]:-}" ]; then
+            die "DES${d} link ${l} stream ${s}: capture node offset ${pad} conflicts with "\
+            "${CSI2_PAD_OWNER[$pad_key]}"
+        fi
+        CSI2_PAD_OWNER[$pad_key]="link ${l} stream ${s}"
         CSI2_PAD["${k}_${s}"]=$pad
 
         ds=${DES_STREAM_NEXT[$d]:-0}
