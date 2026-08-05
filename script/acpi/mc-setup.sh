@@ -108,6 +108,11 @@ declare -A SENSOR_PREFIX=(
     [INTC10C0]="ar0234"
 )
 
+# ---- Direct MIPI sensor HIDs (no GMSL deserializer) ------------------------
+declare -A MIPI_SENSOR_HID=(
+    [INTC113C]=isx031
+)
+
 # ---- Serializer / Deserializer HID -> v4l entity prefix ---------------------
 declare -A SER_PREFIX=(
     [INTC1138]="max96717"
@@ -195,12 +200,32 @@ declare -A MBUS_TO_PIXFMT=(
     [Y8_1X8]="GREY"
     [SGRBG10_1X10]="BA10"  # AR0234 RAW Bayer SGRBG 10-bit
 )
+mbus_to_pixfmt() { echo "${MBUS_TO_PIXFMT[$1]:-}"; }
 
 # =============================================================================
 # end of USER CONFIGURATION
 # =============================================================================
 
 # -------- low-level helpers ---------------------------------------------------
+
+# Find the lowest "ISYS Capture N" index linked from a given CSI2 entity.
+# Reads media-ctl topology from stdin.
+capture_base_of_csi2() {
+    awk -v csi="$1" '
+        /^- entity / {
+            n = ""
+            if (match($0, /Intel IPU[0-9]+ ISYS Capture [0-9]+/)) {
+                s = substr($0, RSTART, RLENGTH)
+                sub(/.*Capture /, "", s)
+                n = s + 0
+            }
+        }
+        n != "" && index($0, "<- \"" csi "\":") {
+            if (m == "" || n < m) m = n
+        }
+        END { if (m != "") print m }
+    '
+}
 
 # Read "bus-addr" (e.g. 18-0010) from any v4l-subdev whose name starts with
 # the given prefix, under any physical_node* of an ACPI sysfs dir.
@@ -337,7 +362,7 @@ discover_one_des() {
     DES_PATH[$d]=$des_path
     DES_BA[$d]=$des_ba
     DES_PREFIX_NAME[$d]=$des_prefix
-    # DES_SRC_PAD[$d] is filled in later by detect_csi2_entities() based on the
+    # DES_SRC_PAD[$d] is filled in later by detect_gmsl_csi2() based on the
     # live media topology (which reflects the DES_CSI_LOCAL_PORT value the
     # SSDT/_CRS published in the CSI2Bus resource).
     DES_MAX_LINKS[$d]=${MAX_LINKS_BY_PREFIX[$des_prefix]:-4}
@@ -430,19 +455,107 @@ discover_one_des() {
 discover() {
     local des_dirs=()
     mapfile -t des_dirs < <(find_all_deserializers)
-    [ "${#des_dirs[@]}" -gt 0 ] || {
-        echo "ERROR: no known deserializer ACPI device present" >&2
+    if [ "${#des_dirs[@]}" -gt 0 ]; then
+        local d=0 dir
+        for dir in "${des_dirs[@]}"; do
+            if discover_one_des "$d" "$dir"; then
+                d=$((d + 1))
+            fi
+        done
+        NUM_DES=$d
+    fi
+    if [ "$NUM_DES" -eq 0 ] && [ "${#des_dirs[@]}" -gt 0 ]; then
+        echo "WARN: ${#des_dirs[@]} deserializer ACPI device(s) found" \
+             "but none are usable (driver loaded?)" >&2
+    fi
+    # Discover direct MIPI cameras (skips sensors already behind a DES).
+    discover_mipi_cameras
+    [ "$NUM_DES" -gt 0 ] || [ "$NUM_MIPI" -gt 0 ] || {
+        echo "ERROR: no deserializer or direct MIPI camera found" >&2
         return 1
     }
-    local d=0 dir
-    for dir in "${des_dirs[@]}"; do
-        if discover_one_des "$d" "$dir"; then
-            d=$((d + 1))
+    return 0
+}
+
+# ---- Direct MIPI camera support ---------------------------------------------
+declare -a MIPI_BA=() MIPI_PREFIX=() MIPI_MODEL=() MIPI_CSI2=() MIPI_CAP=()
+NUM_MIPI=0
+
+discover_mipi_cameras() {
+    local hid model prefix d ba path idx=0
+    for hid in "${!MIPI_SENSOR_HID[@]}"; do
+        model=${MIPI_SENSOR_HID[$hid]}
+        prefix=${SENSOR_PREFIX[$hid]}
+        for d in /sys/bus/acpi/devices/${hid}:*; do
+            [ -d "$d" ] || continue
+            # Skip sensors already discovered behind a deserializer.
+            path=$(cat "$d/path" 2>/dev/null) || continue
+            local skip=0 di
+            for ((di = 0; di < NUM_DES; di++)); do
+                case "$path" in "${DES_PATH[$di]}."*) skip=1; break ;; esac
+            done
+            [ "$skip" -eq 1 ] && continue
+            ba=$(acpi_busaddr "$d" "$prefix") || continue
+            MIPI_BA[$idx]=$ba; MIPI_PREFIX[$idx]=$prefix; MIPI_MODEL[$idx]=$model
+            idx=$((idx + 1))
+        done
+    done
+    NUM_MIPI=$idx
+    [ "$NUM_MIPI" -gt 0 ] && echo "Discovered $NUM_MIPI direct MIPI camera(s)"
+}
+
+detect_mipi_csi2() {
+    [ "$NUM_MIPI" -eq 0 ] && return 0
+    local topo i cam csi2 base
+    topo=$(media-ctl -p 2>/dev/null) || return 1
+    for ((i = 0; i < NUM_MIPI; i++)); do
+        cam="${MIPI_PREFIX[$i]} ${MIPI_BA[$i]}"
+        csi2=$(awk -v c="$cam" '
+            /- entity.*: / { f = index($0, ": " c " (") ? 1 : 0 }
+            f && /-> "Intel IPU[0-9]+ CSI2 [0-9]+"/ {
+                gsub(/.*-> "|":.*/, "")
+                print
+                exit
+            }
+        ' <<<"$topo")
+        [ -z "$csi2" ] && { echo "ERROR: no CSI2 link for $cam" >&2; return 1; }
+        MIPI_CSI2[$i]=$csi2
+        MIPI_CAP[$i]=$(capture_base_of_csi2 "$csi2" <<<"$topo")
+        if [ -z "${MIPI_CAP[$i]}" ]; then
+            echo "ERROR: MIPI${i}: could not find any 'ISYS Capture' entity linked from '$csi2'" >&2
+            return 1
         fi
     done
-    NUM_DES=$d
-    [ "$NUM_DES" -gt 0 ] || { echo "ERROR: no usable deserializer found" >&2; return 1; }
-    return 0
+}
+
+setup_mipi_cameras() {
+    [ "$NUM_MIPI" -eq 0 ] && return 0
+    echo -e "\nConfiguring direct MIPI cameras..."
+    local i model cam csi2 node fmt size s pixfmt w h ipu
+    for ((i = 0; i < NUM_MIPI; i++)); do
+        model=${MIPI_MODEL[$i]}
+        cam=${MIPI_BA[$i]}
+        csi2=${MIPI_CSI2[$i]}
+        node=${MIPI_CAP[$i]}
+        for s in ${MODEL_DEFAULT_STREAMS[$model]}; do
+            fmt=${STREAM_FMT[$s]}
+            size=${STREAM_SIZE[$s]}
+            break
+        done
+        echo "  ${MIPI_PREFIX[$i]} $cam -> $csi2 -> /dev/video$node ($fmt/$size)"
+        mc_v "\"${MIPI_PREFIX[$i]} ${cam}\":0 [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${csi2}\":0 [fmt:${fmt}/${size} field:none]"
+        mc_v "\"${csi2}\":1 [fmt:${fmt}/${size} field:none]"
+        ipu=${csi2% CSI2 *}
+        mc_l "\"${csi2}\":1 -> \"${ipu} ISYS Capture ${node}\":0[1]"
+        pixfmt=$(mbus_to_pixfmt "$fmt")
+        w=${size%x*}
+        h=${size#*x}
+        [ -n "$pixfmt" ] &&
+            v4l2-ctl -d "/dev/video${node}" \
+                --set-fmt-video="width=${w},height=${h},pixelformat=${pixfmt}" \
+                >/dev/null
+    done
 }
 
 # For each DES, locate the "Intel IPUx CSI2 N" entity wired to its source
@@ -450,7 +563,7 @@ discover() {
 # the SSDT CSI2Bus resource), and the absolute capture-node base (lowest
 # "ISYS Capture <N>" index linked to that CSI2). The DES->CSI2 link is
 # IMMUTABLE so the live media topology is the source of truth.
-detect_csi2_entities() {
+detect_gmsl_csi2() {
     local topo
     topo=$(media-ctl -p 2>/dev/null) || {
         echo "ERROR: failed to read media topology via 'media-ctl -p'" >&2
@@ -483,25 +596,11 @@ detect_csi2_entities() {
         IPU_CSI2_ENTITY[$d]=$csi2
         IPU_BASE[$d]=${csi2% CSI2 *}
 
-        # Capture base = lowest "ISYS Capture N" entity that links from this CSI2.
-        base=$(awk -v csi="$csi2" '
-            /^- entity / {
-                cap_num = ""
-                if (match($0, /Intel IPU[0-9]+ ISYS Capture [0-9]+/)) {
-                    s = substr($0, RSTART, RLENGTH)
-                    sub(/.*Capture /, "", s)
-                    cap_num = s + 0
-                }
-            }
-            cap_num != "" && index($0, "<- \"" csi "\":") {
-                if (min == "" || cap_num < min) min = cap_num
-            }
-            END { if (min != "") print min }' <<<"$topo")
-        if [ -z "$base" ]; then
+        CAPTURE_BASE[$d]=$(capture_base_of_csi2 "$csi2" <<<"$topo")
+        if [ -z "${CAPTURE_BASE[$d]}" ]; then
             echo "ERROR: DES${d}: could not find any 'ISYS Capture' entity linked from '$csi2'" >&2
             return 1
         fi
-        CAPTURE_BASE[$d]=$base
     done
     return 0
 }
@@ -523,6 +622,11 @@ print_topology() {
                 "$l" "${CAM_PATH[$key]}" "${CAM_PREFIX[$key]}" "${CAM_BA[$key]}" \
                 "${CAM_MODEL[$key]}" "${CAM_HID[$key]}"
         done
+    done
+    for ((i = 0; i < NUM_MIPI; i++)); do
+        printf "  MIPI%d  %s %s -> %s (capture /dev/video%s)\n" \
+            "$i" "${MIPI_PREFIX[$i]}" "${MIPI_BA[$i]}" \
+            "${MIPI_CSI2[$i]}" "${MIPI_CAP[$i]}"
     done
 }
 
@@ -608,8 +712,15 @@ check_media_ctl_version() {
 
 check_media_ctl_version
 discover || exit 1
-detect_csi2_entities || exit 1
+
+[ "$NUM_DES"  -gt 0 ] && { detect_gmsl_csi2 || exit 1; }
+[ "$NUM_MIPI" -gt 0 ] && { detect_mipi_csi2 || exit 1; }
 print_topology
+
+# ---- GMSL programming (DES-based cameras) -----------------------------------
+# Steps below (argument parsing, pad computation, route setup, format
+# propagation, capture-node format) apply only to GMSL deserializer cameras.
+# Direct MIPI cameras are handled separately by setup_mipi_cameras() at the end.
 
 # ---- argument parsing ------------------------------------------------------
 
@@ -867,8 +978,6 @@ done
 
 # ---- v4l2-ctl: capture-node format -----------------------------------------
 
-mbus_to_pixfmt() { echo "${MBUS_TO_PIXFMT[$1]:-}"; }
-
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     for s in ${CFG_STREAMS[$k]}; do
@@ -883,3 +992,6 @@ for k in "${!CFG_LINKS[@]}"; do
             >/dev/null
     done
 done
+
+# ---- direct MIPI cameras (non-GMSL) -----------------------------------------
+setup_mipi_cameras
