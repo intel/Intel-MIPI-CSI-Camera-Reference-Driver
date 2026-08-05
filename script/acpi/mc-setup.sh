@@ -697,13 +697,14 @@ sensor_active_fps() {
 }
 
 # Print the requested format/size after checking the sensor's advertised
-# format-resolution combinations. Retain the active value for unsupported
-# fields.
+# format-resolution combinations. Retain the active format when unsupported;
+# use the largest resolution advertised for a supported format.
 sensor_validate_format_size() {
     local model=$1 cam=$2 stream=$3 sid=$4 requested_fmt=$5 requested_size=$6
     local active_fmt=$7 active_size=$8 context=$9 dev codes line code name
     local selected_fmt selected_size selected_code sizes supported
-    local min_w min_h max_w max_h req_w req_h
+    local min_w min_h max_w max_h req_w req_h largest_w largest_h
+    local area largest_area=0
     local range_re
 
     range_re='Size[[:space:]]Range:[[:space:]]([0-9]+)x([0-9]+)'
@@ -755,24 +756,40 @@ sensor_validate_format_size() {
             if [[ $line =~ $range_re ]]; then
                 min_w=${BASH_REMATCH[1]}; min_h=${BASH_REMATCH[2]}
                 max_w=${BASH_REMATCH[3]}; max_h=${BASH_REMATCH[4]}
+                area=$(( max_w * max_h ))
+                if (( area > largest_area )); then
+                    largest_area=$area
+                    largest_w=$max_w
+                    largest_h=$max_h
+                fi
                 req_w=${requested_size%x*}; req_h=${requested_size#*x}
                 if (( req_w >= min_w && req_w <= max_w && req_h >= min_h && req_h <= max_h )); then
                     supported=1
-                    break
                 fi
             elif [[ $line =~ Size:[[:space:]]Discrete[[:space:]]([0-9]+)x([0-9]+) ]]; then
+                max_w=${BASH_REMATCH[1]}; max_h=${BASH_REMATCH[2]}
+                area=$(( max_w * max_h ))
+                if (( area > largest_area )); then
+                    largest_area=$area
+                    largest_w=$max_w
+                    largest_h=$max_h
+                fi
                 req_w=${requested_size%x*}; req_h=${requested_size#*x}
-                if (( req_w == BASH_REMATCH[1] && req_h == BASH_REMATCH[2] )); then
+                if (( req_w == max_w && req_h == max_h )); then
                     supported=1
-                    break
                 fi
             fi
         done <<<"$sizes"
         if [ -n "$sizes" ] && (( ! supported )); then
             printf "WARN: %s: resolution '%s' is unsupported with format '%s'; " \
                 "$context" "$requested_size" "$selected_fmt" >&2
-            printf "retaining current active resolution '%s'\n" "$active_size" >&2
-            selected_size=$active_size
+            if (( largest_area > 0 )); then
+                selected_size="${largest_w}x${largest_h}"
+                printf "using largest supported resolution '%s'\n" "$selected_size" >&2
+            else
+                printf "retaining current active resolution '%s'\n" "$active_size" >&2
+                selected_size=$active_size
+            fi
         fi
     fi
 
