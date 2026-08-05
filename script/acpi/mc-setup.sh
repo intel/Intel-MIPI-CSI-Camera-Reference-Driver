@@ -1260,9 +1260,11 @@ for k in "${!CFG_LINKS[@]}"; do
                 mc_v "\"ar0234 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
                 ;;
         esac
-            if [ -n "${CFG_STREAM_FPS_APPLY["${k}_${s}"]:-}" ]; then
+            fps=${CFG_STREAM_FPS["${k}_${s}"]}
+            if [ -n "${CFG_STREAM_FPS_APPLY["${k}_${s}"]:-}" ] &&
+                [[ $fps =~ ^[0-9]+([.][0-9]+)?$ ]]; then
                 actual_fps=$(sensor_set_fps "$model" "$cam" "$s" "$sid" \
-                    "${CFG_STREAM_FPS["${k}_${s}"]}" \
+                    "$fps" \
                     "DES${d} link ${l} stream ${s}") || \
                     die "cannot configure FPS on DES${d} link ${l}, stream ${s}"
                 CFG_STREAM_FPS["${k}_${s}"]=$actual_fps
