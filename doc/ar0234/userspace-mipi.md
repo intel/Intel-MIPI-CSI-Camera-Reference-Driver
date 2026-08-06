@@ -2,11 +2,43 @@
 
 This document details the configuration settings for the AR0234 MIPI CSI-2 sensor, providing essential information for system integration. The table below presents the key parameters and their respective values used during system setup and validation.
 
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#bios-configuration-table">BIOS Configuration Table</a></li>
+    <li><a href="#mipi-camera-configuration">MIPI Camera Configuration</a>
+      <ul>
+        <li><a href="#setup-for-ipu6epmtl">Setup for IPU6EPMTL</a></li>
+        <li><a href="#setup-for-ipu75xa">Setup for IPU75XA</a></li>
+      </ul>
+    </li>
+    <li><a href="#camera-configuration-file-setup">Camera Configuration File Setup</a>
+      <ul>
+        <li><a href="#setup-for-ipu6epmtl-1">Setup for IPU6EPMTL</a></li>
+        <li><a href="#setup-for-ipu75xa-1">Setup for IPU75XA</a></li>
+      </ul>
+    </li>
+    <li><a href="#camera-tuning-file-setup">Camera Tuning File Setup</a>
+      <ul>
+        <li><a href="#setup-for-ipu6epmtl-2">Setup for IPU6EPMTL</a></li>
+        <li><a href="#setup-for-ipu75xa-2">Setup for IPU75XA</a></li>
+      </ul>
+    </li>
+    <li><a href="#environment-setup">Environment Setup</a></li>
+    <li><a href="#sensor-verification">Sensor Verification</a></li>
+    <li><a href="#sample-userspace-command">Sample Userspace Command</a></li>
+    <li><a href="#streaming-result">Streaming Result</a></li>
+  </ol>
+</details>
+
 ## BIOS Configuration Table
 
 > **Note:** No External Clock required.
 
-### MIPI Camera Configuration for IPU6EPMTL
+## MIPI Camera Configuration
+
+#### Setup for IPU6EPMTL
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
@@ -51,6 +83,57 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+#### Setup for IPU75XA
+
+Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+
+|                            | Control Logic 1      | Control Logic 2      |
+|---                         |---                   |---                   |
+| Control Logic Type         | Discrete             | Discrete             |
+| CRD Version                | CRD-D                | CRD-D                |
+| Input Clock                | 19.2MHz              | 19.2MHz              |
+| PCH Clock                  | IMGCLKOUT_0          | IMGCLKOUT_1          |
+| Number of GPIOs            | 1                    | 1                    |
+| GPIO Pin 0                 |                      |                      |
+| Group Pad Number           | 10                   | 1                    |
+| Group Number               | C_E_V                | C_E_V                |
+| Com Number                 | COM1                 | COM1                 |
+| Function                   | RESET                | RESET                |
+| Active Value               | 1                    | 1                    |
+| Initial Value              | 0                    | 0                    |
+| Interrupt GPIO             | Disabled             | Disabled             |
+
+|                            | Camera1 Link options | Camera2 Link options |
+|---                         |---                   | ---                  |
+| Sensor Model               | User Custom          | User Custom          |
+| Custom HID                 | INTC10C0             | INTC10C0             |
+| Lanes Clock division       | 4 4 2 2              | 4 4 2 2              |
+| CRD Version                | CRD-D                | CRD-D                |
+| GPIO control               | Control Logic 1      | Control Logic 2      |
+| Camera position            | Front                | Back                 |
+| Flash Support              | Disabled             | Disabled             |
+| Privacy LED                | Driver default       | Driver default       |
+| Rotation                   | 0                    | 0                    |
+| PPR Value                  | 2                    | 2                    |
+| PPR Unit                   | 2                    | 2                    |
+| PhyConfiguration           | DPHY                 | DPHY                 |
+| Camera module name         | _                    | _                    |
+| MIPI port                  | 0                    | 2                    |
+| LaneUsed                   | x2                   | x2                   |
+| MCLK                       | 19200000             | 19200000             |
+| EEPROM Type                | ROM_NONE             | ROM_NONE             |
+| VCM Type                   | VCM_NONE             | VCM_NONE             |
+| Number of I2C Components   | 1                    | 1                    |
+| I2C Channel                | I2C1                 | I2C2                 |
+| Device 0                   |                      |                      |
+| I2C Address                | 10                   | 10                   |
+| Device Type                | Sensor               | Sensor               |
+| Customize Device ID List   |                      |                      |
+| Customize Device ID Number | 17                   | 17                   |
+| Customize Device ID Number | 18                   | 18                   |
+| Customize Device ID Number | 19                   | 19                   |
+| Flash Driver Selection     | Disabled             | Disabled             |
+
 ## Camera Configuration File Setup
 
 #### Setup for IPU6EPMTL
@@ -62,11 +145,23 @@ Replace target system with recommended [ipu6epmtl](../../config/ar0234/ipu6epmtl
     sudo cp -r ../../config/ar0234/ipu6epmtl /etc/camera
     sudo sed -i '/availableSensors/c\        <availableSensors value="ar0234-a-0,ar0234-b-4"/>' /etc/camera/ipu6epmtl/libcamhal_profile.xml
 
+#### Setup for IPU75XA
+
+Replace target system with recommended [ipu75xa](../../config/ar0234/ipu75xa) setting
+
+> **Note:** Add config below only if using x2 MIPI sensors.
+
+    sudo cp -r ../../config/ar0234/ipu75xa /etc/camera
+
 ## Camera Tuning File Setup
 
 #### Setup for IPU6EPMTL
 
 Import [AR0234_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/iotg_ipu6/config/linux/ipu6epmtl/AR0234_TGL_10bits.aiqb) into target system `/etc/camera/ipu6epmtl`
+
+#### Setup for IPU75XA
+
+> **TODO:** No action needed for now, will revisit once AIQB config available in [ipu7-camera-hal](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu75xa).
 
 ## Environment Setup
 
@@ -147,3 +242,9 @@ Upon setup completion, verify sensor with:
 | x1               | DMA MODE | 30         |
 | x2               | USERPTR  | 30         |
 | x2               | DMA MODE | 30         |
+
+> **Note**: Refer to [README.md](https://github.com/intel-innersource/drivers.camera.scaling.sensor) for system setup prerequisite.
+
+---
+
+[↑ Back to Top](#description)
