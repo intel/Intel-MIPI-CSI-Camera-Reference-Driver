@@ -1,0 +1,2301 @@
+<?xml version="1.0"?>
+<!-- Copyright (c) 2026 Intel Corporation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<graph_settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" systool_version="26.28.5.0" gdf_hash="0" gsf_timestamp="2026-07-16 07:53:51">
+  <sensor_definitions sensor_name="AR0234" bayer_order="GRBG">
+    <sensor_modes>
+      <sensor_mode name="960p" width="1280" height="960" min_fps="0" max_fps="30" bpp="10" sensor_type="bayer" pdaf_type="0">
+        <pixel_array>
+          <input width="1280" height="960" left="0" top="0" />
+          <output width="1280" height="960" left="0" top="0" />
+        </pixel_array>
+        <binner h_factor="1" v_factor="1">
+          <input width="1280" height="960" left="0" top="0" />
+          <output width="1280" height="960" left="0" top="0" />
+        </binner>
+        <scaler num_factor="1" denom_factor="1">
+          <input width="1280" height="960" left="0" top="0" />
+          <output width="1280" height="960" left="0" top="0" />
+        </scaler>
+      </sensor_mode>
+    </sensor_modes>
+  </sensor_definitions>
+  <selected_resolutions>
+    <fps value="30">
+      <streams pinName="preview">
+        <resolution width="1280" height="960" />
+      </streams>
+      <streams pinName="video">
+        <resolution width="1280" height="960" />
+      </streams>
+      <streams pinName="raw">
+        <resolution width="1280" height="960" />
+      </streams>
+      <streams pinName="post_processing_video">
+        <resolution width="640" height="480" />
+      </streams>
+      <streams pinName="stills">
+        <resolution width="1280" height="960" />
+      </streams>
+    </fps>
+  </selected_resolutions>
+  <zoom_options>
+    <zoom_option name="1080p" width="1920" height="1080" />
+    <zoom_option name="720p" width="1280" height="720" />
+    <zoom_option name="360p" width="640" height="360" />
+  </zoom_options>
+  <settings>
+    <setting id="8000" graph_id="100002" sensor_mode="960p" golden="true">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8001" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="1080p" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8002" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="720p" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8003" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="360p" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="ifd_pipe_1_3">
+              <input pin_name="input" width="1280" height="960" top="240" left="320" bottom="240" right="320" />
+              <output pin_name="outputimage" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="upscaler_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8004" graph_id="100026" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <cmplx_attr type="Stream" name="raw">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="10" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration />
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="isys:output" dst="raw_isys" format_name="SINGLE_PL_10_P" streaming_mode="S_OFF" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="raw_isys" virtual_sink="raw" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8005" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <cmplx_attr type="Stream" name="preview">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8006" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="1080p" />
+        <cmplx_attr type="Stream" name="preview">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8007" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="720p" />
+        <cmplx_attr type="Stream" name="preview">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8008" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="360p" />
+        <cmplx_attr type="Stream" name="preview">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="ifd_pipe_1_3">
+              <input pin_name="input" width="1280" height="960" top="240" left="320" bottom="240" right="320" />
+              <output pin_name="outputimage" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="upscaler_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8009" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="post_processing_video,post_processing_video">
+          <attr name="width" value="640" />
+          <attr name="height" value="480" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="post_processing_video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8010" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="1080p" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="post_processing_video,post_processing_video">
+          <attr name="width" value="640" />
+          <attr name="height" value="480" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="post_processing_video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8011" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="720p" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="post_processing_video,post_processing_video">
+          <attr name="width" value="640" />
+          <attr name="height" value="480" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="post_processing_video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8012" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="360p" />
+        <cmplx_attr type="Stream" name="preview,video">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+        <cmplx_attr type="Stream" name="post_processing_video,post_processing_video">
+          <attr name="width" value="640" />
+          <attr name="height" value="480" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60001">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="ifd_pipe_1_3">
+              <input pin_name="input" width="1280" height="960" top="240" left="320" bottom="240" right="320" />
+              <output pin_name="outputimage" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="upscaler_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60001">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="preview" />
+        <map sink="image_dp" virtual_sink="post_processing_video" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8013" graph_id="100002" sensor_mode="960p" golden="true">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <cmplx_attr type="Stream" name="stills">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60000">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="512" height="384" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="stills" />
+        <map sink="image_dp" virtual_sink="thumbnail" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8014" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="1080p" />
+        <cmplx_attr type="Stream" name="stills">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60000">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="512" height="384" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="stills" />
+        <map sink="image_dp" virtual_sink="thumbnail" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8015" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="720p" />
+        <cmplx_attr type="Stream" name="stills">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60000">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="816" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="512" height="384" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="stills" />
+        <map sink="image_dp" virtual_sink="thumbnail" />
+      </virtual_sinks_mapping>
+    </setting>
+    <setting id="8016" graph_id="100002" sensor_mode="960p">
+      <setting_key>
+        <attr name="fps" value="30" />
+        <attr name="pdaf_type" value="Type0" />
+        <attr name="dol_mode" value="NoDol" />
+        <attr name="dvs" value="NoDvs" />
+        <attr name="imv_mode" value="NoImv" />
+        <attr name="b2b_mode" value="NoB2b" />
+        <attr name="pipeline" value="None" />
+        <attr name="stills_mode" value="NoHdr" />
+        <attr name="zoom_option" value="360p" />
+        <cmplx_attr type="Stream" name="stills">
+          <attr name="width" value="1280" />
+          <attr name="height" value="960" />
+          <attr name="bpp" value="8" />
+        </cmplx_attr>
+      </setting_key>
+      <sources_configuration>
+        <source name="sensor">
+          <resolution_history>
+            <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="10" />
+            <output pin_name="output" bpp="10" />
+          </bpp>
+        </source>
+        <source name="lsc_buffer">
+          <resolution_history>
+            <input pin_name="input" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+            <output pin_name="output" width="168" height="61" top="0" left="0" bottom="0" right="0" />
+          </resolution_history>
+          <bpp>
+            <input pin_name="input" bpp="16" />
+            <output pin_name="output" bpp="16" />
+          </bpp>
+        </source>
+      </sources_configuration>
+      <outer_nodes_configuration>
+        <node name="isys" tuning_mode="0" stream_id="60000">
+          <rcbs />
+          <bcbs />
+          <kernels_system_api_override />
+        </node>
+        <node name="lbff_Bayer" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="ifd_pipe_1_3">
+              <input pin_name="input" width="1280" height="960" top="240" left="320" bottom="240" right="320" />
+              <output pin_name="outputimage" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="upscaler_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_lb">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="aestatistics_2_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="glb_fw_hist" width="4096" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="fr_grid_1_0">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp1_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="y_exp2_avg" width="1344" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="rgbs_grid_1_1">
+              <input pin_name="input" width="640" height="480" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c0_c1_c2_c3_avg" width="19200" height="1" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="c4_c5_c6_c7_avg" width="0" height="0" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="saturation" width="2400" height="1" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_scale_lb">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="odr_output_ps_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="gammatm_v4">
+              <input pin_name="input" bpp="16" />
+              <output pin_name="output" bpp="12" />
+            </bcb>
+            <bcb name="ifd_pipe_1_3">
+              <input pin_name="input" bpp="10" />
+              <output pin_name="outputimage" bpp="16" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+        <node name="bbps_WithTnr" tuning_mode="0" stream_id="60000">
+          <rcbs>
+            <rcb name="outputscaler_2_0_a">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="scaled_output" width="512" height="384" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+            <rcb name="tnr_scale_fp">
+              <input pin_name="input" width="1280" height="960" top="0" left="0" bottom="0" right="0" />
+              <output pin_name="output" width="320" height="240" top="0" left="0" bottom="0" right="0" />
+            </rcb>
+          </rcbs>
+          <bcbs>
+            <bcb name="tnr_fp_bodr_yuvn_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="tnr_scale_fp">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="output" bpp="8" />
+            </bcb>
+            <bcb name="ofs_mp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="ofs_dp_bodr_regs_1_3">
+              <input pin_name="input" bpp="12" />
+              <output pin_name="outputimage" bpp="8" />
+            </bcb>
+            <bcb name="slim_tnr_fp_blend_bifd_yuvnm1_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+            <bcb name="slim_tnr_spatial_bifd_yuvn_regs_1_3">
+              <input pin_name="input" bpp="8" />
+              <output pin_name="outputimage" bpp="12" />
+            </bcb>
+          </bcbs>
+          <kernels_system_api_override />
+        </node>
+      </outer_nodes_configuration>
+      <links_configuration>
+        <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
+        <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+      </links_configuration>
+      <virtual_sinks_mapping>
+        <map sink="image_mp" virtual_sink="stills" />
+        <map sink="image_dp" virtual_sink="thumbnail" />
+      </virtual_sinks_mapping>
+    </setting>
+  </settings>
+</graph_settings>
