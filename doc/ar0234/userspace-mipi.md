@@ -11,18 +11,21 @@ This document details the configuration settings for the AR0234 MIPI CSI-2 senso
       <ul>
         <li><a href="#setup-for-ipu6epmtl">Setup for IPU6EPMTL</a></li>
         <li><a href="#setup-for-ipu75xa">Setup for IPU75XA</a></li>
+        <li><a href="#setup-for-ipu8">Setup for IPU8</a></li>
       </ul>
     </li>
     <li><a href="#camera-configuration-file-setup">Camera Configuration File Setup</a>
       <ul>
         <li><a href="#setup-for-ipu6epmtl-1">Setup for IPU6EPMTL</a></li>
         <li><a href="#setup-for-ipu75xa-1">Setup for IPU75XA</a></li>
+        <li><a href="#setup-for-ipu8-1">Setup for IPU8</a></li>
       </ul>
     </li>
     <li><a href="#camera-tuning-file-setup">Camera Tuning File Setup</a>
       <ul>
         <li><a href="#setup-for-ipu6epmtl-2">Setup for IPU6EPMTL</a></li>
         <li><a href="#setup-for-ipu75xa-2">Setup for IPU75XA</a></li>
+        <li><a href="#setup-for-ipu8-2">Setup for IPU8</a></li>
       </ul>
     </li>
     <li><a href="#environment-setup">Environment Setup</a></li>
@@ -134,6 +137,57 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   | 19                   |
 | Flash Driver Selection     | Disabled             | Disabled             |
 
+#### Setup for IPU8
+
+Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+
+|                            | Control Logic 1      | Control Logic 2      |
+|---                         |---                   |---                   |
+| Control Logic Type         | Discrete             | Discrete             |
+| CRD Version                | CRD-D                | CRD-D                |
+| Input Clock                | 19.2MHz              | 19.2MHz              |
+| PCH Clock                  | IMGCLKOUT_0          | IMGCLKOUT_1          |
+| Number of GPIOs            | 1                    | 1                    |
+| GPIO Pin 0                 |                      |                      |
+| Group Pad Number           | 10                   | 1                    |
+| Group Number               | C_E_V                | C_E_V                |
+| Com Number                 | COM1                 | COM1                 |
+| Function                   | RESET                | RESET                |
+| Active Value               | 1                    | 1                    |
+| Initial Value              | 0                    | 0                    |
+| Interrupt GPIO             | Disabled             | Disabled             |
+
+|                            | Camera1 Link options | Camera2 Link options |
+|---                         |---                   | ---                  |
+| Sensor Model               | User Custom          | User Custom          |
+| Custom HID                 | INTC10C0             | INTC10C0             |
+| Lanes Clock division       | 4 4 2 2              | 4 4 2 2              |
+| CRD Version                | CRD-D                | CRD-D                |
+| GPIO control               | Control Logic 1      | Control Logic 2      |
+| Camera position            | Front                | Back                 |
+| Flash Support              | Disabled             | Disabled             |
+| Privacy LED                | Driver default       | Driver default       |
+| Rotation                   | 0                    | 0                    |
+| PPR Value                  | 2                    | 2                    |
+| PPR Unit                   | 2                    | 2                    |
+| PhyConfiguration           | DPHY                 | DPHY                 |
+| Camera module name         | _                    | _                    |
+| MIPI port                  | 0                    | 2                    |
+| LaneUsed                   | x2                   | x2                   |
+| MCLK                       | 19200000             | 19200000             |
+| EEPROM Type                | ROM_NONE             | ROM_NONE             |
+| VCM Type                   | VCM_NONE             | VCM_NONE             |
+| Number of I2C Components   | 1                    | 1                    |
+| I2C Channel                | I2C1                 | I2C0                 |
+| Device 0                   |                      |                      |
+| I2C Address                | 10                   | 10                   |
+| Device Type                | Sensor               | Sensor               |
+| Customize Device ID List   |                      |                      |
+| Customize Device ID Number | 17                   | 17                   |
+| Customize Device ID Number | 18                   | 18                   |
+| Customize Device ID Number | 19                   | 19                   |
+| Flash Driver Selection     | Disabled             | Disabled             |
+
 ## Camera Configuration File Setup
 
 #### Setup for IPU6EPMTL
@@ -153,6 +207,14 @@ Replace target system with recommended [ipu75xa](../../config/ar0234/ipu75xa) se
 
     sudo cp -r ../../config/ar0234/ipu75xa /etc/camera
 
+#### Setup for IPU8
+
+Replace target system with recommended [ipu8](../../config/ar0234/ipu8) setting
+
+> **Note:** Add config below only if using x2 MIPI sensors.
+
+    sudo cp -r ../../config/ar0234/ipu8 /etc/camera
+
 ## Camera Tuning File Setup
 
 #### Setup for IPU6EPMTL
@@ -162,6 +224,10 @@ Import [AR0234_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/io
 #### Setup for IPU75XA
 
 > **TODO:** No action needed for now, will revisit once AIQB config available in [ipu7-camera-hal](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu75xa).
+
+#### Setup for IPU8
+
+> **TODO:** No action needed for now, will revisit once AIQB config available in [ipu7-camera-hal](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu8).
 
 ## Environment Setup
 
