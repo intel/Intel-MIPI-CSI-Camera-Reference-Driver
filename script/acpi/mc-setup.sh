@@ -178,6 +178,7 @@ declare -A STREAM_MUXPAD=(
 declare -A MBUS_TO_PIXFMT=(
     [UYVY8_1X16]="UYVY"
     [YUYV8_1X16]="YUYV"
+    [RGB888_1X24]="BGR3"
     [VYUY8_1X16]="Y8I "   # IR -> interleaved 8-bit greyscale
     [Y8_1X8]="GREY"
     [SGRBG10_1X10]="BA10"  # AR0234 RAW Bayer SGRBG 10-bit
@@ -1380,7 +1381,7 @@ for k in "${!CFG_LINKS[@]}"; do
         h=${size#*x}
         v4l2-ctl -d "/dev/video${node}" \
             --set-fmt-video="width=${w},height=${h},pixelformat=${pixfmt}" \
-            >/dev/null
+            >/dev/null || die "cannot set /dev/video${node} to ${pixfmt} ${size}"
     done
 done
 
