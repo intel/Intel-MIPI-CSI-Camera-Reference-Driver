@@ -41,7 +41,7 @@
  		WARN_ON(1);
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
-@@ -84,11 +84,20 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
+@@ -84,12 +84,21 @@ const struct ipu7_isys_pixelformat ipu7_isys_pfmts[] = {
  	{V4L2_PIX_FMT_UYVY, 16, 16, MEDIA_BUS_FMT_UYVY8_1X16,
  	 IPU_INSYS_FRAME_FORMAT_UYVY},
  	{V4L2_PIX_FMT_YUYV, 16, 16, MEDIA_BUS_FMT_YUYV8_1X16,
@@ -62,7 +62,8 @@
 +	 IPU_INSYS_FRAME_FORMAT_RAW8},
  };
  
- static int video_open(struct file *file)
+ #ifdef CONFIG_VIDEO_INTEL_IPU7_ISYS_RESET
+ static int video_release(struct file *file)
 --- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
 +++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
 @@ -45,7 +45,7 @@ struct ipu7_isys_stream;
