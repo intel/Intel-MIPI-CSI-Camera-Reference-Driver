@@ -34,8 +34,8 @@
  *   DESCH_SER_Y_VC           - D457 Y-stream virtual channel mapping
  *   DESCH_SER_Z_VC           - D457 Z-stream virtual channel mapping
  *   DESCH_SER_U_VC           - D457 U-stream virtual channel mapping
- *   DESCH_SER_EXTRA_GPIO_PIN - Optional: extra SER GPIO pin number
- *   DESCH_CAM_FSIN_GPIO      - Optional: camera FSIN GPIO index on the SER
+ *   DESCH_SER_EXTRA_GPIO_PIN - Optional: Extra SER GPIO pin number
+ *   EXTERNAL_FRAME_SYNC      - Optional: Camera external frame sync FSIN GPIO enablement
  */
 
 DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
@@ -96,8 +96,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Channel 1
@@ -135,8 +135,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Clean up DES0-level defines
@@ -202,8 +202,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Channel 1
@@ -241,8 +241,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Clean up DES1-level defines

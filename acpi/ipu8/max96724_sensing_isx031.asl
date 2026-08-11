@@ -27,8 +27,8 @@
  *   DESCH_SER_PATH           - SERx ACPI path string (e.g. "\\_SB.PC00.DES0.CH00.SER0")
  *   DESCH_SER_REF            - SERx ACPI namespace reference (e.g. \_SB.PC00.DES0.CH00.SER0)
  *   DESCH_SER_GPIOREF        - SERx GPIO controller reference (e.g. ^^SER0)
- *   DESCH_SER_EXTRA_GPIO_PIN - Extra SER GPIO pin number (Sensing-specific, e.g. 7)
- *   DESCH_CAM_FSIN_GPIO      - Camera FSIN GPIO index on the SER (e.g. 1)
+ *   DESCH_SER_EXTRA_GPIO_PIN - Optional: Extra SER GPIO pin number
+ *   EXTERNAL_FRAME_SYNC      - Optional: Camera external frame sync FSIN GPIO enablement
  *   CAM_ALIAS                - Camera alias I2C address used in i2c-alias-pool of the SER
  *   CAM_LANES                - Number of MIPI data lanes for the camera (e.g. 2, 4)
  */
@@ -64,8 +64,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH00.SER0"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH00.SER0
             #define DESCH_SER_GPIOREF ^^SER0
-            #define DESCH_SER_EXTRA_GPIO_PIN 7
-            #define DESCH_CAM_FSIN_GPIO 1
             #define CAM_ALIAS 0x54
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
@@ -84,8 +82,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Clean up DES-level defines
             #undef DES_PHY_TYPE

@@ -16,6 +16,8 @@
  *   DES_I2C_BUS              - DES I2C bus path (e.g. "\\_SB.PC00.I2C1")
  *   DES_PATH                 - DES ACPI path string (e.g. "\\_SB.PC00.DES0")
  *   DES_REF                  - DES ACPI namespace reference (e.g. \_SB.PC00.DES0)
+ *   DES_FSIN_GPIO_PIN      - (Optional) DES GPIO pin number, used in GpioIo (e.g. 7 for MFP7 on MAX96724,
+ *                            used to receive the external GMSL frame sync trigger pulse)
  *
  * Channel-level defines (set per CHxx, undef'd by _des_ch_common_isx031.asl):
  *   DESCH_LINK_NUM           - Channel/link number (0..3) - used for _ADR, reg, SER remote port
@@ -27,13 +29,13 @@
  *   DESCH_SER_PATH           - SERx ACPI path string (e.g. "\\_SB.PC00.DES0.CH00.SER0")
  *   DESCH_SER_REF            - SERx ACPI namespace reference (e.g. \_SB.PC00.DES0.CH00.SER0)
  *   DESCH_SER_GPIOREF        - SERx GPIO controller reference (e.g. ^^SER0)
- *   DESCH_SER_EXTRA_GPIO_PIN - Optional: Extra SER GPIO pin number
- *   EXTERNAL_FRAME_SYNC      - Optional: Camera external frame sync FSIN GPIO enablement
+ *   DESCH_SER_EXTRA_GPIO_PIN - Extra SER GPIO pin number (Sensing-specific, e.g. 7)
+ *   EXTERNAL_FRAME_SYNC      - Camera external frame sync FSIN GPIO enablement
  *   CAM_ALIAS                - Camera alias I2C address used in i2c-alias-pool of the SER
  *   CAM_LANES                - Number of MIPI data lanes for the camera (e.g. 2, 4)
  */
 
-DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
+DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260818)
 {
     External (_SB.PC00, DeviceObj)
 
@@ -43,6 +45,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
     {
         Device (DES0)
         {
+            #define EXTERNAL_FRAME_SYNC 1
+
             // DES-level defines for DES0
             #define DES_PHY_TYPE 0
             #define DES_I2C_ADDR 0x0027
@@ -52,6 +56,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_I2C_BUS "\\_SB.PC00.I2C1"
             #define DES_PATH "\\_SB.PC00.DES0"
             #define DES_REF \_SB.PC00.DES0
+            #define DES_FSIN_GPIO_PIN 7
             #include "_des_common_max96724.asl"
 
             // Channel 0 (with extra GPIO pin 7 and fsin-gpios)
@@ -66,6 +71,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DESCH_SER_GPIOREF ^^SER0
             #define CAM_ALIAS 0x54
             #define CAM_LANES 4
+            #define DESCH_SER_EXTRA_GPIO_PIN 7
             #include "_des_ch_common_isx031.asl"
 
             #undef DESCH_CH
@@ -77,14 +83,40 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DESCH_LINK_NUM
             #undef DESCH_SER_I2C
             #undef DESCH_SER_GPIOREF
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+            #undef EXTERNAL_FRAME_SYNC
             #undef CAM_ALIAS
             #undef CAM_LANES
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
+
+            // Channel 1
+            #define DESCH_CH CH01
+            #define DESCH_SER SER1
+            #define DESCH_CAM CAM1
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH01"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH01.SER1"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH01.SER1
+            #define DESCH_LINK_NUM 1
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_SER_GPIOREF ^^SER1
+            #define DESCH_SER_EXTRA_GPIO_PIN 7
+            #define EXTERNAL_FRAME_SYNC 1
+            #define CAM_ALIAS 0x55
+            #define CAM_LANES 4
+            #include "_des_ch_common_isx031.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
             #undef DESCH_SER_EXTRA_GPIO_PIN
-#endif
-#ifdef EXTERNAL_FRAME_SYNC
             #undef EXTERNAL_FRAME_SYNC
-#endif
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+
             // Clean up DES-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
@@ -94,6 +126,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DES_I2C_BUS
             #undef DES_PATH
             #undef DES_REF
+            #undef DES_FSIN_GPIO_PIN
+
         }
     }
 }

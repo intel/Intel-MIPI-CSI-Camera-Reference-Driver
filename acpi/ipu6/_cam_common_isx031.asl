@@ -6,7 +6,7 @@
  *   DESCH_SER_REF      - Path to parent SER (e.g. \_SB.PC00.DESx.CHxx.SERx), used in _DEP
  *   DESCH_SER_PATH     - Path to parent SER (e.g. "\\_SB.PC00.DESx.CHxx.SERx"), used in CSI2Bus and GpioIo
  *   DESCH_SER_GPIOREF  - GPIO controller path for SER (e.g. ^^SERx), used in gpio resources (e.g. reset-gpios)
- *   DESCH_CAM_FSIN_GPIO - (Optional) Add fsin-gpio resource if defined
+ *   EXTERNAL_FRAME_SYNC - (Optional) Add fsin-gpio resource if defined
  *   CAM_LANES    - Number of MIPI data lanes for the camera
  */
 Method (_STA, 0, NotSerialized) // _STA: Status
@@ -84,8 +84,17 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         * 1 is active low for FSIN
         *
         */
-#ifdef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
         Package () { "fsin-gpios", Package () { DESCH_SER_GPIOREF, 0, 1, 1 } },
+#endif
+        /*
+         * External GMSL frame sync control, consumed by isx031.c.
+         * Disabled by default; define EXTERNAL_FRAME_SYNC to override
+         */
+#ifdef EXTERNAL_FRAME_SYNC
+        Package () { "gmsl-frame-sync-enable", EXTERNAL_FRAME_SYNC }, // Zero to disable, One to enable
+#else
+        Package () { "gmsl-frame-sync-enable", 0 }, // Disabled by default
 #endif
     },
     ToUUID("dbb8e3e6-5886-4ba6-8795-1319f52a966b"), // Hierarchical Data Extension

@@ -95,8 +95,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Channel 1 (RS D457)
@@ -134,8 +134,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Clean up DES0-level defines
@@ -199,8 +199,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Channel 1 (RS D457)
@@ -238,8 +238,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
 
             // Clean up DES1-level defines

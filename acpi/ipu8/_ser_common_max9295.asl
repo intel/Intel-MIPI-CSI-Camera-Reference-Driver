@@ -63,7 +63,7 @@ Name(_CRS, ResourceTemplate ()  // _CRS: Current Resource Settings
         PullNone,               // PinConfig (No need for pulls)
         0,                      // DebounceTimeout
         0,                      // DriveStrength
-        IoRestrictionOutputOnly,// ResourceSource (Only used as output)
+        IoRestrictionNone,      // IoRestriction
         DESCH_SER_PATH,         // ResourceSourceIndex (Path to SER GPIO controller, e.g. "\\_SB.PC00.DESx.CHxx.SERx" based on which Link)
         0)                      // ResourceUsage (Must be 0)
     {
@@ -84,6 +84,19 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
          * Address called out in the pool is used as Camera Alias Address.
          */
         Package () { "i2c-alias-pool",  Package() { CAM_ALIAS } },
+        /*
+         * External GMSL frame sync control, consumed by max96717.c.
+         * Disabled by default; define EXTERNAL_FRAME_SYNC (1) by the
+         * caller to override.
+         */
+#ifdef EXTERNAL_FRAME_SYNC
+        Package () { "gmsl-frame-sync-enable", EXTERNAL_FRAME_SYNC }, // Zero to disable, One to enable
+#else
+        Package () { "gmsl-frame-sync-enable", 0 }, // Disabled by default
+#endif
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+        Package () { "gmsl-frame-sync-gpio-pin", DESCH_SER_EXTRA_GPIO_PIN },
+#endif
     },
     ToUUID("dbb8e3e6-5886-4ba6-8795-1319f52a966b"), // Hierarchical Data Extension
     Package ()

@@ -9,7 +9,12 @@
  *   DES_TO_MIPI_PORT       - DES connected to MIPI Port (e.g. 0/1/2) of IPU0 Device, used as IPU remote port in CSI2Bus
  *   DES_I2C_ADDR           - DES I2C slave address (e.g. 0x0027 for MAX96724), used in I2cSerialBusV2
  *   DES_I2C_BUS            - DES I2C bus path string (e.g. "\\_SB.PC00.I2C1"), used in I2cSerialBusV2
+ *   DES_PATH               - Path to DES itself (e.g. "\\_SB.PC00.DESx"), used in GpioIo
+ *   DES_REF                - ACPI namespace reference to DES itself (e.g. \\_SB.PC00.DESx), used in _DSD
+ *                            gpio property (required if DES_FSIN_GPIO_PIN is defined)
  *   DES_PIPE_STR_AUTOSELECT - MAX96724 specific property
+ *   DES_FSIN_GPIO_PIN      - (Optional) DES GPIO pin number, used in GpioIo (e.g. 7 for MFP7 on MAX96724,
+ *                            used to receive the external GMSL frame sync trigger pulse)
  */
 
 Name (_UID, Zero)               // _UID: Unique ID
@@ -58,6 +63,20 @@ Name (_CRS, ResourceTemplate () // _CRS: Current Resource Settings
         ,                       // DescriptorName
         Exclusive,              // Shared
         )                       // VendorData
+
+#ifdef DES_FSIN_GPIO_PIN
+    GpioIo (
+        Exclusive,              // Shared (Not shared)
+        PullNone,               // PinConfig (No need for pulls)
+        0,                      // DebounceTimeout
+        0,                      // DriveStrength
+        IoRestrictionNone,      // IoRestriction
+        DES_PATH,               // ResourceSource (Path to DES itself, e.g. "\\_SB.PC00.DESx")
+        0)                      // ResourceUsage (Must be 0)
+    {
+        DES_FSIN_GPIO_PIN,      // Pin (e.g. 7 for MFP7 on MAX96724, external GMSL frame sync trigger input)
+    }
+#endif
 })
 
 Name (_DSD, Package ()          // _DSD: Device-Specific Data
@@ -79,6 +98,27 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         Package () { "pipe-stream-autoselect", DES_PIPE_STR_AUTOSELECT }, // Zero to disable, One to enable
         #else
         Package () { "pipe-stream-autoselect", 1 }, // Enabled by default for usual 2D case
+        #endif
+        /*
+         * External GMSL frame sync control, consumed by max96724.c.
+         * Disabled by default; define EXTERNAL_FRAME_SYNC (0/1) by the
+         * caller to override.
+         */
+        #ifdef EXTERNAL_FRAME_SYNC
+        Package () { "gmsl-frame-sync-enable", EXTERNAL_FRAME_SYNC }, // Zero to disable, One to enable
+        #else
+        Package () { "gmsl-frame-sync-enable", 0 }, // Disabled by default
+        #endif
+
+        /*
+         * Name the GpioIo() resource above so drivers can fetch it via
+         * gpiod_get(dev, "des-fsin", ...) instead of relying on _CRS index order.
+         * Format: { ref, CRS GpioIo() index (0-based), pin index within that
+         * resource, active_low }. This is the 1st (and only) GpioIo() resource
+         * in _CRS, hence index 0; the pin index within it is also 0.
+         */
+        #ifdef DES_FSIN_GPIO_PIN
+        Package () { "des-fsin-gpios", Package () { DES_REF, 0, 0, 0 } },
         #endif
     },
     ToUUID("dbb8e3e6-5886-4ba6-8795-1319f52a966b"), // Hierarchical Data Extension

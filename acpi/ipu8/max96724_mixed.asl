@@ -81,8 +81,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Channel 1 (D3 ISX031)
             #define DESCH_LINK_NUM 1
@@ -112,8 +112,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Channel 2 (LI ISX031)
             #define DESCH_LINK_NUM 2
@@ -143,8 +143,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Channel 3 (SENSING ISX031)
             #define DESCH_LINK_NUM 3
@@ -156,8 +156,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH03.SER3"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH03.SER3
             #define DESCH_SER_GPIOREF ^^SER3
-            #define DESCH_SER_EXTRA_GPIO_PIN 7
-            #define DESCH_CAM_FSIN_GPIO 1
             #define CAM_ALIAS 0x57
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
@@ -176,8 +174,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Clean up DES0-level defines
             #undef DES_PHY_TYPE
@@ -232,8 +230,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Channel 1 (D3 ISX031)
             #define DESCH_LINK_NUM 1
@@ -263,8 +261,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Channel 2 (RS D457)
             #define DESCH_LINK_NUM 2
@@ -302,8 +300,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
 #ifdef DESCH_SER_EXTRA_GPIO_PIN
             #undef DESCH_SER_EXTRA_GPIO_PIN
 #endif
-#ifdef DESCH_CAM_FSIN_GPIO
-            #undef DESCH_CAM_FSIN_GPIO
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
 #endif
             // Clean up DES1-level defines
             #undef DES_PHY_TYPE

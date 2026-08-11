@@ -23,7 +23,7 @@
  * Optional defines:
  *   DESCH_SER_EXTRA_GPIO_PIN - SERx Additional GPIO pin number (e.g., 7 for MFP7 in MAX9295A)
  *   DESCH_SER_X/Y/Z/U_VC - SERx VC filter for Pipe X/Y/Z/U, specifically for MAX96717 driver
- *   DESCH_CAM_FSIN_GPIO  - CAMx Add fsin-gpio resource if defined
+ *   EXTERNAL_FRAME_SYNC  - CAMx Add fsin-gpio resource if defined
  */
 
 Device (DESCH_CH) // New CHxx Device under parent DESx device for each DES channel/link

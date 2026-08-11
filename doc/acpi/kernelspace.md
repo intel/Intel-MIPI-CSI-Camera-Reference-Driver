@@ -91,11 +91,11 @@ Serializer Specific Defines in ASL is used to specify the configuration for seri
 | Sensor Define | Description | Value | Correlate to legacy setup |
 | --- | --- | --- | --- |
 | CAM_LANES | Number of lanes used by the camera sensor | 2 or 4 depending on use case | LaneUsed in BIOS |
-| DESCH_CAM_FSIN_GPIO | (Optional) Use of FSIN GPIO | 1 if needed (DESCH_SER_EXTRA_GPIO_PIN should also be defined in this case),  0 (default) | - |
+| EXTERNAL_FRAME_SYNC | (Optional) Use of FSIN GPIO. Requires an external pulse supplied to deserializer MFP pin | 1 if needed (DESCH_SER_EXTRA_GPIO_PIN and DES_FSIN_GPIO_PIN should also be defined in this case),  0 (default) | - |
 
 #### Sample values for different models of sensors
 
-| Sensor Model  | DESCH_SER_I2C | DESCH__SER_EXTRA_GPIO_PIN | DESCH_CAM_FSIN_GPIO | CAM_LANES | DESCH_SER_X/Y/Z/U_VC |
+| Sensor Model  | DESCH_SER_I2C | DESCH_SER_EXTRA_GPIO_PIN | EXTERNAL_FRAME_SYNC | CAM_LANES | DESCH_SER_X/Y/Z/U_VC |
 | --- | --- | --- | --- | --- | --- |
 | D3 ISX031     | 0x40 | - | - | 4 | - |
 | LI ISX031     | 0x62 | - | - | 4 | - |
