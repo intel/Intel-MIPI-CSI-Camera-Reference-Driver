@@ -6,36 +6,39 @@ This document details the configuration settings for the ISX031 GMSL sensor, pro
 
 - [Hardware Connection](#hardware-connection)
   - [MAX9296 (REV B) Connection](#max9296-rev-b-connection)
-  - [MAX96724 AIC (REV A) Connection](#max96724-aic-rev-a-connection)
-  - [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection)
+  - [MAX96724 AIC (C-PHY) (REV A) Connection](#max96724-aic-c-phy-rev-a-connection)
   - [MAX96724 AIC (C-PHY) (REV B) Connection](#max96724-aic-c-phy-rev-b-connection)
+  - [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection)
   - [MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection](#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection)
-- [BIOS Configuration Table](#bios-configuration-table)
+- [ACPI Setup - BIOS Configuration](#acpi-setup---bios-configuration)
   - [Disable C States](#disable-c-states)
   - [Sensor ACPI HID](#sensor-acpi-hid)
-  - [MIPI Camera Configuration for IPU6EP](#mipi-camera-configuration-for-ipu6ep)
-  - [MIPI Camera Configuration for IPU6EPMTL](#mipi-camera-configuration-for-ipu6epmtl)
-    - [Connected to MAX9296 AIC](#connected-to-max9296-aic)
-    - [Connected to D-PHY of MAX96724 AIC (REV B)](#connected-to-d-phy-of-max96724-aic-rev-b)
-  - [MIPI Camera Configuration for IPU75XA](#mipi-camera-configuration-for-ipu75xa)
-    - [Connected to C-PHY of MAX96724 AIC (REV B)](#connected-to-c-phy-of-max96724-aic-rev-b)
-    - [Connected to D-PHY of MAX96724 AIC (REV B) (via C-to-D-PHY adapter)](#connected-to-d-phy-of-max96724-aic-rev-b-via-c-to-d-phy-adapter)
-  - [MIPI Camera Configuration for IPU8](#mipi-camera-configuration-for-ipu8)
-    - [Connected to C-PHY of MAX96724 AIC (REV A)](#connected-to-c-phy-of-max96724-aic-rev-a)
-- [Camera Configuration File Setup](#camera-configuration-file-setup)
-  - [Setup for IPU6EP](#setup-for-ipu6ep)
-  - [Setup for IPU6EPMTL](#setup-for-ipu6epmtl)
-  - [Setup for IPU75XA](#setup-for-ipu75xa)
-- [Environment Setup](#environment-setup)
+  - [BIOS Settings for IPU6EP](#bios-settings-for-ipu6ep)
+  - [BIOS Settings for IPU6EPMTL](#bios-settings-for-ipu6epmtl)
+  - [BIOS Settings for IPU75XA](#bios-settings-for-ipu75xa)
+  - [BIOS Settings for IPU8](#bios-settings-for-ipu8)
+- [ACPI Setup - ASL Configuration](#acpi-setup---asl-configuration)
+  - [ASL Configuration for IPU6EPMTL](#asl-configuration-for-ipu6epmtl)
+  - [ASL Configuration for IPU75XA](#asl-configuration-for-ipu75xa)
+  - [ASL Configuration for IPU8](#asl-configuration-for-ipu8)
+- [Libcamhal Configuration File Setup (BIOS configured systems)](#libcamhal-configuration-file-setup-bios-configured-systems)
+  - [Libcamhal Config for IPU6EP](#libcamhal-config-for-ipu6ep)
+  - [Libcamhal Config for IPU6EPMTL](#libcamhal-config-for-ipu6epmtl)
+  - [Libcamhal Config for IPU75XA](#libcamhal-config-for-ipu75xa)
+  - [Libcamhal Config for IPU8](#libcamhal-config-for-ipu8)
 - [Sensor Verification](#sensor-verification)
-- [Sample Userspace Command](#sample-userspace-command)
-  - [Sensor Device Selection](#sensor-device-selection)
-    - [How to relate Sensor Number with AIC Link Port](#how-to-relate-sensor-number-with-aic-link-port)
-  - [Frame Buffer Memory Type (IO Mode) Selection](#frame-buffer-memory-type-io-mode-selection)
-  - [Sensor Resolution Selection](#sensor-resolution-selection)
-  - [Sensor Format Selection](#sensor-format-selection)
-  - [Number of Stream (Single Stream / Multi Stream) Selection](#number-of-stream-single-stream--multi-stream-selection)
+- [Supported Configurations](#supported-configurations)
+- [Stream Verification](#stream-verification)
+  - [Environment Setup](#environment-setup)
+  - [Stream with GStreamer icamerasrc](#stream-with-gstreamer-icamerasrc)
+    - [device-name Selection](#device-name-selection)
+    - [io-mode Selection](#io-mode-selection)
+    - [Sensor Resolution Selection](#sensor-resolution-selection)
+    - [Sensor Format Selection](#sensor-format-selection)
+    - [Number of Streams (Single-Stream / Multi-Stream) Selection](#number-of-streams-single-stream--multi-stream-selection)
 - [Streaming Result](#streaming-result)
+  - [Highest Bandwidth Configuration](#highest-bandwidth-configuration)
+
 
 ## Hardware Connection
 
@@ -57,7 +60,7 @@ This section describes the physical AIC (Add-In Card) hardware setup, including 
 
 > **Note:** The MAX96724 AIC (REV B) supports both C-PHY and D-PHY connections, selectable via the J14 jumper.
 
-Image below shows the C-PHY setup.
+The image below shows the C-PHY setup.
 
 ![link-port](../images/max96724-fabb-cphy.png)
 
@@ -65,47 +68,58 @@ Image below shows the C-PHY setup.
 
 > **Note:** Ensure the J14 jumper pins are oriented toward the D-PHY connector, as shown in the image below.
 
-Image below shows the D-PHY setup.
+The image below shows the D-PHY setup.
 
 ![link-port](../images/max96724-fabb-dphy.png)
 
 ### MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection
 
-Image below shows the C-PHY to D-PHY adapter setup.
+The image below shows the C-PHY to D-PHY adapter setup.
 
 ![link-port](../images/max96724-fabb-cphy-dphy.png)
 
-## BIOS Configuration Table
+The following sections show the BIOS settings for each platform. Configure the BIOS for the platform in use.
 
-> **Note:** No External Clock required.
+>**Note:** If you want to configure ACPI using ASL, please refer to the [ASL configuration](#acpi-setup---asl-configuration) section below.
+
+---
+## ACPI Setup - BIOS Configuration
+
+Using the BIOS configuration exercises the [ipu-acpi](../../drivers/media/platform/intel/) and [max9x](../../drivers/media/i2c/max9x/) drivers.
 
 ### Disable C States
 
-Config path: `Intel Advanced Menu`->`Power & Performance`->`CPU - Power Management Control`
+Disabling C-states prevents the system from entering low-power states, helping maintain consistent performance and reduce latency during camera operation.
 
-|                            | Options              |
-|---                         |---                   |
-| C states                   | Disabled             |
+> **Note:** This option applies only to IPU6EP platforms.
 
-> **Note:** : This option is only applicable for IPU6EP platforms (ADL, TWL, ASL and RPL).
+>**BIOS path**: `Intel Advanced Menu`->`Power & Performance`->`CPU - Power Management Control` -> C states -> **Disabled**
 
+---
 ### Sensor ACPI HID
 
-| Vendor                     | Sensor ACPI HID      |
-|---                         |---                   |
-| D3 Embedded                | INTC031M             |
-| Leopard Imaging            | INTC031L             |
-| Otobrite                   | INTC031O             |
-| Sensing                    | INTC031S             |
+Use the sensor ACPI HID in the **Custom HID** field.
 
-> **Note:** Sensor ACPI HID value will be used for `MIPI Camera Configuration`.
+| Vendor          | Sensor ACPI HID |
+|-----------------|:---------------:|
+| D3 Embedded     | INTC031M        |
+| Leopard Imaging | INTC031L        |
+| Otobrite        | INTC031O        |
+| Sensing         | INTC031S        |
 
-### MIPI Camera Configuration for IPU6EP
-
-Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+---
+### BIOS Settings for IPU6EP
 
 <details>
-<summary>Click to expand BIOS camera link options</summary>
+<summary> MAX9296 DPHY + 4x ISX031 </summary>
+<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+> **Note:** No control logic or external clock is required.
+
+>**BIOS Camera Option 1 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 1` -> **Enabled**
+
+>**BIOS Camera Option 2 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 2` -> **Enabled**
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -142,15 +156,25 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Flash Driver Selection     | Disabled             | Disabled             |
 
 </details>
+<p align="right">(<a href="#libcamhal-config-for-ipu6ep">Go to Libcamhal Config</a>)</p>
 
-### MIPI Camera Configuration for IPU6EPMTL
-
-Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
-
-#### Connected to MAX9296 AIC
+---
+### BIOS Settings for IPU6EPMTL
 
 <details>
-<summary>Click to expand BIOS camera link options</summary>
+<summary>MAX9296 DPHY + 4x ISX031</summary>
+<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**Connection:**\
+ Refer to [MAX9296 (REV B) Connection](#max9296-rev-b-connection) for hardware connection and jumper setup.
+
+> **Note:** No control logic or external clock is required.
+
+>**BIOS Camera Option 1 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 1` -> **Enabled**
+
+>**BIOS Camera Option 2 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 2` -> **Enabled**
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -190,12 +214,15 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 
 </details>
 
-#### Connected to D-PHY of MAX96724 AIC (REV B)
-
-> **Note:** Refer to [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection) for hardware connection and jumper setup.
-
 <details>
-<summary>Click to expand BIOS camera link options</summary>
+<summary>MAX96724 DPHY + 8x ISX031 </summary>
+<p align="left">(<a href="#max96724-aic-d-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**Connection:**\
+ Refer to [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection) for hardware connection and jumper setup.
+
+>**BIOS path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -235,16 +262,25 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 
 </details>
 
-### MIPI Camera Configuration for IPU75XA
+<p align="right">(<a href="#libcamhal-config-for-ipu6epmtl">Go to Libcamhal Config</a>)</p>
 
-Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
-
-#### Connected to C-PHY of MAX96724 AIC (REV B)
-
-> **Note:** Refer to [MAX96724 AIC (C-PHY) (REV B) Connection](#max96724-aic-c-phy-rev-b-connection) for hardware connection and jumper setup.
+---
+### BIOS Settings for IPU75XA
 
 <details>
-<summary>Click to expand BIOS camera link options</summary>
+<summary>MAX96724 CPHY + 8x ISX031</summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**Connection:**\
+ Refer to [MAX96724 AIC (C-PHY) (REV B) Connection](#max96724-aic-c-phy-rev-b-connection) for hardware connection and jumper setup.
+
+> **Note:** No control logic or external clock is required.
+
+>**BIOS Camera Option 1 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 1` -> **Enabled**
+
+>**BIOS Camera Option 2 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 2` -> **Enabled**
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -286,9 +322,15 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 
 </details>
 
-#### Connected to D-PHY of MAX96724 AIC (REV B) (via C-to-D-PHY adapter)
+<details>
+<summary>MAX96724 DPHY (via C-to-D-PHY adapter) + 6x ISX031 </summary>
+<p align="left">(<a href="#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection">Back to Hardware Setup</a>)</p>
 
-> **Note:** Refer to [MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection](#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection) for hardware connection and jumper setup.
+>**Connection:**\
+ Refer to [MAX96724 AIC DPHY (via C-PHY to D-PHY Adapter) (REV B) Connection](#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection) for hardware connection and jumper setup.
+
+>**BIOS path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
 <details>
 <summary>Click to expand BIOS camera link options</summary>
@@ -332,18 +374,27 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Flash Driver Selection     | Disabled             | Disabled             |
 
 </details>
+</details>
 
+<p align="right">(<a href="#libcamhal-config-for-ipu75xa">Go to Libcamhal Config</a>)</p>
 
-### MIPI Camera Configuration for IPU8
-
-Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
-
-#### Connected to C-PHY of MAX96724 AIC (REV A)
-
-> **Note:** Refer to [MAX96724 AIC (REV A) Connection](#max96724-aic-rev-a-connection) for hardware connection.
+---
+### BIOS Settings for IPU8
 
 <details>
-<summary>Click to expand BIOS camera link options</summary>
+<summary>MAX96724 CPHY + 8x ISX031</summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-a-connection">Back to Hardware Setup</a>)</p>
+
+>**Connection:**\
+ Refer to [MAX96724 AIC (C-PHY) (REV A) Connection](#max96724-aic-c-phy-rev-a-connection) for hardware connection and jumper setup.
+
+> **Note:** No control logic or external clock is required.
+
+>**BIOS Camera Option 1 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 1` -> **Enabled**
+
+>**BIOS Camera Option 2 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 2` -> **Enabled**
 
 |                            | Camera1 Link options | Camera2 Link Options |
 |---                         |---                   | ---                  |
@@ -385,58 +436,278 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 
 </details>
 
-## Camera Configuration File Setup
+<p align="right">(<a href="#libcamhal-config-for-ipu8">Go to Libcamhal Config</a>)</p>
 
-#### Setup for IPU6EP
+---
+## ACPI Setup - ASL Configuration
 
-Replace target system with recommended [ipu6ep](../../config/isx031/ipu6ep) setting
+<h3>IMPORTANT: Turn off the BIOS setting to use the ASL method.</h3>
 
-> **Note:** Add config below only if using x1 GMSL sensor.
+Using the ASL configuration exercises the [maxim-serdes](../../drivers/media/i2c/maxim-serdes/) drivers.
+
+To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](../acpi/kernelspace.md#compile-and-load).
+
+---
+### ASL Configuration for IPU6EPMTL
+
+<details>
+<summary> MAX9296 DPHY + 4x D3 ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max9296_d3_isx031.asl](../../acpi/ipu6/max9296_d3_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX9296 DPHY + 1x LI ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max9296_li_isx031.asl](../../acpi/ipu6/max9296_li_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX9296 DPHY + 1x Sensing ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max9296_sensing_isx031.asl](../../acpi/ipu6/max9296_sensing_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX96724 DPHY + 8x D3 ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-d-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu6/max96724_dphy_d3_isx031.asl)\
+
+</details>
+
+<p align="right">(<a href="../acpi/userspace-gmsl.md#construct-pipeline">Go to Pipeline Configuration</a>)</p>
+
+---
+### ASL Configuration for IPU75XA
+
+<details>
+<summary> MAX96724 CPHY + 8x D3 ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_d3_isx031.asl](../../acpi/ipu7/max96724_d3_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX96724 CPHY + 1x LI ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_li_isx031.asl](../../acpi/ipu7/max96724_li_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX96724 CPHY + 1x Sensing ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_sensing_isx031.asl](../../acpi/ipu7/max96724_sensing_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX96724 DPHY + 6x D3 ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-d-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu7/max96724_dphy_d3_isx031.asl)\
+
+</details>
+
+<p align="right">(<a href="../acpi/userspace-gmsl.md#construct-pipeline">Go to Pipeline Configuration</a>)</p>
+
+---
+### ASL Configuration for IPU8
+
+<details>
+<summary> MAX96724 CPHY + 8x D3 ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_d3_isx031.asl](../../acpi/ipu8/max96724_d3_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX96724 CPHY + 1x LI ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_li_isx031.asl](../../acpi/ipu8/max96724_li_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX96724 CPHY + 1x Sensing ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_sensing_isx031.asl](../../acpi/ipu8/max96724_sensing_isx031.asl)\
+
+</details>
+
+<details>
+<summary> MAX96724 DPHY + 6x D3 ISX031 GMSL sensor use case </summary>
+<p align="left">(<a href="#max96724-aic-d-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
+
+>**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu8/max96724_dphy_d3_isx031.asl)\
+
+</details>
+
+<p align="right">(<a href="../acpi/userspace-gmsl.md#construct-pipeline">Go to Pipeline Configuration</a>)</p>
+
+---
+## Libcamhal Configuration File Setup (BIOS-Configured Systems)
+
+**Note:**\
+For ASL-configured systems, refer to [acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md#stream-verification) for the libcamhal configuration file setup.
+
+#### Libcamhal Config for IPU6EP
+
+<details>
+<summary>1x GMSL sensor use case </summary>
+
+Please use recommended config from [ipu6ep](../../config/isx031/ipu6ep).
+
+> **Note:** Add config below only if using 1x GMSL sensor.
 
     sudo cp -r ../../config/isx031/ipu6ep /etc/camera
     sudo sed -i '/availableSensors/c\        <availableSensors value="isx031-1-1"/>' /etc/camera/ipu6ep/libcamhal_profile.xml
 
-> **Note:** Add config below only if using x4 GMSL sensors.
+</details>
+
+<details>
+<summary>4x GMSL sensor use case </summary>
+
+**BIOS configuration:** [IPU6EP 4x GMSL sensor use case](#bios-settings-for-ipu6ep)
 
 Please use config from [VTG ipu6ep](https://github.com/intel/ipu6-camera-hal/tree/iotg_ipu6/config/linux/ipu6ep).
 
+</details>
 
-#### Setup for IPU6EPMTL
+<p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
+<p align="right">(<a href="#stream-verification">Go to Stream Verification</a>)</p>
 
-Replace target system with recommended [ipu6epmtl](../../config/isx031/ipu6epmtl) setting
+---
+#### Libcamhal Config for IPU6EPMTL
 
-> **Note:** Add config below only if using x1 GMSL sensor.
+<details>
+<summary>1x GMSL sensor use case </summary>
+
+Please use config from [ipu6epmtl](../../config/isx031/ipu6epmtl).
+
+> **Note:** Add config below only if using 1x GMSL sensor.
 
     sudo cp -r ../../config/isx031/ipu6epmtl /etc/camera
     sudo sed -i '/availableSensors/c\        <availableSensors value="isx031-1"/>' /etc/camera/ipu6epmtl/libcamhal_profile.xml
 
-> **Note:** Add config below only if using x4 GMSL sensors.
+</details>
+
+<details>
+<summary>4x GMSL sensor use case </summary>
 
 Please use config from [VTG ipu6epmtl](https://github.com/intel/ipu6-camera-hal/tree/iotg_ipu6/config/linux/ipu6epmtl).
 
-> **Note:** Add config below only if using x8 GMSL sensors.
+</details>
+
+<details>
+<summary>8x GMSL sensor use case </summary>
+
+Please use config from [ipu6epmtl](../../config/isx031/ipu6epmtl).
+
+> **Note:** Add config below only if using 8x GMSL sensors.
 
     sudo cp -r ../../config/isx031/ipu6epmtl /etc/camera
     sudo sed -i '/availableSensors/c\        <availableSensors value="isx031-8"/>' /etc/camera/ipu6epmtl/libcamhal_profile.xml
+</details>
 
-#### Setup for IPU75XA
+  <p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
+  <p align="right">(<a href="#stream-verification">Go to Stream Verification</a>)</p>
 
-Replace target system with recommended [ipu75xa](../../config/isx031/ipu75xa) setting
+---
+#### Libcamhal Config for IPU75XA
 
-> **Note:** Add config below only if using x1 GMSL sensor.
+<details>
+<summary>1x GMSL sensor use case </summary>
+
+Please use recommended config from [ipu75xa](../../config/isx031/ipu75xa).
+
+> **Note:** Add config below only if using 1x GMSL sensor.
 
     sudo cp -r ../../config/isx031/ipu75xa /etc/camera
     sudo sed -i '/"availableSensors"/c\                "availableSensors": ["isx031-1-0"],' /etc/camera/ipu75xa/libcamhal_configs.json
 
-> **Note:** Add config below only if using x8 GMSL sensors.
+</details>
+
+<details>
+<summary>8x GMSL sensor use case </summary>
+
+> **Note:** Add config below only if using 8x GMSL sensors.
 
 Please use config from [VTG ipu75xa](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu75xa).
 
-    sudo sed -i '/"availableSensors"/c\                "availableSensors": ["isx031-1-0","isx031-2-0","isx031-3-0","isx031-4-0","isx031-5-2","isx031-6-2","isx031-7-2","isx031-8-2",' /etc/camera/ipu75xa/libcamhal_configs.json
+</details>
 
-## Environment Setup
+<p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
+<p align="right">(<a href="#stream-verification">Go to Stream Verification</a>)</p>
 
-Export environment variables below
+---
+#### Libcamhal Config for IPU8
+
+<details>
+<summary>1x GMSL sensor use case </summary>
+
+Please use recommended config from [ipu8](../../config/isx031/ipu8).
+
+> **Note:** Add config below only if using 1x GMSL sensor.
+
+    sudo cp -r ../../config/isx031/ipu8 /etc/camera
+    sudo sed -i '/"availableSensors"/c\                "availableSensors": ["isx031-1-0"],' /etc/camera/ipu8/libcamhal_configs.json
+
+</details>
+
+<details>
+<summary>8x GMSL sensor use case </summary>
+
+> **Note:** Add config below only if using 8x GMSL sensors.
+
+Please use config from [VTG ipu8](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu8).
+
+</details>
+
+<p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
+<p align="right">(<a href="#stream-verification">Go to Stream Verification</a>)</p>
+
+---
+## Sensor Verification
+
+After completing the setup, verify that the sensor is probed and registered with the V4L2 framework:
+
+    media-ctl -p
+
+When using the BIOS configuration, the output for a single camera should look like the example below.
+![media-ctl output](img-entity-isx031-gmsl.png)
+
+---
+## Supported Configurations
+
+| Format | Resolution | Frame Rate |
+|---|---|---|
+| UYVY8_1X16 | 1920x1536 | 60, 30 |
+|            | 1920x1080 | 60, 30 (default) |
+|            | 1280x720  | 30 |
+
+---
+## Stream Verification
+
+> **Note:** \
+> For an ASL-configured system, refer to [acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md) for pipeline setup and stream verification commands.
+
+### Environment Setup
+
+Export the environment variables below:
 
     unset XDG_RUNTIME_DIR
     export DISPLAY=:0; xhost +
@@ -450,82 +721,98 @@ Export environment variables below
     export logSink=terminal
     rm -rf ~/.cache/gstreamer-1.0
 
-(Required for IPU6 only) Configure isys_freq value
+For IPU6 only, configure the `isys_freq` value:
 
     sudo bash -c 'echo "options intel-ipu6 isys_freq_override=475" >> /etc/modprobe.d/ipu.conf'
 
-## Sensor Verification
+---
+### Stream with GStreamer icamerasrc
 
-Upon setup completion, verify sensor with:
+#### device-name Selection
 
-    media-ctl -p
+| AIC Link | Supported Device-name | Command Pipeline |
+|:--------:|:---------------------:|------------------|
+| A        | isx031-1              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| B        | isx031-2              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| C        | isx031-3              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| D        | isx031-4              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| E        | isx031-5              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-5 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| F        | isx031-6              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-6 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| G        | isx031-7              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-7 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| H        | isx031-8              | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-8 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 
-![media-ctl output](img-entity-isx031-gmsl.png)
+> **Note:** Link ports E, F, G, and H apply only to the MAX96724 AIC.
 
-## Sample Userspace Command
+> **Note:** Refer to the icamerasrc `device-name` property for more sensor details.
 
-#### Sensor Device Selection
-
-| Sensor Number | Command Pipeline |
-|---|---|
-| 1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
-
-> **Note**: Refer to icamerasrc device-name property for more sensor details.
-
-##### How to relate Sensor Number with AIC Link Port
-
-| AIC Link Port | Sensor Number |
-|---            |---            |
-| A             | 1             |
-| B             | 2             |
-| C             | 3             |
-| D             | 4             |
-
-> **Note:** Link ports C and D are only applicable for MAX96724 AIC.
-
-Refer to [MAX9296 (REV B) Connection](#max9296-rev-b-connection) or [MAX96724 AIC (REV A) Connection](#max96724-aic-rev-a-connection) under Hardware Connection for the physical link port layout.
-
-#### Frame Buffer Memory Type (IO Mode) Selection
+---
+#### io-mode Selection
 
 | IO Mode | Command Pipeline |
 |---|---|
 | MMAP | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=mmap ! 'video/x-raw,format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 | DMA MODE | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 
-> **Note**: Refer to icamerasrc io-mode property for more sensor details.
+> **Note:** Refer to the icamerasrc `io-mode` property for more sensor details.
 
+---
 #### Sensor Resolution Selection
 
 | Resolution | Command Pipeline |
 |---|---|
 | 1920x1536 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| 1920x1080 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1080' ! glimagesink sync=false |
+| 1280x720 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1280,height=720' ! glimagesink sync=false |
 
+<p align="right">(<a href="#supported-configurations">Back to Supported Configurations</a>)</p>
+---
 #### Sensor Format Selection
 
 | Format | Command Pipeline |
 |---|---|
 | UYVY | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 
-#### Number of Stream (Single Stream / Multi Stream) Selection
+<p align="right">(<a href="#supported-configurations">Back to Supported Configurations</a>)</p>
+
+---
+#### Number of Streams (Single-Stream / Multi-Stream) Selection
 
 | Number of Stream | Command Pipeline |
 |---|---|
 | x1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 | x2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=isx031-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 | x4 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=isx031-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=isx031-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=isx031-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
+| x6 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-5 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-6 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 | x8 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-5 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-6 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-7 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-8 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 
 ## Streaming Result
 
-| Number of Stream | IO Mode  | FPS Result |
-|---               |---       |---         |
-| x1               | MMAP     | 30         |
-| x2               | MMAP     | 30         |
-| x4               | MMAP     | 30         |
-| x8               | MMAP     | 30         |
-| x1               | DMA MODE | 30         |
-| x2               | DMA MODE | 30         |
-| x4               | DMA MODE | 30         |
-| x8               | DMA MODE | 30         |
+| Number of Stream | IO Mode  | FPS Result |ipu6ep|ipu6epmtl|ipu75xa|ipu8|
+|:----------------:|:--------:|:----------:|:----:|:-------:|:-----:|:--:|
+| x1               | MMAP     | 30         |✅|✅|✅|✅|
+| x2               | MMAP     | 30         |✅|✅|✅|✅|
+| x4               | MMAP     | 30         |✅|✅|✅|✅|
+| x6               | DMA MODE | 30         |❌|❌|✅|✅|
+| x8               | MMAP     | 30         |❌|✅|✅|✅|
+| x1               | DMA MODE | 30         |✅|✅|✅|✅|
+| x2               | DMA MODE | 30         |✅|✅|✅|✅|
+| x4               | DMA MODE | 30         |✅|✅|✅|✅|
+| x6               | DMA MODE | 30         |❌|❌|✅|✅|
+| x8               | DMA MODE | 30         |❌|✅|✅|✅|
 
-> **Note:** Please ensure your system enable support for specified number of stream before test.
+> **Note:** Ensure that the system supports the specified number of streams before testing.
+
+### Highest Bandwidth Configuration
+
+The highest-bandwidth configurations tested are listed below.
+
+  1. DPHY 4-lane per MIPI Port
+     - 4x 1920x1536 @ 30fps (default)
+     - 3x 1920x1536 @ 60fps
+
+  2. DPHY 2-lane per MIPI Port
+     - 2x 1920x1536 @ 30fps (default)
+
+  3. CPHY 2-trio per MIPI Port
+     - 4x 1920x1536 @ 30fps (default)
+     - 3x 1920x1536 @ 60fps
