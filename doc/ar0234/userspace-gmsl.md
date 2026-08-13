@@ -24,18 +24,21 @@ This document details the configuration settings for the AR0234 GMSL sensor, pro
       <ul>
         <li><a href="#setup-for-ipu6epmtl">Setup for IPU6EPMTL</a></li>
         <li><a href="#setup-for-ipu75xa">Setup for IPU75XA</a></li>
+        <li><a href="#setup-for-ipu8">Setup for IPU8</a></li>
       </ul>
     </li>
     <li><a href="#camera-configuration-file-setup">Camera Configuration File Setup</a>
       <ul>
         <li><a href="#setup-for-ipu6epmtl-1">Setup for IPU6EPMTL</a></li>
         <li><a href="#setup-for-ipu75xa-1">Setup for IPU75XA</a></li>
+        <li><a href="#setup-for-ipu8-1">Setup for IPU8</a></li>
       </ul>
     </li>
     <li><a href="#camera-tuning-file-setup">Camera Tuning File Setup</a>
       <ul>
         <li><a href="#setup-for-ipu6epmtl-2">Setup for IPU6EPMTL</a></li>
         <li><a href="#setup-for-ipu75xa-2">Setup for IPU75XA</a></li>
+        <li><a href="#setup-for-ipu8-2">Setup for IPU8</a></li>
       </ul>
     </li>
     <li><a href="#environment-setup">Environment Setup</a></li>
@@ -154,6 +157,13 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
     cd ../../acpi/ipu7
     ../../script/gen_ssdt.sh max96724_d3_ar0234.asl
 
+#### Setup for IPU8
+
+> **Note:** Configuration is performed using SSDT ACPI method based on [MAX96724 AIC (C-PHY) (REV A) Connection](#max96724-aic-c-phy-rev-a-connection). Please visit 'Compile and Load ACPI ASL source' in [acpi](../acpi/kernelspace.md) for setup guideline.
+
+    cd ../../acpi/ipu8
+    ../../script/gen_ssdt.sh max96724_d3_ar0234.asl
+
 ## Camera Configuration File Setup
 
 #### Setup for IPU6EPMTL
@@ -172,6 +182,13 @@ Replace target system with recommended [ipu75xa](../../config/ar0234/ipu75xa) se
     sudo cp -r ../../config/ar0234/ipu75xa /etc/camera
     ../../script/acpi/mc-setup.sh
 
+#### Setup for IPU8
+
+Replace target system with recommended [ipu8](../../config/ar0234/ipu8) setting
+
+    sudo cp -r ../../config/ar0234/ipu8 /etc/camera
+    ../../script/acpi/mc-setup.sh
+
 ## Camera Tuning File Setup
 
 #### Setup for IPU6EPMTL
@@ -181,6 +198,10 @@ Import [AR0234_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/io
 #### Setup for IPU75XA
 
 > **TODO:** No action needed for now, will revisit once AIQB config available in [ipu7-camera-hal](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu75xa).
+
+#### Setup for IPU8
+
+> **TODO:** No action needed for now, will revisit once AIQB config available in [ipu7-camera-hal](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu8).
 
 ## Environment Setup
 
