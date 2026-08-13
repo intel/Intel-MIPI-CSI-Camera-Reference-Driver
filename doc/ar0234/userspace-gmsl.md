@@ -2,11 +2,43 @@
 
 This document details the configuration settings for the AR0234 GMSL sensor, providing essential information for system integration. The table below presents the key parameters and their respective values used during system setup and validation.
 
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#bios-configuration-table">BIOS Configuration Table</a></li>
+    <li><a href="#mipi-camera-configuration">MIPI Camera Configuration</a>
+      <ul>
+        <li><a href="#setup-for-ipu6epmtl">Setup for IPU6EPMTL</a></li>
+        <li><a href="#setup-for-ipu75xa">Setup for IPU75XA</a></li>
+      </ul>
+    </li>
+    <li><a href="#camera-configuration-file-setup">Camera Configuration File Setup</a>
+      <ul>
+        <li><a href="#setup-for-ipu6epmtl-1">Setup for IPU6EPMTL</a></li>
+        <li><a href="#setup-for-ipu75xa-1">Setup for IPU75XA</a></li>
+      </ul>
+    </li>
+    <li><a href="#camera-tuning-file-setup">Camera Tuning File Setup</a>
+      <ul>
+        <li><a href="#setup-for-ipu6epmtl-2">Setup for IPU6EPMTL</a></li>
+        <li><a href="#setup-for-ipu75xa-2">Setup for IPU75XA</a></li>
+      </ul>
+    </li>
+    <li><a href="#environment-setup">Environment Setup</a></li>
+    <li><a href="#sensor-verification">Sensor Verification</a></li>
+    <li><a href="#sample-userspace-command">Sample Userspace Command</a></li>
+    <li><a href="#streaming-result">Streaming Result</a></li>
+  </ol>
+</details>
+
 ## BIOS Configuration Table
 
 > **Note:** No External Clock required.
 
-### MIPI Camera Configuration for IPU6EPMTL
+## MIPI Camera Configuration
+
+#### Setup for IPU6EPMTL
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
 
@@ -46,6 +78,14 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   |
 | Flash Driver Selection     | Disabled             |
 
+#### Setup for IPU75XA
+
+> **Note:** Configuration is performed using SSDT ACPI method. \
+Please visit 'Compile and Load ACPI ASL source' in [acpi](../acpi/kernelspace.md) for setup guideline.
+
+    cd ../../acpi/ipu7
+    ../../script/gen_ssdt.sh max96724_d3_ar0234.asl
+
 ## Camera Configuration File Setup
 
 #### Setup for IPU6EPMTL
@@ -57,11 +97,22 @@ Replace target system with recommended [ipu6epmtl](../../config/ar0234/ipu6epmtl
     sudo cp -r ../../config/ar0234/ipu6epmtl /etc/camera
     sudo sed -i '/availableSensors/c\        <availableSensors value="ar0234"/>' /etc/camera/ipu6epmtl/libcamhal_profile.xml
 
+#### Setup for IPU75XA
+
+Replace target system with recommended [ipu75xa](../../config/ar0234/ipu75xa) setting
+
+    sudo cp -r ../../config/ar0234/ipu75xa /etc/camera
+    ../../script/acpi/mc-setup.sh
+
 ## Camera Tuning File Setup
 
 #### Setup for IPU6EPMTL
 
 Import [AR0234_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/iotg_ipu6/config/linux/ipu6epmtl/AR0234_TGL_10bits.aiqb) into target system `/etc/camera/ipu6epmtl`
+
+#### Setup for IPU75XA
+
+> **TODO:** No action needed for now, will revisit once AIQB config available in [ipu7-camera-hal](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu75xa).
 
 ## Environment Setup
 
@@ -97,12 +148,14 @@ Upon setup completion, verify sensor with:
 
 > **Note:** PSYS library requires superuser access, please login as root to run the sample commands given below.
 
+> **Attention:** If target is setup using BIOS MIPI Camera Configuration, please replace 'device-name' format in sample commands below from 'ar0234_acpi-' to 'ar0234-'. For example, 'ar0234_acpi-1' become 'ar0234-1'.
+
 #### Sensor Device Selection
 
 | Sensor Number | Command Pipeline |
 |---|---|
-| 1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
-| 2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| 1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| 2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 > **Note**: Refer to icamerasrc device-name property for more sensor details.
 
@@ -127,8 +180,8 @@ For AIC MAX96724
 
 | IO Mode | Command Pipeline |
 |---|---|
-| USERPTR | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=userptr ! 'video/x-raw,format=NV12,width=1280,height=960' ! glimagesink sync=false |
-| DMA MODE | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| USERPTR | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=userptr ! 'video/x-raw,format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| DMA MODE | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 > **Note**: Refer to icamerasrc io-mode property for more sensor details.
 
@@ -136,20 +189,20 @@ For AIC MAX96724
 
 | Resolution | Command Pipeline |
 |---|---|
-| 1280x960 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| 1280x960 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 #### Sensor Format Selection
 
 | Format | Command Pipeline |
 |---|---|
-| NV12 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| NV12 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 #### Number of Stream (Single Stream / Multi Stream) Selection
 
 | Number of Stream | Command Pipeline |
 |---|---|
-| x1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
-| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| x1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234_acpi-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 ## Streaming Result
 
@@ -161,3 +214,7 @@ For AIC MAX96724
 | x2               | DMA MODE | 30         |
 
 > **Note:** Please ensure your system enable support for specified number of stream before test.
+
+---
+
+[↑ Back to Top](#description)
