@@ -33,7 +33,7 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 |-----------------|-------------|-----------------|----------------------------------|
 | AR0233+GW5300   | GMSL        | Sensing         | IPU6EPMTL, IPU75XA               |
 | AR0234          | GMSL        | D3 Embedded     | IPU6EPMTL                        |
-| AR0234          | MIPI CSI-2  | D3 Embedded     | IPU6EPMTL                        |
+| AR0234          | MIPI CSI-2  | D3 Embedded     | IPU6EPMTL, IPU75XA               |
 | AR0820+GW5300   | GMSL        | Sensing         | IPU6EPMTL, IPU75XA               |
 | AR0830+AP1302   | MIPI CSI-2  | Leopard Imaging | IPU6EPMTL, IPU75XA               |
 | ISX031          | GMSL        | D3 Embedded     | IPU6EP, IPU6EPMTL, IPU75XA, IPU8 |
@@ -60,6 +60,7 @@ IPU8 represents NVL platforms.
 |                    | 26.04           | 7.0 Canonical   |
 | IPU75XA            | 24.04.4         | 6.17 Intel BKC  |
 |                    | 24.04.4         | 6.17 Canonical  |
+|                    | 24.04.4         | 6.18 Intel BKC  |
 |                    | 26.04           | 7.0 Canonical   |
 | IPU8               | 24.04.4         | 6.18 Intel BKC  |
 |                    | 24.04.4         | 7.0 IOT Next    |
@@ -101,7 +102,7 @@ Install these software dependencies in your target system:
 | IPU Version | ipu-camera-bins                          | ipu-camera-hal                           | icamerasrc                               |
 |-------------|------------------------------------------|------------------------------------------|------------------------------------------|
 | IPU6        | d9421fef539f24fc80c27002d5da753e193b0670 | f93eec544a5234bf0b610b3f76d64c8fa711c364 | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
-| IPU7        | d235697c3bb41d56402d4805a7b82fdc938c077a | ea085c325e7a67a811a0baa5ce2d1b8f5641ea02 | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
+| IPU7        | cead7320d84ee9ade4f60d74e935b16b5a760945 | ef30767553685b83034e42325992a2442c5fcb2c | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
 
 ## Setup Procedure
 
@@ -111,6 +112,15 @@ Initialize and update current repository recursively to ensure all dependencies 
 
     git checkout main
     git submodule update --init --recursive
+
+> **Note:** Workaround required for IPU7/IPU8 RAW sensor due to tuning dependency.
+
+By default, `ipu7-drivers` submodule tracks the tip of its `main` branch.
+For IPU75XA,
+
+    cd ipu7-drivers
+    git checkout 44bbc2de71fe5e7a5a7124d4c5e5900e70e13736
+    cd ..
 
 Build and install modules using DKMS
 
