@@ -33,7 +33,7 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 |-----------------|-------------|-----------------|----------------------------------|
 | AR0233+GW5300   | GMSL        | Sensing         | IPU6EPMTL, IPU75XA               |
 | AR0234          | GMSL        | D3 Embedded     | IPU6EPMTL                        |
-| AR0234          | MIPI CSI-2  | D3 Embedded     | IPU6EPMTL, IPU75XA               |
+| AR0234          | MIPI CSI-2  | D3 Embedded     | IPU6EPMTL, IPU75XA, IPU8         |
 | AR0820+GW5300   | GMSL        | Sensing         | IPU6EPMTL, IPU75XA               |
 | AR0830+AP1302   | MIPI CSI-2  | Leopard Imaging | IPU6EPMTL, IPU75XA               |
 | ISX031          | GMSL        | D3 Embedded     | IPU6EP, IPU6EPMTL, IPU75XA, IPU8 |
@@ -103,6 +103,7 @@ Install these software dependencies in your target system:
 |-------------|------------------------------------------|------------------------------------------|------------------------------------------|
 | IPU6        | d9421fef539f24fc80c27002d5da753e193b0670 | f93eec544a5234bf0b610b3f76d64c8fa711c364 | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
 | IPU7        | cead7320d84ee9ade4f60d74e935b16b5a760945 | ef30767553685b83034e42325992a2442c5fcb2c | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
+| IPU8        | adf55525ab9d370828723b1ff8bee76ed7a492e8 | fd1efb6f2ef25fd24775a303cc71af6139d797eb | 867c5b6ab7925c9b69b8374873a832266d97d7e5 |
 
 ## Setup Procedure
 
@@ -120,6 +121,12 @@ For IPU75XA,
 
     cd ipu7-drivers
     git checkout 44bbc2de71fe5e7a5a7124d4c5e5900e70e13736
+    cd ..
+
+For IPU8,
+
+    cd ipu7-drivers
+    git checkout bed9b71d5be56d0e24c771c7a6ec83fd0a9db433
     cd ..
 
 Build and install modules using DKMS
