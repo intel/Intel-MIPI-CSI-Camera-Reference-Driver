@@ -18,9 +18,11 @@
     "Common" : {
         "version": 1.0,
         "platform": "IPU7",
-        //  The value format of availableSensors is "sensor name"-wf/uf-"CSI port ID".
-        //  wf is world facing, and uf is user facing.
-        "availableSensors": ["ar0234-a-0","ar0234-b-2"],
+        // Supported sensors list:
+        // ar0234-a-0      - for mipi setup, where sensor connected on crd1 (port 0)
+        // ar0234-b-2      - for mipi setup, where sensor connected on crd2 (port 2)
+        // ar0234          - for gmsl setup with x2 sensors, where sensors detected as sensor 1 - sensor 2
+        "availableSensors": ["ar0234-a-0","ar0234-b-2","ar0234"],
         "videoStreamNum" : 2
     }
 }
