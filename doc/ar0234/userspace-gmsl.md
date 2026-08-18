@@ -6,7 +6,20 @@ This document details the configuration settings for the AR0234 GMSL sensor, pro
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li><a href="#bios-configuration-table">BIOS Configuration Table</a></li>
+    <li><a href="#hardware-connection">Hardware Connection</a>
+      <ul>
+        <li><a href="#max9296-aic-rev-b-connection">MAX9296 AIC (REV B) Connection</a></li>
+        <li><a href="#max96724-aic-c-phy-rev-a-connection">MAX96724 AIC (C-PHY) (REV A) Connection</a></li>
+        <li><a href="#max96724-aic-c-phy-rev-b-connection">MAX96724 AIC (C-PHY) (REV B) Connection</a></li>
+        <li><a href="#max96724-aic-d-phy-rev-b-connection">MAX96724 AIC (D-PHY) (REV B) Connection</a></li>
+        <li><a href="#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection">MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection</a></li>
+      </ul>
+    </li>
+    <li><a href="#bios-configuration-table">BIOS Configuration Table</a>
+      <ul>
+        <li><a href="#disable-c-states">Disable C States</a></li>
+      </ul>
+    </li>
     <li><a href="#mipi-camera-configuration">MIPI Camera Configuration</a>
       <ul>
         <li><a href="#setup-for-ipu6epmtl">Setup for IPU6EPMTL</a></li>
@@ -32,15 +45,69 @@ This document details the configuration settings for the AR0234 GMSL sensor, pro
   </ol>
 </details>
 
+## Hardware Connection
+
+This section describes the physical AIC (Add-In Card) hardware setup, including link port layout and jumper configurations for MIPI PHY selection.
+
+#### MAX9296 AIC (REV B) Connection
+
+> **Note:** Samtec cables and an external power supply are required to connect the MAX9296 AIC to the baseboard.
+
+![link-port](../isx031/max9296-link-port.png )
+
+#### MAX96724 AIC (C-PHY) (REV A) Connection
+
+> **Note:** The MAX96724 AIC (REV A) supports only C-PHY connections, selectable via the J14 jumper highlighted in the image below.
+
+![link-port](../isx031/max96724-faba-cphy.png)
+
+#### MAX96724 AIC (C-PHY) (REV B) Connection
+
+> **Note:** The MAX96724 AIC (REV B) supports both C-PHY and D-PHY connections, selectable via the J14 jumper.
+
+Image below shows the C-PHY setup.
+
+
+![link-port](../isx031/max96724-fabb-cphy.png)
+
+#### MAX96724 AIC (D-PHY) (REV B) Connection
+
+> **Note:** Ensure the J14 jumper pins are oriented toward the D-PHY connector, as shown in the image below.
+
+Image below shows the D-PHY setup.
+
+![link-port](../isx031/max96724-fabb-dphy.png)
+
+
+#### MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection
+
+Image below shows the C-PHY to D-PHY adapter setup.
+
+![link-port](../isx031/max96724-fabb-cphy-dphy.png)
+
+
 ## BIOS Configuration Table
 
 > **Note:** No External Clock required.
+
+#### Disable C States
+
+Config path: `Intel Advanced Menu`->`Power & Performance`->`CPU - Power Management Control`
+
+|                            | Options              |
+|---                         |---                   |
+| C states                   | Disabled             |
+
+> **Note:** This option is only applicable for IPU6EP platforms (ADL, TWL, ASL and RPL).
 
 ## MIPI Camera Configuration
 
 #### Setup for IPU6EPMTL
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+
+<details>
+<summary>Click to expand BIOS camera link options</summary>
 
 |                            | Camera1 Link options |
 |---                         |---                   |
@@ -78,10 +145,11 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | Customize Device ID Number | 19                   |
 | Flash Driver Selection     | Disabled             |
 
+</details>
+
 #### Setup for IPU75XA
 
-> **Note:** Configuration is performed using SSDT ACPI method. \
-Please visit 'Compile and Load ACPI ASL source' in [acpi](../acpi/kernelspace.md) for setup guideline.
+> **Note:** Configuration is performed using SSDT ACPI method based on [MAX96724 AIC (C-PHY) (REV A) Connection](#max96724-aic-c-phy-rev-a-connection). Please visit 'Compile and Load ACPI ASL source' in [acpi](../acpi/kernelspace.md) for setup guideline.
 
     cd ../../acpi/ipu7
     ../../script/gen_ssdt.sh max96724_d3_ar0234.asl
@@ -161,20 +229,12 @@ Upon setup completion, verify sensor with:
 
 ##### How to relate Sensor Number with AIC Link Port
 
+Refer to MAX9296 or MAX96724 AIC under [Hardware Connection](#hardware-connection), select the correct sensor number based on the physical AIC link port layout.
+
 | AIC Link Port | Sensor Number |
 |---            |---            |
 | A             | 1             |
 | B             | 2             |
-
-For AIC MAX9296
-
-![link-port](max9296-link-port.png)
-
-For AIC MAX96724
-
-![link-port](max96724-link-port.png)
-
-![link-port](max96724-link-port2.png)
 
 #### Frame Buffer Memory Type (IO Mode) Selection
 
