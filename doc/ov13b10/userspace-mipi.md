@@ -160,11 +160,11 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 
 DPHY sensor must be connecting to the front side of adapter.
 
-![cphy-dphy-adapter-front](../isx031/cphy-dphy-adapter-front.png)
+![adapter](../images/cphy-dphy-adapter-front.png)
 
 Connect the rear side of adapter to CPHY MIPI.
 
-![cphy-dphy-adapter-rear](../isx031/cphy-dphy-adapter-rear.png)
+![adapter](../images/cphy-dphy-adapter-rear.png)
 
 ## Camera Configuration File Setup
 By Default, all the config file is already included in ipu7-camera-hal repository

@@ -148,13 +148,11 @@ Upon setup completion, verify sensor with:
 
 For AIC MAX9296
 
-![link-port](max9296-link-port.png)
+![link-port](../images/max9296-fabb-dphy.png)
 
 For AIC MAX96724
 
-![link-port](max96724-link-port.png)
-
-![link-port](max96724-link-port2.png)
+![link-port](../images/max96724-faba-cphy.png)
 
 #### Frame Buffer Memory Type (IO Mode) Selection
 

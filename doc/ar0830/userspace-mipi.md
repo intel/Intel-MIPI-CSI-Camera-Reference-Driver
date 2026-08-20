@@ -152,11 +152,12 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 
 DPHY sensor must be connecting to the front side of adapter.
 
-![cphy-dphy-adapter-front](cphy-dphy-adapter-front.png)
+
+![adapter](../images/cphy-dphy-adapter-front.png)
 
 Connect the rear side of adapter to PTL.
 
-![cphy-dphy-adapter-rear](cphy-dphy-adapter-rear.png)
+![adapter](../images/cphy-dphy-adapter-rear.png)
 
 ## Camera Configuration File Setup
 

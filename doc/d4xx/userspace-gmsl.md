@@ -120,7 +120,7 @@ Export environment variables below
 
 For AIC MAX96724
 
-![link-port](max96724-link-port.png)
+![link-port](../images/max96724-faba-cphy.png)
 
 ##### Frame Buffer Memory Type (IO Mode) Selection
 

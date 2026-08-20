@@ -45,13 +45,13 @@ This section describes the physical AIC (Add-In Card) hardware setup, including 
 
 > **Note:** Samtec cables and an external power supply are required to connect the MAX9296 AIC to the baseboard.
 
-![link-port](max9296-link-port.png)
+![link-port](../images/max9296-fabb-dphy.png)
 
 ### MAX96724 AIC (C-PHY) (REV A) Connection
 
 > **Note:** The MAX96724 AIC (REV A) supports only C-PHY connections, selectable via the J14 jumper highlighted in the image below.
 
-![link-port](max96724-faba-cphy.png)
+![link-port](../images/max96724-faba-cphy.png)
 
 ### MAX96724 AIC (C-PHY) (REV B) Connection
 
@@ -59,8 +59,7 @@ This section describes the physical AIC (Add-In Card) hardware setup, including 
 
 Image below shows the C-PHY setup.
 
-
-![AIC jumper connections](max96724-fabb-cphy.png)
+![link-port](../images/max96724-fabb-cphy.png)
 
 ### MAX96724 AIC (D-PHY) (REV B) Connection
 
@@ -68,15 +67,13 @@ Image below shows the C-PHY setup.
 
 Image below shows the D-PHY setup.
 
-![AIC jumper connections](max96724-fabb-dphy.png)
-
+![link-port](../images/max96724-fabb-dphy.png)
 
 ### MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection
 
 Image below shows the C-PHY to D-PHY adapter setup.
 
-![AIC jumper connections](max96724-fabb-cphy-dphy.png)
-
+![link-port](../images/max96724-fabb-cphy-dphy.png)
 
 ## BIOS Configuration Table
 
