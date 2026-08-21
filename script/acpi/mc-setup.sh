@@ -176,6 +176,7 @@ declare -A STREAM_MUXPAD=(
 
 # ---- Media-bus -> V4L2 pixelformat fourcc (used on capture nodes) -----------
 declare -A MBUS_TO_PIXFMT=(
+    [FIXED]="Z16 "
     [UYVY8_1X16]="UYVY"
     [YUYV8_1X16]="YUYV"
     [RGB888_1X24]="BGR3"
