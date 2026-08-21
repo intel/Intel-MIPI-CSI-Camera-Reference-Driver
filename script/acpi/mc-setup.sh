@@ -69,8 +69,8 @@
 # To add a new sensor model:
 #   1. Add its ACPI HID -> model name in SENSOR_MODEL.
 #   2. Add its ACPI HID -> v4l-subdev entity prefix in SENSOR_PREFIX.
-#   3. List the model's stream tokens in MODEL_STREAMS and pick defaults in
-#      MODEL_DEFAULT_STREAMS.
+#   3. For multi-stream models, list the stream tokens in MODEL_STREAMS and
+#      select their defaults in MODEL_DEFAULT_STREAMS.
 #   4. For each new stream token, set STREAM_NODE (and STREAM_MUXPAD if it
 #      flows through a d4xx-style mux).
 #   5. If your new media-bus code isn't covered, extend MBUS_TO_PIXFMT.
@@ -117,20 +117,22 @@ declare -A MAX_LINKS_BY_PREFIX=(
 )
 
 # ---- Per-model stream definitions -------------------------------------------
-# MODEL_STREAMS: every stream token a model can produce.
-# MODEL_DEFAULT_STREAMS: streams enabled when no `stream=` is given on the CLI.
+# MODEL_STREAMS: stream tokens selectable for multi-stream models.
+# MODEL_DEFAULT_STREAMS: streams enabled for those models when no `stream=` is
+# given on the CLI.
 declare -A MODEL_STREAMS=(
     [d4xx]="depth rgb ir imu"
-    [isx031]="yuv"
-    [ar0234]="raw"
-    [ov13b10]="raw"
 )
 declare -A MODEL_DEFAULT_STREAMS=(
     [d4xx]="depth rgb"
-    [isx031]="yuv"
-    [ar0234]="raw"
-    [ov13b10]="raw"
 )
+
+fixed_stream_for_model() {
+    case "$1" in
+        isx031|ar0234) echo single ;;
+        *) return 1 ;;
+    esac
+}
 
 # STREAM_NODE: per-stream capture-node index (also used as the v4l2
 # source_stream id on the mux/serializer chain -- d4xx in particular asserts
@@ -140,8 +142,7 @@ declare -A STREAM_NODE=(
     [rgb]=1
     [ir]=2
     [imu]=3
-    [yuv]=0
-    [raw]=0
+    [single]=0
 )
 
 # Keep capture-node groups consistent across 2-link and 4-link deserializers:
@@ -503,12 +504,9 @@ setup_mipi_cameras() {
         cam=${MIPI_BA[$i]}
         csi2=${MIPI_CSI2[$i]}
         node=${MIPI_CAP[$i]}
-        for s in ${MODEL_DEFAULT_STREAMS[$model]}; do
-            detected=$(sensor_active_format "$model" "$cam" "$s" "${STREAM_NODE[$s]}") || \
-                die "cannot read active format from ${model} camera ${cam}"
-            read -r fmt size <<<"$detected"
-            break
-        done
+        s=$(fixed_stream_for_model "$model") || continue
+        fmt=${STREAM_FMT[$s]}
+        size=${STREAM_SIZE[$s]}
         echo "  ${MIPI_PREFIX[$i]} $cam -> $csi2 -> /dev/video$node ($fmt/$size)"
         mc_v "\"${MIPI_PREFIX[$i]} ${cam}\":0 [fmt:${fmt}/${size} field:none]"
         mc_v "\"${csi2}\":0 [fmt:${fmt}/${size} field:none]"
@@ -602,20 +600,23 @@ print_topology() {
 #
 # CLI:
 #     mc-setup.sh                                      # default per-model streams, all DES
-#     mc-setup.sh [des=D,]link=N[,stream=<csv>][,res=WxH][,format=MBUS_CODE] ...
-#     mc-setup.sh [des=D,]link=N,stream=[TOKEN,res=WxH,format=MBUS_CODE,fps=FPS],\
+#
+# Sample syntax (Items in [] are optional.)
+#     mc-setup.sh [des=D,]link=N[,stream=<csv>][,res=WxH][,format=MBUS_CODE][,fps=FPS]
+#
+# Sample Single Stream Use Case can omit stream.
+#     mc-setup.sh des=D,link=N,res=WxH,format=MBUS_CODE,fps=FPS
+#
+# Sample Multi Stream Use Case
+#     mc-setup.sh des=D,link=N,stream=[TOKEN,res=WxH,format=MBUS_CODE,fps=FPS],\
 #                                      [TOKEN,res=WxH,format=MBUS_CODE,fps=FPS] ...
 #
+# TOKEN is only applicable for multi-stream sensors as specified in MODEL_STREAMS.
+# Other 2D sensors do not need stream=<csv>, it is default to `single`.
+#
+# D4xx defaults to depth,rgb when no stream is specified.
+#
 # When des= is omitted, des=0 is assumed (matches the legacy single-DES CLI).
-#
-# Stream tokens by sensor model:
-#     d4xx:   depth | rgb | ir | imu
-#     isx031: yuv
-#
-# Default streams when no stream is specified for a link:
-#     d4xx   -> depth,rgb
-#     isx031 -> yuv
-# applied to every link discovered under every deserializer.
 #
 # Capture-node layout (per DES) -- STREAM-MAJOR:
 #     csi2_pad = STREAM_NODE[s] * CSI2_STREAM_STRIDE + l
@@ -829,10 +830,9 @@ sensor_set_fps() {
     echo "${BASH_REMATCH[1]}"
 }
 
-# Is stream token $1 declared as valid for model $2?
+# Is stream token $1 selectable for model $2?
 stream_valid_for_model() {
     local s=$1 model=$2 t
-    [ -n "${MODEL_STREAMS[$model]:-}" ] || return 1
     for t in ${MODEL_STREAMS[$model]}; do
         [ "$t" = "$s" ] && return 0
     done
@@ -918,13 +918,17 @@ declare -A CFG_STREAM_FORMAT=()
 declare -A CFG_STREAM_FPS_REQUEST=()
 
 if [ "$#" -eq 0 ]; then
-    # Default: program every discovered link with its model's default streams.
+    # Default: program every discovered link with its default or fixed stream.
     for ((d = 0; d < NUM_DES; d++)); do
         for l in ${LINKS_OF[$d]}; do
             key="${d}_${l}"
             CFG_DES+=("$d")
             CFG_LINKS+=("$l")
-            CFG_STREAMS+=("${MODEL_DEFAULT_STREAMS[${CAM_MODEL[$key]}]}")
+            model=${CAM_MODEL[$key]}
+            streams=${MODEL_DEFAULT_STREAMS[$model]:-}
+            [ -n "$streams" ] || streams=$(fixed_stream_for_model "$model") \
+                || die "no stream configuration for $model"
+            CFG_STREAMS+=("$streams")
             CFG_RES+=("")
             CFG_FORMAT+=("")
         done
@@ -1015,11 +1019,17 @@ else
         (( des < NUM_DES )) || die "des=$des out of range (have ${NUM_DES} DES)"
         key="${des}_${link}"
         [ -n "${CAM_MODEL[$key]:-}" ] || die "no camera discovered on DES${des} link ${link}"
-        [ -n "$streams" ] || streams=${MODEL_DEFAULT_STREAMS[${CAM_MODEL[$key]}]}
-        for s in $streams; do
-            stream_valid_for_model "$s" "${CAM_MODEL[$key]}" \
-                || die "stream '$s' invalid for ${CAM_MODEL[$key]} on DES${des} link ${link}"
-        done
+        model=${CAM_MODEL[$key]}
+        if [ -n "${MODEL_STREAMS[$model]:-}" ]; then
+            [ -n "$streams" ] || streams=${MODEL_DEFAULT_STREAMS[$model]}
+            for s in $streams; do
+                stream_valid_for_model "$s" "$model" \
+                    || die "stream '$s' invalid for $model on DES${des} link ${link}"
+            done
+        else
+            streams=$(fixed_stream_for_model "$model") \
+                || die "no stream configuration for $model"
+        fi
         CFG_DES+=("$des")
         CFG_LINKS+=("$link")
         CFG_STREAMS+=("$streams")
@@ -1168,7 +1178,7 @@ for k in "${!CFG_LINKS[@]}"; do
 
     # Stream IDs along the mux->serializer->deserializer chain are fixed
     # per sensor sub-stream (see STREAM_NODE): depth=0, rgb=1, ir=2, imu=3,
-    # yuv=0. The d4xx driver in particular asserts that the route's
+    # single=0. The d4xx driver in particular asserts that the route's
     # source_stream on the mux matches the sensor's hard-coded vc_id, so
     # we must use STREAM_NODE[$s] -- not a sequential 0..n-1 index -- as
     # the stream identifier everywhere downstream of the sensor.
