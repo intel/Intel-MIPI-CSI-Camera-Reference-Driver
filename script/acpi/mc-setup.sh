@@ -129,7 +129,7 @@ declare -A MODEL_DEFAULT_STREAMS=(
 
 fixed_stream_for_model() {
     case "$1" in
-        isx031|ar0234) echo single ;;
+        isx031|ar0234|ov13b10) echo single ;;
         *) return 1 ;;
     esac
 }
@@ -498,15 +498,17 @@ detect_mipi_csi2() {
 setup_mipi_cameras() {
     [ "$NUM_MIPI" -eq 0 ] && return 0
     echo -e "\nConfiguring direct MIPI cameras..."
-    local i model cam csi2 node fmt size s pixfmt w h ipu detected
+    local i model cam csi2 node fmt size s sid detected pixfmt w h ipu
     for ((i = 0; i < NUM_MIPI; i++)); do
         model=${MIPI_MODEL[$i]}
         cam=${MIPI_BA[$i]}
         csi2=${MIPI_CSI2[$i]}
         node=${MIPI_CAP[$i]}
         s=$(fixed_stream_for_model "$model") || continue
-        fmt=${STREAM_FMT[$s]}
-        size=${STREAM_SIZE[$s]}
+        sid=${STREAM_NODE[$s]}
+        detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
+            die "cannot read active format from MIPI${i} ${model} sensor"
+        read -r fmt size <<<"$detected"
         echo "  ${MIPI_PREFIX[$i]} $cam -> $csi2 -> /dev/video$node ($fmt/$size)"
         mc_v "\"${MIPI_PREFIX[$i]} ${cam}\":0 [fmt:${fmt}/${size} field:none]"
         mc_v "\"${csi2}\":0 [fmt:${fmt}/${size} field:none]"
@@ -766,6 +768,7 @@ sensor_validate_format_size() {
 sensor_validate_fps() {
     local model=$1 cam=$2 stream=$3 sid=$4 fmt=$5 size=$6
     local requested_fps=$7 active_fps=$8 context=$9 dev codes line code name
+    local format_size_changed=${10}
     local interval_args intervals candidate selected_fps max_fps supported=0
 
     selected_fps=${requested_fps:-$active_fps}
@@ -806,11 +809,20 @@ sensor_validate_fps() {
             }
         fi
     done <<<"$intervals"
-    if (( ! supported )) && [ -n "$max_fps" ]; then
-        printf "WARN: %s: FPS '%s' is unsupported with %s/%s; " \
-            "$context" "$selected_fps" "$fmt" "$size" >&2
-        printf "using largest supported FPS '%s'\n" "$max_fps" >&2
+    if (( format_size_changed )) && [ -z "$requested_fps" ] && [ -n "$max_fps" ]; then
         selected_fps=$max_fps
+    elif (( ! supported )) && [ -n "$max_fps" ]; then
+        if (( format_size_changed )); then
+            printf "WARN: %s: FPS '%s' is unsupported with %s/%s; " \
+                "$context" "$selected_fps" "$fmt" "$size" >&2
+            printf "using largest supported FPS '%s'\n" "$max_fps" >&2
+            selected_fps=$max_fps
+        else
+            [ -z "$requested_fps" ] || printf \
+                "WARN: %s: FPS '%s' is unsupported; retaining active FPS '%s'\n" \
+                "$context" "$requested_fps" "$active_fps" >&2
+            selected_fps=$active_fps
+        fi
     fi
     echo "$selected_fps"
 }
@@ -913,6 +925,7 @@ declare -a CFG_LINKS=()
 declare -a CFG_STREAMS=()
 declare -a CFG_RES=()
 declare -a CFG_FORMAT=()
+declare -a CFG_FPS=()
 declare -A CFG_STREAM_RES=()
 declare -A CFG_STREAM_FORMAT=()
 declare -A CFG_STREAM_FPS_REQUEST=()
@@ -931,11 +944,12 @@ if [ "$#" -eq 0 ]; then
             CFG_STREAMS+=("$streams")
             CFG_RES+=("")
             CFG_FORMAT+=("")
+            CFG_FPS+=("")
         done
     done
 else
     for arg in "$@"; do
-        des=""; link=""; streams=""; res=""; format=""
+        des=""; link=""; streams=""; res=""; format=""; fps=""
         declare -A arg_stream_res=()
         declare -A arg_stream_format=()
         declare -A arg_stream_fps=()
@@ -993,6 +1007,7 @@ else
                 stream=*) streams+="${streams:+ }${kv#stream=}" ;;
                 res=*)    res=${kv#res=} ;;
                 format=*) format=${kv#format=} ;;
+                fps=*)    fps=${kv#fps=} ;;
                 *)
                     if is_known_stream "$kv"; then
                         streams+="${streams:+ }$kv"
@@ -1008,6 +1023,8 @@ else
             || die "res must be WIDTHxHEIGHT (got '$res')"
         [ -z "$format" ] || [[ $format =~ ^[[:alnum:]_]+$ ]] \
             || die "format must be a media-bus code (got '$format')"
+        [ -z "$fps" ] || [[ $fps =~ ^[0-9]+([.][0-9]+)?$ ]] \
+            || die "fps must be numeric (got '$fps')"
         # Default des=0 when only one DES is present and des= was omitted.
         if [ -z "$des" ]; then
             if [ "$NUM_DES" -gt 1 ]; then
@@ -1027,19 +1044,25 @@ else
                     || die "stream '$s' invalid for $model on DES${des} link ${link}"
             done
         else
-            streams=$(fixed_stream_for_model "$model") \
+            fixed_stream=$(fixed_stream_for_model "$model") \
                 || die "no stream configuration for $model"
+            if [ -n "$streams" ] && [ "$streams" != "$fixed_stream" ]; then
+                echo "WARN: $model on DES${des} link ${link}: replacing requested" \
+                    "stream '$streams' with fixed stream '$fixed_stream'" >&2
+            fi
+            streams=$fixed_stream
         fi
         CFG_DES+=("$des")
         CFG_LINKS+=("$link")
         CFG_STREAMS+=("$streams")
         CFG_RES+=("$res")
         CFG_FORMAT+=("$format")
+        CFG_FPS+=("$fps")
         k=$((${#CFG_LINKS[@]} - 1))
         for s in $streams; do
             CFG_STREAM_RES["${k}_${s}"]=${arg_stream_res[$s]:-}
             CFG_STREAM_FORMAT["${k}_${s}"]=${arg_stream_format[$s]:-}
-            CFG_STREAM_FPS_REQUEST["${k}_${s}"]=${arg_stream_fps[$s]:-}
+            CFG_STREAM_FPS_REQUEST["${k}_${s}"]=${arg_stream_fps[$s]:-${CFG_FPS[$k]}}
         done
         unset arg_stream_res arg_stream_format arg_stream_fps
     done
@@ -1052,8 +1075,10 @@ else
     done
 fi
 
-# Resolve and validate each selected stream's format and size. Requested values
-# win when the sensor advertises support; otherwise retain its active settings.
+# Resolve and validate each selected stream's format, size and FPS. Unsupported
+# FPS requests retain the active FPS when format/size stay unchanged. After an
+# effective format/size change, an unsupported or omitted FPS uses the largest
+# FPS advertised for the new mode.
 declare -A CFG_STREAM_FMT=()
 declare -A CFG_STREAM_SIZE=()
 declare -A CFG_STREAM_FPS=()
@@ -1080,6 +1105,11 @@ for k in "${!CFG_LINKS[@]}"; do
             "$requested_fmt" "$requested_size" "$detected_fmt" "$detected_size" \
             "DES${d} link ${l} stream ${s}")
         read -r CFG_STREAM_FMT["${k}_${s}"] CFG_STREAM_SIZE["${k}_${s}"] <<<"$validated"
+        format_size_changed=0
+        if [ "${CFG_STREAM_FMT["${k}_${s}"]}" != "$detected_fmt" ] || \
+            [ "${CFG_STREAM_SIZE["${k}_${s}"]}" != "$detected_size" ]; then
+            format_size_changed=1
+        fi
         active_fps=$(sensor_active_fps "$model" "$cam" "$s" "$sid") || active_fps=""
         if [ -n "$active_fps" ]; then
             CFG_STREAM_FPS["${k}_${s}"]=$(sensor_validate_fps \
@@ -1087,7 +1117,7 @@ for k in "${!CFG_LINKS[@]}"; do
                 "${CFG_STREAM_FMT["${k}_${s}"]}" \
                 "${CFG_STREAM_SIZE["${k}_${s}"]}" \
                 "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" "$active_fps" \
-                "DES${d} link ${l} stream ${s}")
+                "DES${d} link ${l} stream ${s}" "$format_size_changed")
         else
             [ -z "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" ] || \
                 echo "WARN: DES${d} link ${l} stream ${s}: FPS control unavailable" >&2
