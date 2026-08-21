@@ -11,6 +11,7 @@
  *   DESCH_SER_I2C        - SER I2C slave address (e.g. 0x40, 0x62), used in I2cSerialBusV2
  *   CAM_ALIAS            - Camera alias I2C address used in i2c-alias-pool in _DSD
  *   DESCH_SER_EXTRA_GPIO_PIN - (Optional) SER Extra GPIO pin number, used in GpioIo
+ *   DESCH_SER_FSYNC_RX_ID - (Optional) GMSL GPIO ID the DES sends frame sync as, used in MFP node
  *   DESCH_SER_X/Y/Z/U_VC - (Optional) SER VC filter for Pipe X/Y/Z/U, specifically for MAX96717 driver
  */
 
@@ -110,7 +111,22 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         Package () { "Pipe-Y", "PIPY" }, // Pipe Y
         Package () { "Pipe-Z", "PIPZ" }, // Pipe Z
         Package () { "Pipe-U", "PIPU" }, // Pipe U
+        Package () { "fsync", "MFP" }, // fsync pin configuration
     }
+})
+
+Name (MFP, Package()
+{
+    ToUUID("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"), // Device Properties
+    Package ()
+    {
+        #ifdef DESCH_SER_FSYNC_RX_ID
+        Package () { "maxim,rx-id", DESCH_SER_FSYNC_RX_ID }, // GMSL GPIO ID sent by the DES
+        #endif
+        #ifdef DESCH_SER_EXTRA_GPIO_PIN
+        Package () { "gmsl-frame-sync-gpio-pin", DESCH_SER_EXTRA_GPIO_PIN },
+        #endif
+    },
 })
 
 Name (PRT0, Package()

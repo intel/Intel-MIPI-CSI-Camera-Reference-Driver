@@ -35,7 +35,7 @@
  *   CAM_LANES                - Number of MIPI data lanes for the camera (e.g. 2, 4)
  */
 
-DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260818)
+DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260821)
 {
     External (_SB.PC00, DeviceObj)
 
@@ -72,6 +72,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260818)
             #define CAM_ALIAS 0x54
             #define CAM_LANES 4
             #define DESCH_SER_EXTRA_GPIO_PIN 7
+            #define DESCH_SER_FSYNC_RX_ID 7
             #include "_des_ch_common_isx031.asl"
 
             #undef DESCH_CH
@@ -84,6 +85,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260818)
             #undef DESCH_SER_I2C
             #undef DESCH_SER_GPIOREF
             #undef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_FSYNC_RX_ID
             #undef EXTERNAL_FRAME_SYNC
             #undef CAM_ALIAS
             #undef CAM_LANES
@@ -99,6 +101,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260818)
             #define DESCH_SER_I2C 0x40
             #define DESCH_SER_GPIOREF ^^SER1
             #define DESCH_SER_EXTRA_GPIO_PIN 7
+            #define DESCH_SER_FSYNC_RX_ID 7
             #define EXTERNAL_FRAME_SYNC 1
             #define CAM_ALIAS 0x55
             #define CAM_LANES 4
@@ -113,6 +116,38 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260818)
             #undef DESCH_SER_I2C
             #undef DESCH_SER_GPIOREF
             #undef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_FSYNC_RX_ID
+            #undef EXTERNAL_FRAME_SYNC
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+
+            // Channel 3
+            #define DESCH_CH CH03
+            #define DESCH_SER SER3
+            #define DESCH_CAM CAM3
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH03"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH03.SER3"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH03.SER3
+            #define DESCH_SER_EXTRA_GPIO_PIN 8
+            #define DESCH_SER_FSYNC_RX_ID 7
+            #define EXTERNAL_FRAME_SYNC 1
+            #define DESCH_LINK_NUM 3
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_SER_GPIOREF ^^SER3
+            #define CAM_ALIAS 0x57
+            #define CAM_LANES 4
+            #include "_des_ch_common_isx031.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_FSYNC_RX_ID
             #undef EXTERNAL_FRAME_SYNC
             #undef CAM_ALIAS
             #undef CAM_LANES
@@ -127,7 +162,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260818)
             #undef DES_PATH
             #undef DES_REF
             #undef DES_FSIN_GPIO_PIN
-
         }
     }
 }
