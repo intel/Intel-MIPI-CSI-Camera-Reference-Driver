@@ -2,51 +2,40 @@
 
 This document details the configuration settings for the AR0234 GMSL sensor, providing essential information for system integration. The table below presents the key parameters and their respective values used during system setup and validation.
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li><a href="#hardware-connection">Hardware Connection</a>
-      <ul>
-        <li><a href="#max9296-aic-rev-b-connection">MAX9296 AIC (REV B) Connection</a></li>
-        <li><a href="#max96724-aic-c-phy-rev-a-connection">MAX96724 AIC (C-PHY) (REV A) Connection</a></li>
-        <li><a href="#max96724-aic-c-phy-rev-b-connection">MAX96724 AIC (C-PHY) (REV B) Connection</a></li>
-        <li><a href="#max96724-aic-d-phy-rev-b-connection">MAX96724 AIC (D-PHY) (REV B) Connection</a></li>
-        <li><a href="#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection">MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection</a></li>
-      </ul>
-    </li>
-    <li><a href="#bios-configuration-table">BIOS Configuration Table</a>
-      <ul>
-        <li><a href="#disable-c-states">Disable C States</a></li>
-      </ul>
-    </li>
-    <li><a href="#mipi-camera-configuration">MIPI Camera Configuration</a>
-      <ul>
-        <li><a href="#setup-for-ipu6epmtl">Setup for IPU6EPMTL</a></li>
-        <li><a href="#setup-for-ipu75xa">Setup for IPU75XA</a></li>
-        <li><a href="#setup-for-ipu8">Setup for IPU8</a></li>
-      </ul>
-    </li>
-    <li><a href="#camera-configuration-file-setup">Camera Configuration File Setup</a>
-      <ul>
-        <li><a href="#setup-for-ipu6epmtl-1">Setup for IPU6EPMTL</a></li>
-        <li><a href="#setup-for-ipu75xa-1">Setup for IPU75XA</a></li>
-        <li><a href="#setup-for-ipu8-1">Setup for IPU8</a></li>
-      </ul>
-    </li>
-    <li><a href="#camera-tuning-file-setup">Camera Tuning File Setup</a>
-      <ul>
-        <li><a href="#setup-for-ipu6epmtl-2">Setup for IPU6EPMTL</a></li>
-        <li><a href="#setup-for-ipu75xa-2">Setup for IPU75XA</a></li>
-        <li><a href="#setup-for-ipu8-2">Setup for IPU8</a></li>
-      </ul>
-    </li>
-    <li><a href="#environment-setup">Environment Setup</a></li>
-    <li><a href="#sensor-verification">Sensor Verification</a></li>
-    <li><a href="#sample-userspace-command">Sample Userspace Command</a></li>
-    <li><a href="#streaming-result">Streaming Result</a></li>
-  </ol>
-</details>
+## Table of Contents
+
+- [Hardware Connection](#hardware-connection)
+  - [MAX9296 (REV B) Connection](#max9296-rev-b-connection)
+  - [MAX96724 AIC (REV A) Connection](#max96724-aic-rev-a-connection)
+  - [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection)
+  - [MAX96724 AIC (C-PHY) (REV B) Connection](#max96724-aic-c-phy-rev-b-connection)
+  - [MAX96724 AIC (C-PHY to D-PHY Adapter) (REV B) Connection](#max96724-aic-c-phy-to-d-phy-adapter-rev-b-connection)
+- [BIOS Configuration Table](#bios-configuration-table)
+  - [Disable C States](#disable-c-states)
+- [MIPI Camera Configuration](#mipi-camera-configuration)
+  - [Setup for IPU6EPMTL](#setup-for-ipu6epmtl)
+  - [Setup for IPU75XA](#setup-for-ipu75xa)
+  - [Setup for IPU8](#setup-for-ipu8)
+- [Camera Configuration File Setup](#camera-configuration-file-setup)
+  - [Setup for IPU6EPMTL](#setup-for-ipu6epmtl-1)
+  - [Setup for IPU75XA](#setup-for-ipu75xa-1)
+  - [Setup for IPU8](#setup-for-ipu8-1)
+- [Camera Tuning File Setup](#camera-tuning-file-setup)
+  - [Setup for IPU6EPMTL](#setup-for-ipu6epmtl-2)
+  - [Setup for IPU75XA](#setup-for-ipu75xa-2)
+  - [Setup for IPU8](#setup-for-ipu8-2)
+- [Environment Setup](#environment-setup)
+- [Sensor Verification](#sensor-verification)
+- [Sample Userspace Command](#sample-userspace-command)
+  - [Sensor Device Selection](#sensor-device-selection)
+    - [How to relate Sensor Number N with AIC Link Port](#how-to-relate-sensor-number-n-with-aic-link-port)
+  - [Frame Buffer Memory Type (IO Mode) Selection](#frame-buffer-memory-type-io-mode-selection)
+  - [Sensor Resolution Selection](#sensor-resolution-selection)
+  - [Sensor Format Selection](#sensor-format-selection)
+  - [Multi-Stream Selection](#multi-stream-selection)
+    - [Multiprocessing Multi-Stream](#multiprocessing-multi-stream)
+    - [Multithreading Multi-Stream](#multithreading-multi-stream)
+- [Streaming Result](#streaming-result)
 
 ## Hardware Connection
 
@@ -245,17 +234,39 @@ Upon setup completion, verify sensor with:
 |---|---|
 | 1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 | 2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| N | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-N printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 > **Note**: Refer to icamerasrc device-name property for more sensor details.
 
-##### How to relate Sensor Number with AIC Link Port
+##### How to relate Sensor Number N with AIC Link Port
 
-Refer to MAX9296 or MAX96724 AIC under [Hardware Connection](#hardware-connection), select the correct sensor number based on the physical AIC link port layout.
+<details>
+<summary>Sensor Number N For MAX9296 AIC</summary>
 
-| AIC Link Port | Sensor Number |
-|---            |---            |
-| A             | 1             |
-| B             | 2             |
+| Link Port | Sensor Number |
+|---|---|
+| A | 1 |
+| B | 2 |
+| C | 3 |
+| D | 4 |
+
+</details>
+
+<details>
+<summary>Sensor Number N For MAX96724 AIC</summary>
+
+| Link Port | Sensor Number |
+|---|---|
+| A | 1 |
+| B | 2 |
+| C | 3 |
+| D | 4 |
+| E | 5 |
+| F | 6 |
+| G | 7 |
+| H | 8 |
+
+</details>
 
 #### Frame Buffer Memory Type (IO Mode) Selection
 
@@ -278,12 +289,34 @@ Refer to MAX9296 or MAX96724 AIC under [Hardware Connection](#hardware-connectio
 |---|---|
 | NV12 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
-#### Number of Stream (Single Stream / Multi Stream) Selection
+#### Multi-Stream Selection
 
-| Number of Stream | Command Pipeline |
+Multi-stream support can be configured using either of the following approaches:
+
+- Multiprocessing
+- Multithreading
+
+##### Multiprocessing Multi-Stream
+
+To stream N sensors concurrently, launch N terminal windows.
+In each terminal, run the command below with the corresponding sensor number.
+
+| Number of Streams | Command Pipeline |
+|---|---|
+| xN | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-N printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+
+##### Multithreading Multi-Stream
+
+Open a terminal window and run the command below, replacing the sensor number as needed.
+
+| Number of Streams | Command Pipeline |
 |---|---|
 | x1 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 | x2 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=2 scene-mode=normal device-name=ar0234_acpi-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| x4 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=ar0234_acpi-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=ar0234_acpi-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=ar0234_acpi-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=4 scene-mode=normal device-name=ar0234_acpi-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+
+> **Note**: Known VC limitation (max vc=5) for multi-stream. \
+For example, to enable 8 streams, user can launch 2 terminals, with each terminal running x4 streams.
 
 ## Streaming Result
 
@@ -293,6 +326,10 @@ Refer to MAX9296 or MAX96724 AIC under [Hardware Connection](#hardware-connectio
 | x1               | DMA MODE | 30         |
 | x2               | USERPTR  | 30         |
 | x2               | DMA MODE | 30         |
+| x4               | USERPTR  | 30         |
+| x4               | DMA MODE | 30         |
+| x8               | USERPTR  | 30         |
+| x8               | DMA MODE | 30         |
 
 > **Note:** Please ensure your system enable support for specified number of stream before test.
 
