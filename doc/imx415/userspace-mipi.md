@@ -65,6 +65,12 @@ Replace target system with recommended [ipu6epmtl](../../config/imx415/ipu6epmtl
 
 Import [IMX415_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/iotg_ipu6/config/linux/ipu6epmtl/IMX415_TGL_10bits.aiqb) into target system `/etc/camera/ipu6epmtl`
 
+## Environment Setup
+
+(Required for IPU6 only) Configure psys_freq value
+
+    sudo bash -c 'echo "options intel-ipu6 psys_freq_override=575" >> /etc/modprobe.d/ipu.conf'
+
 ## Sample Userspace Command
 
 #### Sensor Device Selection
