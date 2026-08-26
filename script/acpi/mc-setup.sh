@@ -632,20 +632,22 @@ print_topology() {
 #                                      [TOKEN,res=WxH,format=MBUS_CODE,fps=FPS] ...
 #
 # TOKEN is only applicable for multi-stream sensors as specified in MODEL_STREAMS.
-# Other 2D sensors do not need stream=<csv>, it is default to `single`.
+# Other 2D sensors do not need stream=<csv>, they default to `single`.
 #
 # D4xx defaults to depth,rgb when no stream is specified.
 #
 # When des= is omitted, des=0 is assumed (matches the legacy single-DES CLI).
 #
-# Capture-node layout (per DES) -- STREAM-MAJOR:
-#     csi2_pad = STREAM_NODE[s] * CSI2_STREAM_STRIDE + l
+# Capture-node layout (per DES):
+#     csi2_pad = STREAM_CAPTURE_BASE[s] +
+#                 ((l + STREAM_LINK_ROTATION[s]) % CSI2_NODE_BANK_SIZE)
 #     node     = CAPTURE_BASE[d] + csi2_pad
-# This keeps all D4XX streams within eight capture nodes using the permutation
-# documented above. Streams that resolve to the same node cannot be enabled
-# together and are rejected. For 1-stream sensors like isx031, links land on
-# base+0..3 directly. The CSI2 RX cap is IPU*_NR_OF_CSI2_SRC_PADS; set
-# IPU_CSI2_SRC_PADS to match (commonly 8 or 16).
+# This places each stream in its configured capture bank and rotates selected
+# streams across links using the permutation documented above. Streams that
+# resolve to the same node cannot be enabled together and are rejected. For
+# 1-stream sensors like isx031, links land on base+0..3 directly. The CSI2 RX
+# cap is IPU*_NR_OF_CSI2_SRC_PADS; set IPU_CSI2_SRC_PADS to match (commonly 8
+# or 16).
 #
 # v4l2 source_stream tag at the deserializer source pad / CSI2 sink pad is
 # allocated separately as a compact per-DES sequential id (0..3), because
@@ -878,7 +880,7 @@ sensor_set_fps() {
 
 # Is stream token $1 selectable for model $2?
 stream_valid_for_model() {
-    local s=$1 model=$2 streams=${MODEL_STREAMS[$2]:-} t
+    local s=$1 streams=${MODEL_STREAMS[$2]:-} t
     [ -n "$streams" ] || return 1
     for t in $streams; do
         [ "$t" = "$s" ] && return 0
