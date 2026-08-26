@@ -995,6 +995,7 @@ else
             stream_specs=${arg#*,stream=}
             arg=${arg%%,stream=*}
             while [ -n "$stream_specs" ]; do
+                stream_specs=${stream_specs#"${stream_specs%%[![:space:]]*}"}
                 if [[ $stream_specs =~ ^\[([^][]+)\](,(.*))?$ ]]; then
                     stream_spec=${BASH_REMATCH[1]}
                     stream_specs=${BASH_REMATCH[3]}
@@ -1003,6 +1004,11 @@ else
                 fi
 
                 IFS=',' read -ra stream_parts <<<"$stream_spec"
+                for stream_part_idx in "${!stream_parts[@]}"; do
+                    stream_part=${stream_parts[$stream_part_idx]}
+                    stream_part=${stream_part#"${stream_part%%[![:space:]]*}"}
+                    stream_parts[$stream_part_idx]=${stream_part%"${stream_part##*[![:space:]]}"}
+                done
                 s=${stream_parts[0]}
                 is_known_stream "$s" || die "unknown stream '$s' in '$stream_spec'"
                 [ -z "${arg_stream_res[$s]+x}" ] && \
