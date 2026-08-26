@@ -521,7 +521,8 @@ setup_mipi_cameras() {
         cam=${MIPI_BA[$i]}
         csi2=${MIPI_CSI2[$i]}
         node=${MIPI_CAP[$i]}
-        s=$(fixed_stream_for_model "$model") || continue
+        s=$(fixed_stream_for_model "$model") \
+            || die "no stream configuration for MIPI${i} $model"
         sid=${STREAM_NODE[$s]}
         detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
             die "cannot read active format from MIPI${i} ${model} sensor"
@@ -877,8 +878,9 @@ sensor_set_fps() {
 
 # Is stream token $1 selectable for model $2?
 stream_valid_for_model() {
-    local s=$1 model=$2 t
-    for t in ${MODEL_STREAMS[$model]}; do
+    local s=$1 model=$2 streams=${MODEL_STREAMS[$2]:-} t
+    [ -n "$streams" ] || return 1
+    for t in $streams; do
         [ "$t" = "$s" ] && return 0
     done
     return 1
