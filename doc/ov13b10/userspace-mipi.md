@@ -59,7 +59,7 @@ Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Cam
 | EEPROM Type                | ROM_EEPROM_BRCA016GWZ| ROM_EEPROM_BRCA016GWZ|
 | VCM Type                   | VCM_DW9714           | VCM_DW9714           |
 | Number of I2C Components   | 7                    | 7                    |
-| I2C Channel                | I2C1                 | I2C0                 |
+| I2C Channel                | I2C1                 | I2C2                 |
 | Device 0                   |                      |                      |
 | I2C Address                | 10                   | 10                   |
 | Device Type                | Sensor               | Sensor               |
