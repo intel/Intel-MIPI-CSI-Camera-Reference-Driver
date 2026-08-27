@@ -1,0 +1,471 @@
+From 441bdc925e844d6a93c1f3700f17af667c7e02f5 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Thu, 23 Jul 2026 10:40:42 -0700
+Subject: [PATCH 111/112] ipu7-isys: program GDA_REGS pixel-buffer watermarks
+
+The intel IPU7 isys has a 256KB pixel buffer which is used for:
+- Allowing rate matching and a buffering capability between the hard real time
+  pixel input from the sensors and the access patterns to DRAM.
+- Allowing PKGC power saving use-cases by buffering the incoming pixels
+  and allowing the system to periodically enter PKGC and then exit to
+  drain the content.
+
+The intent is that the pixel buffer is filled at a constant rate and drainer faster than
+it is filled to avoid overflow. Overflow happens if the drain is slower than the fill.
+
+When the pixel buffer overflows all frames within it are broken and line/frame markers are lost which
+means that when HW tries to process this frame it sees a malformed frame.
+The pink frames are dummy frames that show that there is a frame loss.
+The frame loss can be short or long depending on the severity of the memory access problem.
+Pixel buffer overflow impacts all concurrent sensors.
+
+Programming the Pixel buffer critical amd high watermark to a lower value can reduce overflow impacts.
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ .../media/pci/intel/ipu7/ipu7-buttress-regs.h |  94 +++++++++++
+ .../media/pci/intel/ipu7/ipu7-buttress.c      |  18 +++
+ .../pci/intel/ipu7/ipu7-isys-csi2-regs.h      |  12 ++
+ .../media/pci/intel/ipu7/ipu7-isys-video.c    |  47 ++++++
+ .../drivers/media/pci/intel/ipu7/ipu7-isys.c  | 151 +++++++++++++++++-
+ .../drivers/media/pci/intel/ipu7/ipu7-isys.h  |   8 +
+ 6 files changed, 329 insertions(+), 1 deletion(-)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h
+index 871ba10..2f6108a 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h
+@@ -459,4 +459,98 @@
+ #define PB_DRIVER_PCODE_MAILBOX_INTERFACE	0x74
+ #define PORT_ARBITRATION_WEIGHTS_ATS		0x78
+ 
++/*--------------------------------------------------------------------*/
++/* GDA / ISYS Pixel Buffer Configuration                              */
++/*--------------------------------------------------------------------*/
++
++#define GDA_PAGE_SIZE_BYTES              (1024U)    /* 1 KB */
++#define CACHELINE_SIZE_BYTES             (64U)
++
++/* Total HW pixel buffer size */
++#define PIXEL_BUFFER_SIZE_KB            (256U)
++
++/*
++ * 230 KB = 90% of 256 KB pixel buffer.
++ * Leave 10% reserve to avoid overflow.
++ */
++#define GDA_MAX_SRAM_SIZE_KB            (230U)
++
++/*--------------------------------------------------------------------*/
++/* ISYS Buffer Fill-Time Calculation                                  */
++/*--------------------------------------------------------------------*/
++
++/* YUV and Bayer input formats */
++#define PIXELS_PER_CACHELINE_8BPP        (64U)
++#define PIXELS_PER_CACHELINE_10BPP       (50U)
++#define PIXELS_PER_CACHELINE_12BPP       (42U)
++#define PIXELS_PER_CACHELINE_16BPP       (32U)
++
++#define PDAF_WIDTH           0U
++#define PDAF_LINES           0U
++#define BLANKING_RATIO_SCALE 1000U
++
++struct sensor_sram_bw {
++	u64 actual_hline_bytes_in_sram;
++	u64 one_line_time_ns;
++	u64 sensor_sram_data_rate_mbps;
++};
++
++static inline u32 calculate_vblank_lines(
++	u32 height,
++	u32 blanking_ratio_scaled)
++{
++	return ((height *
++		(blanking_ratio_scaled - BLANKING_RATIO_SCALE))
++		/ BLANKING_RATIO_SCALE);
++}
++
++/*
++ * Sum of Sensors sram data rate provided in mbps.
++ */
++static inline u32 calculate_fill_time_usec(
++			u32 sum_sram_data_rate_mbps)
++{
++	if (!sum_sram_data_rate_mbps)
++		return 0;
++
++	return ((GDA_MAX_SRAM_SIZE_KB * 1024U) /
++		sum_sram_data_rate_mbps);
++}
++
++/*--------------------------------------------------------------------*/
++/* Watermark Calculations                                             */
++/*--------------------------------------------------------------------*/
++
++/*
++ * Maximum outstanding write watermark.
++ * Allows 8 KB of fill while memory access is available.
++ * 8KB is enough for 10usec in a 16MP sensor, so should allow much longer
++ * for a low res sensor
++ */
++#define GDA_MOWM_KB		 (8U)
++#define GDA_DDWM_KB		 (0U)
++
++/* High Water Mark */
++#define GDA_HWM_KB \
++	(GDA_MAX_SRAM_SIZE_KB)
++
++/* Critical Water Mark */
++#define GDA_CWM_KB \
++	(GDA_HWM_KB + ((PIXEL_BUFFER_SIZE_KB - GDA_HWM_KB) / 2U))
++
++/*
++ * NDE in microseconds.
++ * Subtract MOWM from available SRAM since the buffer may already
++ * contain pending data at PKGC entry.
++ */
++static inline u32 nde_usec(u32 sum_sram_data_rate_mbps)
++{
++	if (!sum_sram_data_rate_mbps)
++		return 0;
++
++	return (((GDA_MAX_SRAM_SIZE_KB * 1024U) -
++		(GDA_MOWM_KB * GDA_PAGE_SIZE_BYTES))
++		/ sum_sram_data_rate_mbps);
++}
++
+ #endif /* IPU7_BUTTRESS_REGS_H */
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c
+index 8db2d99..f019d44 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c
+@@ -489,6 +489,10 @@ static void isys_nde_control(struct device *dev, bool on)
+ 	u32 val, value, scale, valid, resvec;
+ 	u32 nde_reg;
+ 
++	u32 sum_sensor_sram_data_rate_mbps = 350; // approx sensor 16MP@30fps data-rate
++	u32 fill_time_usec = calculate_fill_time_usec(sum_sensor_sram_data_rate_mbps);
++	u32 nde = nde_usec(sum_sensor_sram_data_rate_mbps);
++
+ 	if (on) {
+ 		value = BUTTRESS_NDE_VAL_ACTIVE;
+ 		scale = BUTTRESS_NDE_SCALE_ACTIVE;
+@@ -499,6 +503,20 @@ static void isys_nde_control(struct device *dev, bool on)
+ 		valid = BUTTRESS_NDE_VALID_DEFAULT;
+ 	}
+ 
++	/* TODO: when nde_usec > 1000, each NDE value is 32use
++	 * divide nde_usec it by 32 to fit within 10bits :
++	 *   NDE_VAL_ACTIVE = nde_usec(sum_sensor_sram_data_rate_mbps) / 32;
++	 *   NDE_VALID_ACTIVE = 3;
++	 */
++	dev_dbg(dev,
++		 "%s: max Sensor %u [mbps] 1KB pixel-buffer Fill-Time=%u usec " \
++		 "(NDE=%u usec w/ scale=0x%x != CUR_NDE= w/ Scale=0x%x) \n",
++		__func__,
++		sum_sensor_sram_data_rate_mbps,
++		fill_time_usec,
++		nde, nde <= 1000 ? 2 : 3,
++		value, scale);
++
+ 	/* only set the fabrics resource ownership for ipu8 */
+ 	nde_reg = is_ipu8(isp->hw_ver) ? IPU8_BUTTRESS_REG_NDE_CONTROL :
+ 		IPU7_BUTTRESS_REG_NDE_CONTROL;
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2-regs.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2-regs.h
+index aad52c4..ce05f33 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2-regs.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-csi2-regs.h
+@@ -42,6 +42,18 @@
+ #define ISD_INT_IRQ_CTL_CLEAR			(IS_MAIN_ISD_INT_BASE + 0x20)
+ #define ISD_INT_IRQ_CTL_ENABLE			(IS_MAIN_ISD_INT_BASE + 0x24)
+ 
++/*--------------------------------------------------------------------
++ * GDA WATERMARK setup assumes that FW has opened up the access
++ * blocker range 0x272004 – 0x272017 to allow SW registers access
++ *--------------------------------------------------------------------*/
++#define GDA_WATERMARK_CRITICAL_THRESHOLD	(IS_MAIN_GDA_BASE + 0x04)
++#define GDA_WATERMARK_USER_THRESHOLD		(IS_MAIN_GDA_BASE + 0x08)
++#define GDA_WATERMARK_HIGH_THRESHOLD		(IS_MAIN_GDA_BASE + 0x0c)
++#define GDA_WATERMARK_MAX_OUTSTANDING_WRITE	(IS_MAIN_GDA_BASE + 0x10)
++#define GDA_WATERMARK_FABRIC_REG		(IS_MAIN_GDA_BASE + 0x14)
++#define GDA_WATERMARK_STATUS			(IS_MAIN_GDA_BASE + 0x18)
++/*--------------------------------------------------------------------*/
++
+ #define GDA_IRQ_CTL_STATUS			(IS_MAIN_GDA_BASE + 0x1c)
+ #define GDA_IRQ_CTL_CLEAR			(IS_MAIN_GDA_BASE + 0x20)
+ #define GDA_IRQ_CTL_ENABLE			(IS_MAIN_GDA_BASE + 0x24)
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
+index 8e6150a..baa3bf7 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-video.c
+@@ -413,6 +413,13 @@ static int ipu7_isys_enum_frameintervals(struct file *file, void *fh,
+ 	unsigned int i, num_found;
+ 	int ret=-EINVAL;
+ 
++	struct sensor_sram_bw gda_bw = {
++		.actual_hline_bytes_in_sram=0,
++		.one_line_time_ns=0,
++		.sensor_sram_data_rate_mbps=0
++	};
++	u32 fill_time_usec = 0;
++
+ 	/* poll remote sensors */
+ 	if (av->enum_link_state == IPU7_ISYS_LINK_STATE_DONE) {
+ 
+@@ -447,6 +454,26 @@ static int ipu7_isys_enum_frameintervals(struct file *file, void *fh,
+ 				fie.width, fie.height,
+ 				fie.interval.numerator,fie.interval.denominator);
+ 
++			gda_bw = ipu7_isys_get_pixel_buffer_sram_data_rate(
++							  fie.width,
++							  fie.height,
++							  fie.code,
++							  fie.interval.denominator,
++							  1200, 0); // 1.2 blanking ratio and no MD lines.
++
++			fill_time_usec = calculate_fill_time_usec((u32) gda_bw.sensor_sram_data_rate_mbps);
++
++			dev_dbg(&av->isys->adev->auxdev.dev,
++				 "%s: ffmt %dx%d-%x@%ufps =>\t"	\
++				 "Pixel-buffer BW %llu mpbs (Fill-Time=%u usec)\n",
++				 __func__,
++				 fie.width,
++				 fie.height,
++				 fie.code,
++				 fie.interval.denominator,
++				 gda_bw.sensor_sram_data_rate_mbps,
++				 fill_time_usec);
++
+ 			intervals->type = V4L2_FRMIVAL_TYPE_DISCRETE;
+ 			intervals->discrete.numerator = fie.interval.numerator;
+ 			intervals->discrete.denominator = fie.interval.denominator;
+@@ -467,6 +494,26 @@ static int ipu7_isys_enum_frameintervals(struct file *file, void *fh,
+ 		intervals->discrete.numerator = 1;
+ 		intervals->discrete.denominator = 30;
+ 
++		/* show GDA Pixel buffer BW with blanking ratio=1.2 and no MD lines.*/
++		gda_bw = ipu7_isys_get_pixel_buffer_sram_data_rate(intervals->width,
++								   intervals->height,
++								   ipu7_isys_pfmts[i].code,
++								   30,
++								   1200, 0);
++
++		fill_time_usec = calculate_fill_time_usec((u32) gda_bw.sensor_sram_data_rate_mbps);
++
++		dev_dbg(&av->isys->adev->auxdev.dev,
++			 "%s: ffmt %dx%d-%x@%ufps =>\t"	\
++			 "Pixel-buffer BW %llu mpbs (Fill-Time=%u usec)\n",
++			 __func__,
++			 intervals->width,
++			 intervals->height,
++			 ipu7_isys_pfmts[i].code,
++			 intervals->discrete.denominator,
++			 gda_bw.sensor_sram_data_rate_mbps,
++			 fill_time_usec);
++
+ 		return 0;
+ 	}
+ 	return -EINVAL;
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.c
+index 851d043..0052943 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.c
+@@ -35,6 +35,7 @@
+ #include <media/v4l2-device.h>
+ #include <media/v4l2-fwnode.h>
+ #include <media/v4l2-subdev.h>
++#include <media/mipi-csi2.h>
+ 
+ #include "abi/ipu7_fw_isys_abi.h"
+ 
+@@ -760,9 +761,149 @@ static void enable_to_sw_irq(struct ipu7_isys *isys, bool enable)
+ 	writel(mask, base + offset + TO_SW_IRQ_CNTL_ENABLE);
+ }
+ 
++#define BYTES_PER_MBYTE         1000000ULL
++
++struct sensor_sram_bw ipu7_isys_get_pixel_buffer_sram_data_rate(u32 width, u32 height,
++	u32 code, u32 frame_rate, u32 blanking_ratio_scaled, u32 md_lines)
++{
++    struct sensor_sram_bw bw;
++
++    u64 hline_pixels;
++    u64 hline_cachelines;
++    u64 hline_bytes;
++    u64 hline_gda_pages;
++    u64 total_lines;
++
++    u32 vblank_lines;
++    u32 pixels_per_cacheline;
++    u32 pdaf_lines = PDAF_LINES;
++    u32 pdaf_width = PDAF_WIDTH;
++
++    switch (ipu7_isys_mbus_code_to_mipi(code)) {
++	case MIPI_CSI2_DT_RAW8:
++		pixels_per_cacheline = PIXELS_PER_CACHELINE_10BPP;
++		break;
++	case MIPI_CSI2_DT_RAW10:
++		pixels_per_cacheline = PIXELS_PER_CACHELINE_10BPP;
++		break;
++	case MIPI_CSI2_DT_RAW12:
++		pixels_per_cacheline = PIXELS_PER_CACHELINE_12BPP;
++		break;
++	case MIPI_CSI2_DT_RAW16:
++		pixels_per_cacheline = PIXELS_PER_CACHELINE_16BPP;
++		break;
++	default:
++		pixels_per_cacheline = PIXELS_PER_CACHELINE_16BPP;
++		break;
++   }
++
++    /* vblankLines = ImageHeight * blanking ratio scaled */
++    vblank_lines = calculate_vblank_lines(height,
++					blanking_ratio_scaled);
++
++    /* HlinePixels = ImageWidth + PDAFwidth */
++    hline_pixels = (u64)(width + pdaf_width);
++
++    /* Round up division */
++    hline_cachelines =
++        DIV_ROUND_UP_ULL(hline_pixels,
++                         pixels_per_cacheline);
++
++    /* 64 bytes per cacheline */
++    hline_bytes =
++        hline_cachelines * CACHELINE_SIZE_BYTES;
++
++    /* Align to GDA page size */
++    hline_gda_pages =
++        DIV_ROUND_UP_ULL(hline_bytes,
++                         GDA_PAGE_SIZE_BYTES);
++
++    bw.actual_hline_bytes_in_sram =
++        hline_gda_pages * GDA_PAGE_SIZE_BYTES;
++
++    total_lines =
++      (u64) (height +
++	     vblank_lines +
++	     md_lines +
++	     pdaf_lines);
++
++    /*
++     * OneLineDataTime =
++     * 1 / (fps * total_lines)
++     *
++     * represented in nanoseconds
++     */
++    bw.one_line_time_ns =
++        NSEC_PER_SEC /
++        ((u64)frame_rate * total_lines);
++
++    /*
++     * SensorSramDataRate =
++     * ActualHlineBytesInSram /
++     * (OneLineDataTime * 1000000)
++     *
++     * rearranged to avoid floating point:
++     *
++     * ActualBytes * fps * total_lines
++     * --------------------------------
++     *            1,000,000
++     */
++    bw.sensor_sram_data_rate_mbps =
++        (bw.actual_hline_bytes_in_sram *
++         (u64)frame_rate *
++         total_lines) /
++        BYTES_PER_MBYTE;
++
++    return bw;
++}
++
++u32 isys_watermark_control(struct ipu7_isys *isys, bool override)
++{
++	struct device *dev = &isys->adev->auxdev.dev;
++	void __iomem *base = isys->pdata->base;
++
++	u32 status = readl(base + GDA_WATERMARK_STATUS);
++	u32 gda_cwm  = readl(base + GDA_WATERMARK_CRITICAL_THRESHOLD);
++	u32 gda_uwm  = readl(base + GDA_WATERMARK_USER_THRESHOLD);
++	u32 gda_hwm  = readl(base + GDA_WATERMARK_HIGH_THRESHOLD);
++	u32 gda_mowm = readl(base + GDA_WATERMARK_MAX_OUTSTANDING_WRITE);
++	u32 gda_ddwm = readl(base + GDA_WATERMARK_FABRIC_REG);
++
++	dev_info(dev, "%s: GDA watermarks %uKB over %uKB pixel-buffer size\t " \
++		 "GDA_REGS: status=0x%x cwm=0x%x uwm=0x%x hwm=0x%x mowm=0x%x ddwm=0x%x\n",
++		 __func__,
++		 GDA_MAX_SRAM_SIZE_KB, PIXEL_BUFFER_SIZE_KB,
++		 status,
++		 gda_cwm,
++		 gda_uwm,
++		 gda_hwm,
++		 gda_mowm,
++		 gda_ddwm);
++
++	/* if GDA already identical don't override */
++	if ((!override) ||
++	    (gda_cwm  == GDA_CWM_KB &&
++	     gda_hwm  == GDA_HWM_KB &&
++	     gda_mowm == GDA_MOWM_KB &&
++	     gda_ddwm == GDA_DDWM_KB))
++		return status;
++
++	gda_cwm  = GDA_CWM_KB;
++	gda_hwm  = GDA_HWM_KB;
++	gda_mowm = GDA_MOWM_KB;
++	gda_ddwm = GDA_DDWM_KB;
++
++	writel(gda_cwm, base + GDA_WATERMARK_CRITICAL_THRESHOLD);
++	writel(gda_hwm, base + GDA_WATERMARK_HIGH_THRESHOLD);
++	writel(gda_mowm, base + GDA_WATERMARK_MAX_OUTSTANDING_WRITE);
++	writel(gda_ddwm, base + GDA_WATERMARK_FABRIC_REG);
++
++	return status;
++}
++
+ void ipu7_isys_setup_hw(struct ipu7_isys *isys)
+ {
+-	u32 offset;
++	u32 offset, ret;
+ 	void __iomem *base = isys->pdata->base;
+ 
+ 	/* soft reset */
+@@ -776,12 +917,20 @@ void ipu7_isys_setup_hw(struct ipu7_isys *isys)
+ 
+ 	enable_to_sw_irq(isys, 1);
+ 	enable_csi2_legacy_irq(isys, 1);
++
++	/* override GDA pixel-buffer watermark */
++	ret=isys_watermark_control(isys, 1);
+ }
+ 
+ static void isys_cleanup_hw(struct ipu7_isys *isys)
+ {
++	u32 ret;
++
+ 	enable_csi2_legacy_irq(isys, 0);
+ 	enable_to_sw_irq(isys, 0);
++
++	/* just check GDA pixel buffer watermark status */
++	ret=isys_watermark_control(isys, 0);
+ }
+ 
+ static int isys_runtime_pm_resume(struct device *dev)
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
+index e74239c..79edfaf 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys.h
+@@ -188,4 +188,12 @@ void ipu7_cleanup_fw_msg_bufs_by_stream_id(struct ipu7_isys *isys,
+ 					   u16 stream_id);
+ int isys_isr_one(struct ipu7_bus_device *adev);
+ void ipu7_isys_setup_hw(struct ipu7_isys *isys);
++struct sensor_sram_bw ipu7_isys_get_pixel_buffer_sram_data_rate(u32 width,
++								u32 height,
++								u32 code,
++								u32 frame_rate,
++								u32 blanking_ratio_scaled,
++								u32 md_lines);
++u32 isys_watermark_control(struct ipu7_isys *isys, bool override);
++
+ #endif /* IPU7_ISYS_H */
+-- 
+2.43.0
+

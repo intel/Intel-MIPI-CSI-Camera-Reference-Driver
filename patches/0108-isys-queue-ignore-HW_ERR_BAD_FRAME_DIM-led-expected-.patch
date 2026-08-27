@@ -1,0 +1,28 @@
+From af39730a7c0182f929b47fe85803dd26237c2a11 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Sun, 26 Apr 2026 09:52:35 -0700
+Subject: [PATCH 108/112] isys-queue : ignore HW_ERR_BAD_FRAME_DIM led expected
+ buffers noise"
+
+---
+ ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-queue.c | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-queue.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-queue.c
+index f6dc20c..08a02dc 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-queue.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-isys-queue.c
+@@ -1122,10 +1122,6 @@ void ipu7_isys_queue_buf_ready(struct ipu7_isys_stream *stream,
+ 		addr = ivb->dma_addr;
+ 
+ 		if (info->pin.addr != addr) {
+-			if (first)
+-				dev_err(dev, "Unexpected buffer address %pad\n",
+-					&addr);
+-
+ 			first = false;
+ 			continue;
+ 		}
+-- 
+2.43.0
+

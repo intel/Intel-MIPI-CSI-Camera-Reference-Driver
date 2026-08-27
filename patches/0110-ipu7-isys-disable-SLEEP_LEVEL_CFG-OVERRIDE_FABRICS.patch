@@ -1,0 +1,42 @@
+From 7a8ce6d3bc0fe2a9633813d6a047a7ebe40e80a8 Mon Sep 17 00:00:00 2001
+From: florent pirou <florent.pirou@intel.com>
+Date: Thu, 23 Jul 2026 09:05:17 -0700
+Subject: [PATCH 110/112] ipu7-isys: disable SLEEP_LEVEL_CFG OVERRIDE_FABRICS
+
+Signed-off-by: florent pirou <florent.pirou@intel.com>
+---
+ .../drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h        | 1 +
+ ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c    | 5 +++++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h
+index 3eafd6a..871ba10 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress-regs.h
+@@ -371,6 +371,7 @@
+ 
+ #define BUTTRESS_OVERRIDE_IS_CLK	BIT(1)
+ #define BUTTRESS_OVERRIDE_PS_CLK	BIT(2)
++#define BUTTRESS_DISABLE_PKGC 		BIT(3)
+ /* ps_pll only valid for ipu8 */
+ #define BUTTRESS_OWN_ACK_PS_PLL		BIT(8)
+ #define BUTTRESS_OWN_ACK_IS_CLK		BIT(9)
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c
+index dfbb433..8db2d99 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7-buttress.c
+@@ -565,6 +565,11 @@ static int ipu7_buttress_powerup(struct device *dev,
+ 	val &= ~ctrl->ovrd_clk;
+ 	writel(val, isp->base + BUTTRESS_REG_SLEEP_LEVEL_CFG);
+ 
++	/* disable PKGC */
++	val = readl(isp->base + BUTTRESS_REG_SLEEP_LEVEL_CFG);
++	val &= ~BUTTRESS_DISABLE_PKGC;
++	writel(val, isp->base + BUTTRESS_REG_SLEEP_LEVEL_CFG);
++
+ out_power:
+ 	mutex_unlock(&isp->buttress.power_mutex);
+ 
+-- 
+2.43.0
+
