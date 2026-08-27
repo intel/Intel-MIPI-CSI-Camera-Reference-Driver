@@ -1,1 +1,0 @@
-../_cam_common_isx031.asl
