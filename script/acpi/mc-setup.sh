@@ -33,6 +33,7 @@
 # Known sensor / SerDes HIDs:
 #   INTC10CD = D4XX camera   (entity prefixes: "DS5 mux", "D4XX depth/rgb/ir/imu")
 #   INTC113C = ISX031 camera (entity prefix:   "isx031")
+#   OVTI13B1 = OV13B10 camera (entity prefix: "ov13b10")
 #   INTC1138 = MAX9295 / MAX96717 serializer    (entity prefix: "max96717")
 #   INTC1137 = MAX9296A deserializer            (entity prefix: "max9296a")
 #   INTC1139 = MAX96724 deserializer            (entity prefix: "max96724")
@@ -84,16 +85,19 @@ declare -A SENSOR_MODEL=(
     [INTC10CD]=d4xx
     [INTC113C]=isx031
     [INTC10C0]=ar0234
+    [OVTI13B1]=ov13b10
 )
 declare -A SENSOR_PREFIX=(
     [INTC10CD]="DS5 mux"
     [INTC113C]="isx031"
     [INTC10C0]="ar0234"
+    [OVTI13B1]="ov13b10"
 )
 
 # ---- Direct MIPI sensor HIDs (no GMSL deserializer) ------------------------
 declare -A MIPI_SENSOR_HID=(
     [INTC113C]=isx031
+    [OVTI13B1]=ov13b10
 )
 
 # ---- Serializer / Deserializer HID -> v4l entity prefix ---------------------
@@ -119,11 +123,13 @@ declare -A MODEL_STREAMS=(
     [d4xx]="depth rgb ir imu"
     [isx031]="yuv"
     [ar0234]="raw"
+    [ov13b10]="raw"
 )
 declare -A MODEL_DEFAULT_STREAMS=(
     [d4xx]="depth rgb"
     [isx031]="yuv"
     [ar0234]="raw"
+    [ov13b10]="raw"
 )
 
 # STREAM_NODE: per-stream capture-node index (also used as the v4l2
@@ -491,15 +497,16 @@ detect_mipi_csi2() {
 setup_mipi_cameras() {
     [ "$NUM_MIPI" -eq 0 ] && return 0
     echo -e "\nConfiguring direct MIPI cameras..."
-    local i model cam csi2 node fmt size s pixfmt w h ipu
+    local i model cam csi2 node fmt size s pixfmt w h ipu detected
     for ((i = 0; i < NUM_MIPI; i++)); do
         model=${MIPI_MODEL[$i]}
         cam=${MIPI_BA[$i]}
         csi2=${MIPI_CSI2[$i]}
         node=${MIPI_CAP[$i]}
         for s in ${MODEL_DEFAULT_STREAMS[$model]}; do
-            fmt=${STREAM_FMT[$s]}
-            size=${STREAM_SIZE[$s]}
+            detected=$(sensor_active_format "$model" "$cam" "$s" "${STREAM_NODE[$s]}") || \
+                die "cannot read active format from ${model} camera ${cam}"
+            read -r fmt size <<<"$detected"
             break
         done
         echo "  ${MIPI_PREFIX[$i]} $cam -> $csi2 -> /dev/video$node ($fmt/$size)"
@@ -636,6 +643,8 @@ sensor_entity_pad() {
     case "$model" in
         d4xx)   SENSOR_ENTITY="D4XX ${stream} ${cam}"; SENSOR_PAD=0; SENSOR_SID=0 ;;
         isx031) SENSOR_ENTITY="isx031 ${cam}"; SENSOR_PAD=0; SENSOR_SID=$sid ;;
+        ar0234) SENSOR_ENTITY="ar0234 ${cam}"; SENSOR_PAD=0; SENSOR_SID=$sid ;;
+        ov13b10) SENSOR_ENTITY="ov13b10 ${cam}"; SENSOR_PAD=0; SENSOR_SID=0 ;;
         *) return 1 ;;
     esac
 }
@@ -1258,6 +1267,9 @@ for k in "${!CFG_LINKS[@]}"; do
                 ;;
             ar0234)
                 mc_v "\"ar0234 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
+                ;;
+            ov13b10)
+                mc_v "\"ov13b10 ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]"
                 ;;
         esac
             fps=${CFG_STREAM_FPS["${k}_${s}"]}
