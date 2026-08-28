@@ -11,8 +11,8 @@ MODSRC := $(shell pwd)
 subdir-ccflags-y += -DDRIVER_VERSION_SUFFIX=\"${DRIVER_VERSION_SUFFIX}\"
 
 # Extract kernel version components - strip suffix like "-intel"
-KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | cut -d. -f1)
-KERNEL_PATCHLEVEL := $(shell echo $(KERNELRELEASE) | cut -d. -f2 | cut -d- -f1)
+KERNEL_VERSION := $(shell echo $(KERNELRELEASE) | sed -E 's/^([0-9]+).*/\1/')
+KERNEL_PATCHLEVEL := $(shell echo $(KERNELRELEASE) | sed -E 's/^[0-9]+\.([0-9]+).*/\1/')
 
 # Check if kernel version is 6.18
 KERNEL_EQ_6_18 := $(shell ([ $(KERNEL_VERSION) -eq 6 ] && [ $(KERNEL_PATCHLEVEL) -eq 18 ]) && echo 1 || echo 0)

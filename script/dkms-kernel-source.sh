@@ -20,9 +20,14 @@ if [[ -z "${kernelver:-}" ]]; then
   kernelver="$(uname -r)"
 fi
 
-major=$(echo "$kernelver" | cut -d- -f1| cut -d. -f1)
-minor=$(echo "$kernelver" | cut -d- -f1| cut -d. -f2)
-patch=$(echo "$kernelver" | cut -d- -f1| cut -d. -f3)
+if [[ "$kernelver" =~ ^([0-9]+)\.([0-9]+)(\.([0-9]+))? ]]; then
+    major="${BASH_REMATCH[1]}"
+    minor="${BASH_REMATCH[2]}"
+    patch="${BASH_REMATCH[4]:-0}"
+else
+    echo "dkms-kernel-source.sh: could not parse kernel version from '${kernelver}'" >&2
+    exit 1
+fi
 
 # Fail fast on an unparseable version rather than silently fetching linux-0.0*.
 if ! [[ "$major" =~ ^[0-9]+$ ]] || (( major < 1 )); then
