@@ -84,8 +84,6 @@ subdir-ccflags-$(CONFIG_VIDEO_LT6911UXC) += -DCONFIG_VIDEO_LT6911UXC
 subdir-ccflags-$(CONFIG_VIDEO_LT6911GXD) += -DCONFIG_VIDEO_LT6911GXD
 subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6) += -DCONFIG_VIDEO_INTEL_IPU6
 subdir-ccflags-$(CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET) += -DCONFIG_VIDEO_INTEL_IPU6_ISYS_RESET
-# Override LINUXINCLUDE to put our include path first
-LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 
 ccflags-y := -I$(src)/include
 # IPU7 driver configs
@@ -108,7 +106,8 @@ obj-$(CONFIG_VIDEO_INTEL_IPU6) += ipu6-drivers/drivers/media/pci/intel/ipu6/
 # Build V4L2 core module
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/v4l2-core/
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/mc/
-LINUXINCLUDE := -I$(src)/$(KERNEL_MEDIA_TREE)/include/uapi -I$(src)/$(KERNEL_MEDIA_TREE)/include $(LINUXINCLUDE)
+# Override LINUXINCLUDE to put our include path first
+LINUXINCLUDE := -I$(src)/include -I$(src)/$(KERNEL_MEDIA_TREE)/include/uapi -I$(src)/$(KERNEL_MEDIA_TREE)/include $(LINUXINCLUDE)
 
 # Build ipu-bridge module
 obj-m += $(KERNEL_MEDIA_TREE)/drivers/media/pci/intel/
