@@ -90,7 +90,7 @@ LINUXINCLUDE := -I$(src)/include $(LINUXINCLUDE)
 ccflags-y := -I$(src)/include
 # IPU7 driver configs
 export CONFIG_VIDEO_INTEL_IPU7=m
-export CONFIG_VIDEO_INTEL_IPU7_ISYS_RESET=y
+export CONFIG_VIDEO_INTEL_IPU7_ISYS_RESET=n
 export CONFIG_VIDEO_INTEL_IPU6=m
 export CONFIG_VIDEO_INTEL_IPU6_ISYS_RESET=y
 
