@@ -186,6 +186,10 @@ declare -A MBUS_TO_PIXFMT=(
 )
 mbus_to_pixfmt() { echo "${MBUS_TO_PIXFMT[$1]:-}"; }
 
+declare -A STREAM_FORMAT_MAP=(
+    [d4xx_depth_FIXED]=UYVY8_1X16
+)
+
 # =============================================================================
 # end of USER CONFIGURATION
 # =============================================================================
@@ -1123,6 +1127,7 @@ fi
 # effective format/size change, an unsupported or omitted FPS uses the largest
 # FPS advertised for the new mode.
 declare -A CFG_STREAM_FMT=()
+declare -A CFG_STREAM_PIXFMT=()
 declare -A CFG_STREAM_SIZE=()
 declare -A CFG_STREAM_FPS=()
 declare -A CFG_STREAM_FPS_APPLY=()
@@ -1147,7 +1152,10 @@ for k in "${!CFG_LINKS[@]}"; do
         validated=$(sensor_validate_format_size "$model" "$cam" "$s" "$sid" \
             "$requested_fmt" "$requested_size" "$detected_fmt" "$detected_size" \
             "DES${d} link ${l} stream ${s}")
-        read -r CFG_STREAM_FMT["${k}_${s}"] CFG_STREAM_SIZE["${k}_${s}"] <<<"$validated"
+        read -r selected_fmt CFG_STREAM_SIZE["${k}_${s}"] <<<"$validated"
+        CFG_STREAM_PIXFMT["${k}_${s}"]=$(mbus_to_pixfmt "$selected_fmt")
+        format_key="${model}_${s}_${selected_fmt}"
+        CFG_STREAM_FMT["${k}_${s}"]=${STREAM_FORMAT_MAP[$format_key]:-$selected_fmt}
         format_size_changed=0
         if [ "${CFG_STREAM_FMT["${k}_${s}"]}" != "$detected_fmt" ] || \
             [ "${CFG_STREAM_SIZE["${k}_${s}"]}" != "$detected_size" ]; then
@@ -1385,7 +1393,7 @@ for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     for s in ${CFG_STREAMS[$k]}; do
         node=$(( CAPTURE_BASE[d] + CSI2_PAD["${k}_${s}"] ))
-        pixfmt=$(mbus_to_pixfmt "${CFG_STREAM_FMT["${k}_${s}"]}")
+        pixfmt=${CFG_STREAM_PIXFMT["${k}_${s}"]}
         [ -z "$pixfmt" ] && continue
         size=${CFG_STREAM_SIZE["${k}_${s}"]}
         w=${size%x*}
