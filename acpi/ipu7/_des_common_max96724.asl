@@ -15,7 +15,14 @@
  *   DES_PIPE_STR_AUTOSELECT - MAX96724 specific property
  *   DES_FSIN_GPIO_PIN      - (Optional) DES GPIO pin number, used in GpioIo (e.g. 7 for MFP7 on MAX96724,
  *                            used to receive the external GMSL frame sync trigger pulse)
+ *   LINK_FREQ              - Optional link frequency; defaults to 1 GHz
  */
+
+#ifndef LINK_FREQ
+#define LINK_FREQ_VAL 1000000000
+#else
+#define LINK_FREQ_VAL LINK_FREQ
+#endif
 
 Name (_UID, Zero)               // _UID: Unique ID
 
@@ -193,7 +200,7 @@ Name (PRT4, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
 
@@ -208,7 +215,7 @@ Name (PRT5, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
 
@@ -223,7 +230,7 @@ Name (PRT6, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
 
@@ -238,6 +245,8 @@ Name (PRT7, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { 1000000000 } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
+
+#undef LINK_FREQ_VAL
