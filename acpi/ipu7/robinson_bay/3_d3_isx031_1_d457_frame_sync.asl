@@ -64,8 +64,8 @@
  * Make sure DESCH_CH, DESCH_SER, DESCH_CAM, DESCH_CH_PATH, DESCH_SER_PATH,
  * DESCH_SER_REF, DESCH_SER_GPIOREF are all updated if connection changed.
  *
- * 3x D3 ISX031 on MIPI-0 (0, 90, 270),   --> DES0, channel 0,1,3 : frame sync enabled
- * 1x RealSense on MIPI-2 (180)           --> DES1, channel 2     : frame sync disabled
+ * 3x D3 ISX031 on MIPI-0 (90, 180, 270),   --> DES0, channel 1,2,3 : frame sync enabled
+ * 1x RealSense on MIPI-2 (90)              --> DES1, channel 1     : frame sync disabled
  *
  */
 
@@ -94,41 +94,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #define DES_FSIN_GPIO_PIN 7
             #include "_des_common_max96724.asl"
 
-            // Channel 0 (D3 MFP8 fsync)
-            #define DESCH_LINK_NUM 0
-            #define DESCH_CH CH00
-            #define DESCH_SER SER0
-            #define DESCH_CAM CAM0
-            #define DESCH_SER_I2C 0x40
-            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH00"
-            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH00.SER0"
-            #define DESCH_SER_REF \_SB.PC00.DES0.CH00.SER0
-            #define DESCH_SER_GPIOREF ^^SER0
-            #define CAM_ALIAS 0x54
-            #define CAM_LANES 4
-            #define DESCH_SER_EXTRA_GPIO_PIN 8
-            #define DESCH_SER_FSYNC_RX_ID 7
-            #include "_des_ch_common_isx031.asl"
-
-            #undef DESCH_CH
-            #undef DESCH_SER
-            #undef DESCH_CAM
-            #undef DESCH_CH_PATH
-            #undef DESCH_SER_PATH
-            #undef DESCH_SER_REF
-            #undef DESCH_LINK_NUM
-            #undef DESCH_SER_I2C
-            #undef DESCH_SER_GPIOREF
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
-            #undef DESCH_SER_EXTRA_GPIO_PIN
-#endif
-#ifdef DESCH_SER_FSYNC_RX_ID
-            #undef DESCH_SER_FSYNC_RX_ID
-#endif
-            #undef CAM_ALIAS
-            #undef CAM_LANES
-
-            // Channel 1 (D3 MFP8 fsync)
+            // Channel 1/acpi 2 (D3 MFP8 fsync)
             #define DESCH_CH CH01
             #define DESCH_SER SER1
             #define DESCH_CAM CAM1
@@ -161,19 +127,52 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #undef CAM_ALIAS
             #undef CAM_LANES
 
-            // Channel 3 (D3 MFP8 fsync)
+            // Channel 2/acpi 3 (D3 MFP8 fsync)
+            #define DESCH_CH CH02
+            #define DESCH_SER SER2
+            #define DESCH_CAM CAM2
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH02"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH02.SER2"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH02.SER2
+            #define DESCH_LINK_NUM 2
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_SER_GPIOREF ^^SER2
+            #define DESCH_SER_EXTRA_GPIO_PIN 8
+            #define DESCH_SER_FSYNC_RX_ID 7
+            #define CAM_ALIAS 0x56
+            #define CAM_LANES 4
+            #include "_des_ch_common_isx031.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef DESCH_SER_FSYNC_RX_ID
+            #undef DESCH_SER_FSYNC_RX_ID
+#endif
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+
+            // Channel 3/acpi 4 (D3 MFP8 fsync)
             #define DESCH_CH CH03
             #define DESCH_SER SER3
             #define DESCH_CAM CAM3
             #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH03"
             #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH03.SER3"
             #define DESCH_SER_REF \_SB.PC00.DES0.CH03.SER3
-            #define DESCH_SER_EXTRA_GPIO_PIN 8
-            #define DESCH_SER_FSYNC_RX_ID 7
             #define DESCH_LINK_NUM 3
             #define DESCH_SER_I2C 0x40
             #define DESCH_SER_GPIOREF ^^SER3
-            #define CAM_ALIAS 0x56
+            #define DESCH_SER_EXTRA_GPIO_PIN 8
+            #define DESCH_SER_FSYNC_RX_ID 7
+            #define CAM_ALIAS 0x57
             #define CAM_LANES 4
             #include "_des_ch_common_isx031.asl"
             #undef DESCH_CH
@@ -229,22 +228,22 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
 //            #define DES_FSIN_GPIO_PIN 7
             #include "_des_common_max96724.asl"
 
-            // Channel 2 (D457 MFP0 fsync)
-            #define DESCH_LINK_NUM 2
-            #define DESCH_CH CH02
-            #define DESCH_SER SER2
-            #define DESCH_CAM CAM2
+            // Channel 1 (D457 MFP0 fsync)
+            #define DESCH_LINK_NUM 1
+            #define DESCH_CH CH01
+            #define DESCH_SER SER1
+            #define DESCH_CAM CAM1
             #define DESCH_SER_I2C 0x40
-            #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH02"
-            #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH02.SER2"
-            #define DESCH_SER_REF \_SB.PC00.DES1.CH02.SER2
-            #define DESCH_SER_GPIOREF ^^SER2
+            #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH01"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH01.SER1"
+            #define DESCH_SER_REF \_SB.PC00.DES1.CH01.SER1
+            #define DESCH_SER_GPIOREF ^^SER1
             #define DESCH_SER_X_VC Package () { 0 }
             #define DESCH_SER_Y_VC Package () { 1 }
             #define DESCH_SER_Z_VC Package () { 2 }
             #define DESCH_SER_U_VC Package () { 3 }
 //            #define DESCH_SER_FSYNC_RX_ID 0
-            #define CAM_ALIAS 0x54
+            #define CAM_ALIAS 0x55
             #define CAM_LANES 2
             #include "_des_ch_common_d457.asl"
             #undef DESCH_CH
