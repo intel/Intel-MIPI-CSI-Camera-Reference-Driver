@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<graph_settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" systool_version="26.28.5.0" gdf_hash="0" gsf_timestamp="2026-07-16 07:53:51">
+<graph_settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" systool_version="26.31.3.0" gdf_hash="0" gsf_timestamp="2026-09-02 11:16:37">
   <sensor_definitions sensor_name="AR0234" bayer_order="GRBG">
     <sensor_modes>
       <sensor_mode name="960p" width="1280" height="960" min_fps="0" max_fps="30" bpp="10" sensor_type="bayer" pdaf_type="0">
@@ -177,6 +177,7 @@ limitations under the License.
       <links_configuration>
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -304,6 +305,7 @@ limitations under the License.
       <links_configuration>
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -431,6 +433,7 @@ limitations under the License.
       <links_configuration>
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -566,6 +569,7 @@ limitations under the License.
       <links_configuration>
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -602,7 +606,7 @@ limitations under the License.
       <outer_nodes_configuration />
       <links_configuration>
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
-        <link src="isys:output" dst="raw_isys" format_name="SINGLE_PL_10_P" streaming_mode="S_OFF" />
+        <link src="isys:output" dst="raw_isys" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="raw_isys" virtual_sink="raw" />
@@ -739,6 +743,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -877,6 +882,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -1015,6 +1021,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -1161,6 +1168,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -1302,6 +1310,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -1444,6 +1453,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -1586,6 +1596,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -1736,6 +1747,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="preview" />
@@ -1872,6 +1884,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="stills" />
@@ -2009,6 +2022,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="stills" />
@@ -2146,6 +2160,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="stills" />
@@ -2291,6 +2306,7 @@ limitations under the License.
         <link src="sensor" dst="isys:input" format_name="SINGLE_PL_10" />
         <link src="bbps_WithTnr:bbps_ofs_mp_yuvn_odr" dst="image_mp" format_name="YUV420_8_SP_P" />
         <link src="bbps_WithTnr:bbps_ofs_dp_yuvn_odr" dst="image_dp" format_name="YUV420_8_SP_P" />
+        <link src="isys:output" dst="lbff_Bayer:terminal_connect_main_data_input" format_name="SINGLE_PL_10" streaming_mode="S_OFF" />
       </links_configuration>
       <virtual_sinks_mapping>
         <map sink="image_mp" virtual_sink="stills" />
