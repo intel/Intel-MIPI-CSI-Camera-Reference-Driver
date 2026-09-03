@@ -35,8 +35,9 @@
  *   DESCH_SER_PATH           - SERx ACPI path string (e.g. "\\_SB.PC00.DES0.CH00.SER0")
  *   DESCH_SER_REF            - SERx ACPI namespace reference (e.g. \_SB.PC00.DES0.CH00.SER0)
  *   DESCH_SER_GPIOREF        - SERx GPIO controller reference (e.g. ^^SER0)
- *   DESCH_SER_EXTRA_GPIO_PIN - (Optional) Extra SER GPIO pin number (e.g. 7)
- *   DESCH_SER_FSYNC_RX_ID    - (Optional) SER FSYNC RX pin ID (e.g. 7)
+ *   DESCH_SER_RESET_GPIO     - (Optional) SER RESET GPIO pin number (e.g. 0 for MFP0 of Serializer)
+ *   DESCH_SER_FSIN_GPIO      - (Optional) SER FSIN GPIO pin number (e.g. 7 for MFP7 of Serializer)
+ *   DESCH_SER_FSYNC_RX_ID    - (Optional) SER FSYNC RX pin ID (e.g. 7 to receive signal from MFP7 of Deserializer)
  *   DESCH_SER_X/Y/Z/U_VC     - (Optional) VC mapping/filter for D457 streams (Package of VC indices)
  *   EXTERNAL_FRAME_SYNC      - Camera external frame sync FSIN GPIO enablement
  *   CAM_ALIAS                - Camera alias I2C address used in i2c-alias-pool of the SER
@@ -65,7 +66,7 @@
  * DESCH_SER_REF, DESCH_SER_GPIOREF are all updated if connection changed.
  *
  * 3x D3 ISX031 on MIPI-0 (90, 180, 270),   --> DES0, channel 1,2,3 : frame sync enabled
- * 1x RealSense on MIPI-2 (90)              --> DES1, channel 1     : frame sync disabled
+ * 1x RealSense on MIPI-2 (90)              --> DES1, channel 1     : frame sync enabled
  *
  */
 
@@ -104,7 +105,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #define DESCH_LINK_NUM 1
             #define DESCH_SER_I2C 0x40
             #define DESCH_SER_GPIOREF ^^SER1
-            #define DESCH_SER_EXTRA_GPIO_PIN 8
+            #define DESCH_SER_RESET_GPIO 0
+            #define DESCH_SER_FSIN_GPIO 8
             #define DESCH_SER_FSYNC_RX_ID 7
             #define CAM_ALIAS 0x55
             #define CAM_LANES 4
@@ -118,8 +120,11 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #undef DESCH_LINK_NUM
             #undef DESCH_SER_I2C
             #undef DESCH_SER_GPIOREF
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
-            #undef DESCH_SER_EXTRA_GPIO_PIN
+#ifdef DESCH_SER_RESET_GPIO
+            #undef DESCH_SER_RESET_GPIO
+#endif
+#ifdef DESCH_SER_FSIN_GPIO
+            #undef DESCH_SER_FSIN_GPIO
 #endif
 #ifdef DESCH_SER_FSYNC_RX_ID
             #undef DESCH_SER_FSYNC_RX_ID
@@ -137,7 +142,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #define DESCH_LINK_NUM 2
             #define DESCH_SER_I2C 0x40
             #define DESCH_SER_GPIOREF ^^SER2
-            #define DESCH_SER_EXTRA_GPIO_PIN 8
+            #define DESCH_SER_RESET_GPIO 0
+            #define DESCH_SER_FSIN_GPIO 8
             #define DESCH_SER_FSYNC_RX_ID 7
             #define CAM_ALIAS 0x56
             #define CAM_LANES 4
@@ -151,8 +157,11 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #undef DESCH_LINK_NUM
             #undef DESCH_SER_I2C
             #undef DESCH_SER_GPIOREF
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
-            #undef DESCH_SER_EXTRA_GPIO_PIN
+#ifdef DESCH_SER_RESET_GPIO
+            #undef DESCH_SER_RESET_GPIO
+#endif
+#ifdef DESCH_SER_FSIN_GPIO
+            #undef DESCH_SER_FSIN_GPIO
 #endif
 #ifdef DESCH_SER_FSYNC_RX_ID
             #undef DESCH_SER_FSYNC_RX_ID
@@ -170,7 +179,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #define DESCH_LINK_NUM 3
             #define DESCH_SER_I2C 0x40
             #define DESCH_SER_GPIOREF ^^SER3
-            #define DESCH_SER_EXTRA_GPIO_PIN 8
+            #define DESCH_SER_RESET_GPIO 0
+            #define DESCH_SER_FSIN_GPIO 8
             #define DESCH_SER_FSYNC_RX_ID 7
             #define CAM_ALIAS 0x57
             #define CAM_LANES 4
@@ -184,8 +194,11 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #undef DESCH_LINK_NUM
             #undef DESCH_SER_I2C
             #undef DESCH_SER_GPIOREF
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
-            #undef DESCH_SER_EXTRA_GPIO_PIN
+#ifdef DESCH_SER_RESET_GPIO
+            #undef DESCH_SER_RESET_GPIO
+#endif
+#ifdef DESCH_SER_FSIN_GPIO
+            #undef DESCH_SER_FSIN_GPIO
 #endif
 #ifdef DESCH_SER_FSYNC_RX_ID
             #undef DESCH_SER_FSYNC_RX_ID
@@ -212,7 +225,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
 
         Device (DES1)
         {
-//            #define EXTERNAL_FRAME_SYNC 1
+            #define EXTERNAL_FRAME_SYNC 1
 
             // DES-level defines for DES1
             #define DES_PHY_TYPE 0
@@ -225,7 +238,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #define DES_REF \_SB.PC00.DES1
             #define DES_PIPE_STR_AUTOSELECT 0
             #define I2C_SPEED 100000
-//            #define DES_FSIN_GPIO_PIN 7
+            #define DES_FSIN_GPIO_PIN 7
             #include "_des_common_max96724.asl"
 
             // Channel 1 (D457 MFP0 fsync)
@@ -242,7 +255,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #define DESCH_SER_Y_VC Package () { 1 }
             #define DESCH_SER_Z_VC Package () { 2 }
             #define DESCH_SER_U_VC Package () { 3 }
-//            #define DESCH_SER_FSYNC_RX_ID 0
+            #define DESCH_SER_FSIN_GPIO 0
+            #define DESCH_SER_FSYNC_RX_ID 7
             #define CAM_ALIAS 0x55
             #define CAM_LANES 2
             #include "_des_ch_common_d457.asl"
@@ -261,8 +275,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #undef DESCH_SER_Y_VC
             #undef DESCH_SER_Z_VC
             #undef DESCH_SER_U_VC
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
-            #undef DESCH_SER_EXTRA_GPIO_PIN
+#ifdef DESCH_SER_FSIN_GPIO
+            #undef DESCH_SER_FSIN_GPIO
 #endif
 #ifdef DESCH_SER_FSYNC_RX_ID
             #undef DESCH_SER_FSYNC_RX_ID
