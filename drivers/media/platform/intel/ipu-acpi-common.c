@@ -446,7 +446,7 @@ int ipu_acpi_get_cam_data(struct device *dev,
 	sensor->pprval = sensor_data.pprval;
 	sensor->pprunit = sensor_data.pprunit;
 	sensor->bus_type = sensor_data.phyconfig;
-	sensor->degree = sensor_data.degree;
+	sensor->degree = 90;//sensor_data.degree;
 
 	pr_info("IPU ACPI: SSDB: name %s. link %d. lanes %d. pprval %d. pprunit %x. degree %d",
 		dev_name(dev), sensor->link, sensor->lanes, sensor->pprval, sensor->pprunit,

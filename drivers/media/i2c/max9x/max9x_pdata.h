@@ -55,6 +55,7 @@ struct max9x_video_pipe_pdata {
 
 	// SER
 	unsigned int src_csi_id;
+	unsigned int stream_id;
 	unsigned int *data_types;
 	unsigned int num_data_types;
 };

@@ -140,6 +140,21 @@ static const struct isx031_reg isx031_framesync_reg[] = {
 	{}
 };
 
+static const struct isx031_reg isx031_framesync_stream_reg[] = {
+	{ISX031_REG_LEN_08BIT, 0x8AF0, 0x02}, /*1:External pulse-based sync, 2:Shutter trigger-based */
+	{ISX031_REG_LEN_08BIT, 0x8AF1, 0x00}, /*0:Level detection auto mode disabled, 1: auto mode enable */
+	{ISX031_REG_LEN_08BIT, 0x8AFE, 0x00},
+	{ISX031_REG_LEN_08BIT, 0x8AFF, 0x0C},
+	{ISX031_REG_LEN_08BIT, 0xBF14, 0x02}, /* SG_MODE_APL */
+	{}
+};
+
+static const struct isx031_reg_list isx031_framesync_stream_reg_list = {
+	.num_of_regs = ARRAY_SIZE(isx031_framesync_stream_reg),
+	.regs = isx031_framesync_stream_reg,
+};
+
+
 static const struct isx031_reg isx031_1920_1536_30fps_reg[] = {
 	{ISX031_REG_LEN_08BIT, 0x8AA8, 0x01}, /* Crop enable */
 	{ISX031_REG_LEN_08BIT, 0x8AAA, 0x80}, /* H size = 1920 */
@@ -514,6 +529,12 @@ static int isx031_initialize_module(struct isx031 *isx031)
 		}
 	}
 
+	ret = isx031_write_reg_list(client, &isx031_framesync_stream_reg_list, true);
+	if (ret) {
+		dev_err(&client->dev, "Failed to set framesync reg\n");
+		return ret;
+	}
+
 	return 0;
 }
 
@@ -622,6 +643,7 @@ static int isx031_start_streaming(struct isx031 *isx031)
 		dev_err(&client->dev, "Failed to start streaming\n");
 		return ret;
 	}
+
 
 	return 0;
 }
@@ -1022,19 +1044,12 @@ static int isx031_probe(struct i2c_client *client)
 	isx031->reset_gpio = devm_gpiod_get_optional(&client->dev, "reset",
 							 GPIOD_OUT_LOW);
 	if (IS_ERR(isx031->reset_gpio))
-		return -EPROBE_DEFER;
+		return dev_err_probe(&client->dev, PTR_ERR(isx031->reset_gpio),
+				     "Failed to get reset gpio\n");
 	if (isx031->reset_gpio)
 		dev_info(&client->dev, "Reset gpio found\n");
 	else
 		dev_warn(&client->dev, "Reset gpio not found\n");
-
-	isx031->fsin_gpio = devm_gpiod_get_optional(&client->dev, "fsin",
-						    GPIOD_OUT_LOW);
-	if (isx031->fsin_gpio)
-		dev_info(&client->dev, "Fsin gpio found\n");
-	else
-		dev_warn(&client->dev, "Fsin gpio not found\n");
-
 	/* Initialize subdevice */
 	sd = &isx031->sd;
 	v4l2_i2c_subdev_init(sd, client, &isx031_subdev_ops);

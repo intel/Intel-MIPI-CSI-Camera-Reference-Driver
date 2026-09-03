@@ -638,6 +638,29 @@ static int max9295_verify_devid(struct max9x_common *common)
 	return 0;
 }
 
+#define DESCH_SER_FSYNC_GPIO 7
+#define DESCH_SER_FSYNC_RX_ID 7
+
+static int max9295_configure_frame_sync(struct regmap *map)
+{
+	int ret;
+
+	ret = regmap_update_bits(map, MAX9295_GPIO_C(DESCH_SER_FSYNC_GPIO),
+				 MAX9295_GPIO_C_RX_ID,
+				 FIELD_PREP(MAX9295_GPIO_C_RX_ID,
+					    DESCH_SER_FSYNC_RX_ID));
+	if (ret)
+		return ret;
+
+	return regmap_update_bits(map, MAX9295_GPIO_A(DESCH_SER_FSYNC_GPIO),
+				  MAX9295_GPIO_A_RES_CFG_FIELD |
+				  MAX9295_GPIO_A_TX_EN_FIELD |
+				  MAX9295_GPIO_A_RX_EN_FIELD |
+				  MAX9295_GPIO_A_OUT_DIS_FIELD,
+				  MAX9295_GPIO_A_RES_CFG_FIELD |
+				  MAX9295_GPIO_A_RX_EN_FIELD);
+}
+
 static int max9295_enable(struct max9x_common *common)
 {
 	struct device *dev = common->dev;
@@ -659,6 +682,8 @@ static int max9295_enable(struct max9x_common *common)
 
 	/* Clear the csi port selections */
 	TRY(ret, regmap_write_retry(map, MAX9295_FRONTTOP_0, MAX9295_FRONTTOP_0_LINE_INFO));
+
+	TRY(ret, max9295_configure_frame_sync(map));
 
 	return 0;
 }

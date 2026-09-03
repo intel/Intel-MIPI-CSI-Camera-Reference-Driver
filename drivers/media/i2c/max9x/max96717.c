@@ -26,11 +26,13 @@
 #include <linux/device.h>
 #include <linux/i2c.h>
 #include <linux/i2c-mux.h>
+#include <linux/property.h>
 #include <linux/regmap.h>
 #include <linux/sysfs.h>
 #include <linux/slab.h>
 
 #include "max96717.h"
+#include "regmap-retry.h"
 
 static const struct regmap_config max96717_regmap_config = {
 	.reg_bits = 16,
@@ -41,12 +43,15 @@ static const struct regmap_config max96717_regmap_config = {
 static int max96717_set_pipe_csi_enabled(struct max9x_common *common, unsigned int pipe_id,
 					 unsigned int csi_id, bool enable);
 static int max96717_video_pipe_double_pixel(struct max9x_common *common, unsigned int pipe_id, unsigned int bpp);
+static int max96717_video_pipe_mode(struct max9x_common *common, unsigned int pipe_id);
+static int max96717_video_pipe_enabled(struct max9x_common *common, unsigned int pipe_id, bool enable);
 static int max96717_max_elements(struct max9x_common *common, enum max9x_element_type element);
 static int max96717_enable_serial_link(struct max9x_common *common, unsigned int link);
 static int max96717_disable_serial_link(struct max9x_common *common, unsigned int link);
 static int max96717_enable(struct max9x_common *common);
 static int max96717_disable(struct max9x_common *common);
 static int max96717_pixel_mode(struct max9x_common *common, bool pixel);
+static int max96717_mandatory_init(struct max9x_common *common);
 
 static struct max9x_common *from_gpio_chip(struct gpio_chip *chip);
 static int max96717_gpio_get_direction(struct gpio_chip *chip, unsigned int offset);
@@ -71,7 +76,6 @@ static struct max9x_serial_link_ops max96717_serial_link_ops = {
 	.disable = max96717_disable_serial_link,
 };
 
-static struct max9x_translation_ops max96717_translation_ops;
 
 static struct max9x_common *from_gpio_chip(struct gpio_chip *chip)
 {
@@ -179,8 +183,6 @@ static int max96717_setup_gpio(struct max9x_common *common)
 	dev_dbg(dev, "gpio_chip label is %s, dev_name is %s",
 		common->gpio_chip.label, dev_name(dev));
 
-	// Functions
-	common->gpio_chip.label = MAX96717_NAME;
 	common->gpio_chip.parent = dev;
 	common->gpio_chip.get_direction = max96717_gpio_get_direction;
 	common->gpio_chip.direction_input = max96717_gpio_direction_input;
@@ -208,11 +210,28 @@ static int max96717_set_pipe_csi_enabled(struct max9x_common *common,
 {
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
+	unsigned int phy_cfg;
 	int ret;
+
+	if (csi_id >= MAX96717_NUM_CSI_LINKS)
+		return -EINVAL;
 
 	dev_dbg(dev, "Video-pipe %d, csi %d: %s, %d lanes", \
 		pipe_id, csi_id, (enable ? "enable" : "disable"), \
 		common->csi_link[csi_id].config.num_lanes);
+
+	/*
+	 * MAX96717 has a single CSI receiver, but it can be connected to PHY A
+	 * or PHY B. The ACPI-generated pdata currently uses PHY B (csi_id 1).
+	 * Program the PHY mode explicitly instead of relying on reset defaults.
+	 */
+	phy_cfg = csi_id == 0 ? MAX96717_MIPI_RX_0_PHY_CFG_A_ONLY :
+				MAX96717_MIPI_RX_0_PHY_CFG_B_ONLY;
+	ret = regmap_update_bits(map, MAX96717_MIPI_RX_0,
+		MAX96717_MIPI_RX_0_PHY_CFG_FIELD,
+		MAX9X_FIELD_PREP(MAX96717_MIPI_RX_0_PHY_CFG_FIELD, phy_cfg));
+	if (ret)
+		return ret;
 
 	// Select number of lanes for CSI port csi_id
 	ret = regmap_update_bits(map, MAX96717_MIPI_RX_1,
@@ -237,6 +256,52 @@ static int max96717_set_pipe_csi_enabled(struct max9x_common *common,
 		MAX9X_FIELD_PREP(MAX96717_FRONTTOP_9_START_VIDEO_FIELD(pipe_id, csi_id), enable ? 1U : 0U));
 	if (ret)
 		return ret;
+
+	return 0;
+}
+
+static int max96717_data_type_reg(unsigned int pipe_id, unsigned int data_type_slot,
+				  unsigned int *reg)
+{
+	if (data_type_slot >= MAX96717_NUM_DATA_TYPES)
+		return -EINVAL;
+
+	if (data_type_slot < 2)
+		*reg = MAX96717_FRONTTOP_12(pipe_id, data_type_slot);
+	else
+		*reg = MAX96717_EXTA(data_type_slot - 2);
+
+	return 0;
+}
+
+static int max96717_set_pipe_data_types_enabled(struct max9x_common *common,
+						unsigned int pipe_id, bool enable)
+{
+	struct device *dev = common->dev;
+	struct regmap *map = common->map;
+	unsigned int data_type_slot;
+	int ret;
+
+	for (data_type_slot = 0;
+	     data_type_slot < common->video_pipe[pipe_id].config.num_data_types;
+	     data_type_slot++) {
+		unsigned int dt = common->video_pipe[pipe_id].config.data_type[data_type_slot];
+		unsigned int reg;
+
+		ret = max96717_data_type_reg(pipe_id, data_type_slot, &reg);
+		if (ret)
+			return ret;
+
+		dev_dbg(dev, "Video-pipe %d, data type %d: (%#.2x: %s)",
+			pipe_id, data_type_slot, dt, enable ? "enable" : "disable");
+
+		ret = regmap_update_bits_retry(map, reg,
+			MAX96717_MEM_DT_SEL_FIELD | MAX96717_MEM_DT_EN_FIELD,
+			MAX9X_FIELD_PREP(MAX96717_MEM_DT_SEL_FIELD, dt) |
+			MAX9X_FIELD_PREP(MAX96717_MEM_DT_EN_FIELD, enable ? 1U : 0U));
+		if (ret)
+			return ret;
+	}
 
 	return 0;
 }
@@ -328,6 +393,70 @@ static int max96717_video_pipe_double_pixel(struct max9x_common *common,
 	return regmap_update_bits(map, reg, fields, vals);
 }
 
+static int max96717_video_pipe_mode(struct max9x_common *common, unsigned int pipe_id)
+{
+	struct max9x_serdes_pipe_config *config = &common->video_pipe[pipe_id].config;
+	struct regmap *map = common->map;
+	bool soft_bpp_enabled = false;
+	unsigned int max_bpp = 0;
+	unsigned int min_bpp = 0;
+	int ret;
+
+	if (config->soft_min_pixel_bpp && config->soft_max_pixel_bpp) {
+		soft_bpp_enabled = true;
+		min_bpp = config->soft_min_pixel_bpp;
+		max_bpp = config->soft_max_pixel_bpp;
+	} else if (config->dbl_pixel_bpp) {
+		soft_bpp_enabled = true;
+		min_bpp = config->dbl_pixel_bpp * 2;
+	}
+
+	ret = regmap_update_bits(map, MAX96717_VIDEO_TX0(pipe_id),
+		MAX96717_VIDEO_TX0_AUTO_BPP_EN_FIELD,
+		MAX9X_FIELD_PREP(MAX96717_VIDEO_TX0_AUTO_BPP_EN_FIELD, soft_bpp_enabled ? 0U : 1U));
+	if (ret)
+		return ret;
+
+	if (soft_bpp_enabled) {
+		ret = regmap_update_bits(map, MAX96717_VIDEO_TX1(pipe_id),
+			MAX96717_VIDEO_TX1_BPP_FIELD,
+			MAX9X_FIELD_PREP(MAX96717_VIDEO_TX1_BPP_FIELD, max_bpp));
+		if (ret)
+			return ret;
+	}
+
+	ret = regmap_update_bits(map, MAX96717_VIDEO_TX2(pipe_id),
+		MAX96717_VIDEO_TX2_DRIFT_DET_EN_FIELD,
+		MAX9X_FIELD_PREP(MAX96717_VIDEO_TX2_DRIFT_DET_EN_FIELD, soft_bpp_enabled ? 0U : 1U));
+	if (ret)
+		return ret;
+
+	return regmap_update_bits(map, MAX96717_FRONTTOP_2X(pipe_id),
+		MAX96717_FRONTTOP_2X_BPP_EN_FIELD | MAX96717_FRONTTOP_2X_BPP_FIELD,
+		MAX9X_FIELD_PREP(MAX96717_FRONTTOP_2X_BPP_EN_FIELD, soft_bpp_enabled ? 1U : 0U) |
+		MAX9X_FIELD_PREP(MAX96717_FRONTTOP_2X_BPP_FIELD, min_bpp));
+}
+
+static int max96717_video_pipe_enabled(struct max9x_common *common, unsigned int pipe_id, bool enable)
+{
+	return regmap_update_bits(common->map, MAX96717_REG2,
+		MAX96717_REG2_VID_TX_EN_FIELD(pipe_id),
+		MAX9X_FIELD_PREP(MAX96717_REG2_VID_TX_EN_FIELD(pipe_id), enable ? 1U : 0U));
+}
+
+static int max96717_video_pipe_stream_id(struct max9x_common *common,
+					 unsigned int pipe_id,
+					 unsigned int stream_id)
+{
+	struct device *dev = common->dev;
+
+	dev_dbg(dev, "Video-pipe %d: stream_id=%u", pipe_id, stream_id);
+
+	return regmap_update_bits(common->map, MAX96717_TX3(pipe_id),
+		MAX96717_TX3_TX_STR_SEL_FIELD,
+		MAX9X_FIELD_PREP(MAX96717_TX3_TX_STR_SEL_FIELD, stream_id));
+}
+
 static int max96717_max_elements(struct max9x_common *common,
 				 enum max9x_element_type element)
 {
@@ -340,6 +469,8 @@ static int max96717_max_elements(struct max9x_common *common,
 		return MAX96717_NUM_MIPI_MAPS;
 	case MAX9X_CSI_LINK:
 		return MAX96717_NUM_CSI_LINKS;
+	case MAX9X_DATA_TYPES:
+		return MAX96717_NUM_DATA_TYPES;
 	default:
 		break;
 	}
@@ -362,12 +493,26 @@ static int max96717_enable_serial_link(struct max9x_common *common,
 			continue;
 
 		config = &common->video_pipe[pipe_id].config;
+		ret = max96717_set_pipe_data_types_enabled(common, pipe_id,
+							   true);
+		if (ret)
+			return ret;
 		ret = max96717_set_pipe_csi_enabled(common, pipe_id,
 						    config->src_csi, true);
 		if (ret)
 			return ret;
 		ret = max96717_video_pipe_double_pixel(common, pipe_id,
 						       config->dbl_pixel_bpp);
+		if (ret)
+			return ret;
+		ret = max96717_video_pipe_mode(common, pipe_id);
+		if (ret)
+			return ret;
+		ret = max96717_video_pipe_stream_id(common, pipe_id,
+						    config->stream_id);
+		if (ret)
+			return ret;
+		ret = max96717_video_pipe_enabled(common, pipe_id, true);
 		if (ret)
 			return ret;
 	}
@@ -392,8 +537,17 @@ static int max96717_disable_serial_link(struct max9x_common *common,
 
 		config = &common->video_pipe[pipe_id].config;
 
+		ret = max96717_set_pipe_data_types_enabled(common, pipe_id,
+							   false);
+		if (ret)
+			return ret;
+
 		ret = max96717_set_pipe_csi_enabled(common, pipe_id,
 						    config->src_csi, false);
+		if (ret)
+			return ret;
+
+		ret = max96717_video_pipe_enabled(common, pipe_id, false);
 		if (ret)
 			return ret;
 	}
@@ -422,21 +576,28 @@ static int max96717_pixel_mode(struct max9x_common *common, bool pixel)
 			    MAX9X_FIELD_PREP(MAX96717_TUNNEL_MODE, !pixel));
 }
 
+static int max96717_mandatory_init(struct max9x_common *common)
+{
+	return regmap_update_bits(common->map, MAX96717_CMU2,
+		MAX96717_CMU2_PFDDIV_RSHORT_FIELD,
+		MAX9X_FIELD_PREP(MAX96717_CMU2_PFDDIV_RSHORT_FIELD,
+				  MAX96717_CMU2_PFDDIV_RSHORT_1_1V));
+}
+
 /**
  * Enable the MAX96717 to replicate a frame sync signal from the deserializer.
- * NOTE: Currently the MAX96717 driver supports frame sync across its
- * GPIO8.
+ * NOTE: By default, the MAX96717 driver supports frame sync across GPIO7.
  */
 static int max96717_enable_frame_sync(struct max9x_common *common)
 {
-	struct device_node *node = common->dev->of_node;
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
 
 	int ret;
-	int deserializer_tx_id;
-
-	ret = of_property_read_u32(node, "fsync-tx-id", &deserializer_tx_id);
+	u32 deserializer_tx_id=7;
+	u32 fsync_gpio = 7;
+#if 0
+	ret = device_property_read_u32(dev, "fsync-tx-id", &deserializer_tx_id);
 	// Not necessarily problematic, no frame sync tx found
 	if (ret == -ENODATA || ret == -EINVAL) {
 		dev_info(dev, "Frame sync GPIO tx id not found");
@@ -449,32 +610,57 @@ static int max96717_enable_frame_sync(struct max9x_common *common)
 		return ret;
 	}
 
-	ret = regmap_write(map, MAX96717_GPIO_C(8), deserializer_tx_id);
+	ret = device_property_read_u32(dev, "fsync-gpio", &fsync_gpio);
+	if (ret && ret != -EINVAL && ret != -ENODATA) {
+		dev_err(dev, "Failed to read frame sync GPIO with err %d",ret);
+		return ret;
+	}
+
+	if (fsync_gpio >= MAX96717_NUM_GPIO) {
+		dev_err(dev, "Invalid frame sync GPIO %u", fsync_gpio);
+		return -EINVAL;
+	}
+#endif
+	ret = regmap_update_bits(map, MAX96717_GPIO_C(fsync_gpio),
+				MAX96717_GPIO_C_RX_ID,
+				MAX9X_FIELD_PREP(MAX96717_GPIO_C_RX_ID,deserializer_tx_id));
+
 	if (ret) {
 		dev_err(dev, "Failed to write des frame sync id with err: %d",
 			ret);
 		return ret;
 	}
 
-	return 0;
+
+	ret = regmap_update_bits(map, MAX96717_GPIO_A(fsync_gpio),
+				MAX96717_GPIO_A_RES_CFG_FIELD | MAX96717_GPIO_A_TX_EN_FIELD | MAX96717_GPIO_A_RX_EN_FIELD | MAX96717_GPIO_A_OUT_DIS_FIELD,
+				MAX96717_GPIO_A_RES_CFG_FIELD | MAX96717_GPIO_A_RX_EN_FIELD);
+	if (ret)
+		dev_err(dev, "Failed to enable frame sync GPIO%u RX: %d",fsync_gpio, ret);
+
+	return ret;
+
 }
 
 static int max96717_get_datatype(struct max9x_common *common)
 {
-	struct device_node *node = common->dev->of_node;
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
-	int ret, datatype;
+	unsigned int datatype = 0;
 
-	ret = of_property_read_u32(node, "data-type", &datatype);
-	if (ret == -ENODATA || ret == -EINVAL) {
+	for (unsigned int i = 0; i < common->num_video_pipes; i++) {
+		struct max9x_serdes_video_pipe *pipe = &common->video_pipe[i];
+
+		if (!pipe->enabled || !pipe->config.num_data_types)
+			continue;
+
+		datatype = pipe->config.data_type[0];
+		break;
+	}
+
+	if (!datatype) {
 		dev_dbg(dev, "Data-type not found not filtering");
 		return regmap_write(map, MAX96717_FRONTTOP_16, 0);
-	}
-	// Other errors are problematic
-	else if (ret < 0) {
-		dev_err(dev, "Problem reading in data-type with err %d", ret);
-		return ret;
 	}
 
 	dev_dbg(dev, "Setting image data type to %x", datatype);
@@ -490,6 +676,11 @@ static int max96717_enable(struct max9x_common *common)
 {
 	struct device *dev = common->dev;
 	int ret;
+
+	dev_dbg(dev, "setup mandatory registers");
+	ret = max96717_mandatory_init(common);
+	if (ret)
+		return ret;
 
 	dev_dbg(dev, "setup gpio");
 	ret = max96717_setup_gpio(common);
@@ -514,6 +705,102 @@ static int max96717_enable(struct max9x_common *common)
 
 	return 0;
 }
+
+
+static int max96717_add_translate_addr(struct max9x_common *common,
+				       unsigned int i2c_id, unsigned int virt_addr,
+				       unsigned int phys_addr)
+{
+	struct device *dev = common->dev;
+	struct regmap *map = common->map;
+	unsigned int alias;
+	unsigned int src;
+	int virt_slot = -1;
+	int phys_slot = -1;
+	int ret;
+
+	for (alias = 0; alias < MAX96717_NUM_ALIASES; alias++) {
+		TRY(ret, regmap_read_retry(map, MAX96717_I2C_SRC(i2c_id, alias), &src));
+
+		src = FIELD_GET(MAX96717_I2C_SRC_FIELD, src);
+		if (src == virt_addr) {
+			virt_slot = alias;
+			break;
+		}
+
+		if (src == 0 && virt_slot < 0)
+			virt_slot = alias;
+	}
+
+	if (virt_slot < 0)
+		return -ENOSPC;
+
+	dev_dbg(dev, "SRC %02x = %02x, DST %02x = %02x",
+		MAX96717_I2C_SRC(i2c_id, virt_slot), virt_addr,
+		MAX96717_I2C_DST(i2c_id, virt_slot), phys_addr);
+	TRY(ret, regmap_write_retry(map, MAX96717_I2C_DST(i2c_id, virt_slot),
+				    MAX9X_FIELD_PREP(MAX96717_I2C_DST_FIELD, phys_addr)));
+	TRY(ret, regmap_write_retry(map, MAX96717_I2C_SRC(i2c_id, virt_slot),
+				    MAX9X_FIELD_PREP(MAX96717_I2C_SRC_FIELD, virt_addr)));
+
+	if (virt_addr == phys_addr)
+		return 0;
+
+	for (alias = 0; alias < MAX96717_NUM_ALIASES; alias++) {
+		if (alias == virt_slot)
+			continue;
+
+		TRY(ret, regmap_read_retry(map, MAX96717_I2C_SRC(i2c_id, alias), &src));
+
+		src = FIELD_GET(MAX96717_I2C_SRC_FIELD, src);
+		if (src == phys_addr) {
+			phys_slot = alias;
+			break;
+		}
+
+		if ((src == 0 || src == virt_addr) && phys_slot < 0)
+			phys_slot = alias;
+	}
+
+	if (phys_slot < 0) {
+		dev_warn(dev, "No free I2C alias slot to mask physical address 0x%02x", phys_addr);
+		return 0;
+	}
+
+	dev_dbg(dev, "SRC %02x = %02x, DST %02x = 00",
+		MAX96717_I2C_SRC(i2c_id, phys_slot), phys_addr,
+		MAX96717_I2C_DST(i2c_id, phys_slot));
+	TRY(ret, regmap_write_retry(map, MAX96717_I2C_DST(i2c_id, phys_slot), 0));
+	TRY(ret, regmap_write_retry(map, MAX96717_I2C_SRC(i2c_id, phys_slot),
+				    MAX9X_FIELD_PREP(MAX96717_I2C_SRC_FIELD, phys_addr)));
+
+	return 0;
+}
+
+static int max96717_remove_translate_addr(struct max9x_common *common,
+					  unsigned int i2c_id, unsigned int virt_addr,
+					  unsigned int phys_addr)
+{
+	struct regmap *map = common->map;
+	unsigned int alias;
+	unsigned int src;
+	int ret;
+
+	for (alias = 0; alias < MAX96717_NUM_ALIASES; alias++) {
+		TRY(ret, regmap_read_retry(map, MAX96717_I2C_SRC(i2c_id, alias), &src));
+		src = FIELD_GET(MAX96717_I2C_SRC_FIELD, src);
+		if (src == virt_addr)
+			return regmap_write_retry(map, MAX96717_I2C_DST(i2c_id, alias),
+						  MAX9X_FIELD_PREP(MAX96717_I2C_DST_FIELD, 0));
+	}
+
+	return 0;
+}
+
+static struct max9x_translation_ops max96717_translation_ops = {
+	.add = max96717_add_translate_addr,
+	.remove = max96717_remove_translate_addr,
+};
 
 int max96717_get_ops(struct max9x_common_ops **common_ops, struct max9x_serial_link_ops **serial_ops,
 		    struct max9x_csi_link_ops **csi_ops, struct max9x_line_fault_ops **lf_ops,
