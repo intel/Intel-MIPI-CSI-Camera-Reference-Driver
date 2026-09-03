@@ -19,9 +19,8 @@
  */
 
 #ifndef LINK_FREQ
-#define LINK_FREQ_VAL 1000000000
-#else
-#define LINK_FREQ_VAL LINK_FREQ
+#define LINK_FREQ 1000000000
+#define LINK_FREQ_DEFAULTED
 #endif
 
 Name (_UID, Zero)               // _UID: Unique ID
@@ -200,7 +199,7 @@ Name (PRT4, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
 
@@ -215,7 +214,7 @@ Name (PRT5, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
 
@@ -230,7 +229,7 @@ Name (PRT6, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
 
@@ -245,8 +244,11 @@ Name (PRT7, Package()
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
-        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ_VAL } }, // 1 GHz to be used by Intel IPU driver as link frequency
+        Package () { "mipi-img-link-frequencies", Package() { LINK_FREQ } }, // 1 GHz to be used by Intel IPU driver as link frequency
     },
 })
 
-#undef LINK_FREQ_VAL
+#ifdef LINK_FREQ_DEFAULTED
+#undef LINK_FREQ
+#undef LINK_FREQ_DEFAULTED
+#endif
