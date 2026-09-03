@@ -19,7 +19,7 @@
     "Sensor": [
       {
         "name": "acpi-1",
-        "description": "acpi GMSL sensor on Link A",
+        "description": "acpi GMSL sensor on DES0 Link A",
         "MediaCtlConfig": [
           {
             "id":  0 ,
@@ -71,7 +71,7 @@
                 "acpiName": "\\_SB_.PC00.DES0.CH00.SER0.CAM0", "videoNodeType": "VIDEO_PIXEL_ARRAY"
               }
             ]
-          },
+          }
         ],
         "StaticMetadata": {
           "supportedStreamConfig": [
@@ -94,7 +94,7 @@
       },
       {
         "name": "acpi-2",
-        "description": "acpi GMSL sensor on Link B",
+        "description": "acpi GMSL sensor on DES0 Link B",
         "MediaCtlConfig": [
           {
             "id":  0 ,
@@ -146,7 +146,7 @@
                 "acpiName": "\\_SB_.PC00.DES0.CH01.SER1.CAM1", "videoNodeType": "VIDEO_PIXEL_ARRAY"
               }
             ]
-          },
+          }
         ],
         "StaticMetadata": {
           "supportedStreamConfig": [
@@ -169,7 +169,7 @@
       },
       {
         "name": "acpi-3",
-        "description": "acpi GMSL sensor on Link C",
+        "description": "acpi GMSL sensor on DES0 Link C",
         "MediaCtlConfig": [
           {
             "id":  0 ,
@@ -221,7 +221,7 @@
                 "acpiName": "\\_SB_.PC00.DES0.CH02.SER2.CAM2", "videoNodeType": "VIDEO_PIXEL_ARRAY"
               }
             ]
-          },
+          }
         ],
         "StaticMetadata": {
           "supportedStreamConfig": [
@@ -244,7 +244,7 @@
       },
       {
         "name": "acpi-4",
-        "description": "acpi GMSL sensor on Link D",
+        "description": "acpi GMSL sensor on DES0 Link D",
         "MediaCtlConfig": [
           {
             "id":  0 ,
@@ -296,7 +296,307 @@
                 "acpiName": "\\_SB_.PC00.DES0.CH03.SER3.CAM3", "videoNodeType": "VIDEO_PIXEL_ARRAY"
               }
             ]
+          }
+        ],
+        "StaticMetadata": {
+          "supportedStreamConfig": [
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1536], "field": 0, "mcId": 0
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1080], "field": 0, "mcId": 1
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1280, 720], "field": 0, "mcId": 2
+            }
+          ]
+        },
+
+        "supportedISysSizes": [[1280, 720], [1920, 1080], [1920, 1536]],
+        "supportedISysFormat": ["V4L2_PIX_FMT_UYVY"],
+        "enableAIQ": false,
+        "usePSysProcessor": false
+      },
+      {
+        "name": "acpi-5",
+        "description": "acpi GMSL sensor on DES1 Link E",
+        "MediaCtlConfig": [
+          {
+            "id":  0 ,
+            "configMode": "AUTO",
+            "output": [1920, 1536],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 16", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH00.SER0.CAM0", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
           },
+          {
+            "id":  1 ,
+            "configMode": "AUTO",
+            "output": [1920, 1080],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 16", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH00.SER0.CAM0", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          },
+          {
+            "id":  2 ,
+            "configMode": "AUTO",
+            "output": [1280, 720],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 16", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH00.SER0.CAM0", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          }
+        ],
+        "StaticMetadata": {
+          "supportedStreamConfig": [
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1536], "field": 0, "mcId": 0
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1080], "field": 0, "mcId": 1
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1280, 720], "field": 0, "mcId": 2
+            }
+          ]
+        },
+
+        "supportedISysSizes": [[1280, 720], [1920, 1080], [1920, 1536]],
+        "supportedISysFormat": ["V4L2_PIX_FMT_UYVY"],
+        "enableAIQ": false,
+        "usePSysProcessor": false
+      },
+      {
+        "name": "acpi-6",
+        "description": "acpi GMSL sensor on DES1 Link F",
+        "MediaCtlConfig": [
+          {
+            "id":  0 ,
+            "configMode": "AUTO",
+            "output": [1920, 1536],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 17", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH01.SER1.CAM1", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          },
+          {
+            "id":  1 ,
+            "configMode": "AUTO",
+            "output": [1920, 1080],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 17", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH01.SER1.CAM1", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          },
+          {
+            "id":  2 ,
+            "configMode": "AUTO",
+            "output": [1280, 720],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 17", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH01.SER1.CAM1", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          }
+        ],
+        "StaticMetadata": {
+          "supportedStreamConfig": [
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1536], "field": 0, "mcId": 0
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1080], "field": 0, "mcId": 1
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1280, 720], "field": 0, "mcId": 2
+            }
+          ]
+        },
+
+        "supportedISysSizes": [[1280, 720], [1920, 1080], [1920, 1536]],
+        "supportedISysFormat": ["V4L2_PIX_FMT_UYVY"],
+        "enableAIQ": false,
+        "usePSysProcessor": false
+      },
+      {
+        "name": "acpi-7",
+        "description": "acpi GMSL sensor on DES1 Link G",
+        "MediaCtlConfig": [
+          {
+            "id":  0 ,
+            "configMode": "AUTO",
+            "output": [1920, 1536],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 18", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH02.SER2.CAM2", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          },
+          {
+            "id":  1 ,
+            "configMode": "AUTO",
+            "output": [1920, 1080],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 18", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH02.SER2.CAM2", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          },
+          {
+            "id":  2 ,
+            "configMode": "AUTO",
+            "output": [1280, 720],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 18", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH02.SER2.CAM2", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          }
+        ],
+        "StaticMetadata": {
+          "supportedStreamConfig": [
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1536], "field": 0, "mcId": 0
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1920, 1080], "field": 0, "mcId": 1
+            },
+            {
+              "format": "V4L2_PIX_FMT_UYVY", "size": [1280, 720], "field": 0, "mcId": 2
+            }
+          ]
+        },
+
+        "supportedISysSizes": [[1280, 720], [1920, 1080], [1920, 1536]],
+        "supportedISysFormat": ["V4L2_PIX_FMT_UYVY"],
+        "enableAIQ": false,
+        "usePSysProcessor": false
+      },
+      {
+        "name": "acpi-8",
+        "description": "acpi GMSL sensor on DES1 Link H",
+        "MediaCtlConfig": [
+          {
+            "id":  0 ,
+            "configMode": "AUTO",
+            "output": [1920, 1536],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 19", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH03.SER3.CAM3", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          },
+          {
+            "id":  1 ,
+            "configMode": "AUTO",
+            "output": [1920, 1080],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 19", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH03.SER3.CAM3", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          },
+          {
+            "id":  2 ,
+            "configMode": "AUTO",
+            "output": [1280, 720],
+            "format": "V4L2_PIX_FMT_UYVY",
+            "videonode": [
+              {
+                "name": "Intel IPU7 ISYS Capture 19", "videoNodeType": "VIDEO_GENERIC"
+              },
+              {
+                "name": "Intel IPU7 CSI2 2", "videoNodeType": "VIDEO_ISYS_RECEIVER"
+              },
+              {
+                "acpiName": "\\_SB_.PC00.DES1.CH03.SER3.CAM3", "videoNodeType": "VIDEO_PIXEL_ARRAY"
+              }
+            ]
+          }
         ],
         "StaticMetadata": {
           "supportedStreamConfig": [

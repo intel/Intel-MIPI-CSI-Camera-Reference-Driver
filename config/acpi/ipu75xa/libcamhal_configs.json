@@ -18,8 +18,6 @@
     "Common" : {
         "version": 1.0,
         "platform": "IPU7",
-        //  The value format of availableSensors is "sensor name"-wf/uf-"CSI port ID".
-        //  wf is world facing, and uf is user facing.
         "availableSensors": ["acpi"],
         "videoStreamNum" : 2
     }
