@@ -76,7 +76,9 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
          * 1 is active low for reset
          * 
          */
+#ifdef DESCH_SER_RESET_GPIO
         Package () { "reset-gpios", Package () { DESCH_SER_GPIOREF, 0, 0, 1 } },
+#endif
         /*
         * FSIN GPIOs, fsin-gpios will be used by isx031.c
         * when devm_gpiod_get_optional is being called with "fsin" consumer.
@@ -87,7 +89,7 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
         * 1 is active low for FSIN
         *
         */
-#ifdef EXTERNAL_FRAME_SYNC
+#ifdef DESCH_SER_FSIN_GPIO
         Package () { "fsin-gpios", Package () { DESCH_SER_GPIOREF, 0, 1, 1 } },
 #endif
         /*

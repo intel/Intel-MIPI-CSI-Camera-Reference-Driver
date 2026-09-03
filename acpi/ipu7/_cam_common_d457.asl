@@ -74,8 +74,10 @@ Name (_DSD, Package ()          // _DSD: Device-Specific Data
          * 1 is active low for reset
          *
          */
-#ifdef EXTERNAL_FRAME_SYNC
+#ifdef DESCH_SER_FSIN_GPIO
         Package () { "fsin-gpios", Package () { DESCH_SER_GPIOREF, 0, 0, 1 } },
+#endif
+#ifdef EXTERNAL_FRAME_SYNC
         Package () { "gmsl-frame-sync-enable", EXTERNAL_FRAME_SYNC },
 #else
         Package () { "gmsl-frame-sync-enable", 0 }, // Disabled by default
