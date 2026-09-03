@@ -41,16 +41,27 @@ The script can be used for MIPI and GMSL sensors. There are default streams for 
 </details>
 
 <details>
-<summary> Supported Sensors </summary>
+<summary> Supported GMSL setup </summary>
 
-GMSL Deserializers: MAX9296A, MAX96724
-GMSL Serializers: MAX9295A
-GMSL 2D RAW sensors: AR0234
-GMSL 2D YUV sensors: ISX031
-GMSL 3D YUV sensors: D457
+| Device | Supported Models |
+| ---    | --- |
+| Deserializer | MAX9296A DPHY,<br> MAX96724 CPHY,<br> MAX96724 DPHY |
+| Serializer | MAX9295A |
+| 2D RAW sensor | AR0234 |
+| 2D YUV sensor | ISX031 |
+| 3D YUV sensor | D457 |
 
-MIPI 2D YUV sensors: ISX031
-MIPI 2D RAW sensors: OV13B10
+</details>
+
+<details>
+<summary> Supported MIPI setup </summary>
+
+TODO: Might need userspace-mipi.md
+
+| Device | Supported Models |
+| ---    | --- |
+| 2D YUV sensor | ISX031 |
+| 2D RAW sensor | OV13B10 |
 
 </details>
 
