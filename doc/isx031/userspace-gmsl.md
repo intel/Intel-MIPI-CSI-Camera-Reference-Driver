@@ -5,7 +5,7 @@ This document details the configuration settings for the ISX031 GMSL sensor, pro
 ## Table of Contents
 
 - [Hardware Connection](#hardware-connection)
-  - [MAX9296 (REV B) Connection](#max9296-rev-b-connection)
+  - [MAX9296 AIC (REV B) Connection](#max9296-aic-rev-b-connection)
   - [MAX96724 AIC (C-PHY) (REV A) Connection](#max96724-aic-c-phy-rev-a-connection)
   - [MAX96724 AIC (C-PHY) (REV B) Connection](#max96724-aic-c-phy-rev-b-connection)
   - [MAX96724 AIC (D-PHY) (REV B) Connection](#max96724-aic-d-phy-rev-b-connection)
@@ -26,6 +26,8 @@ This document details the configuration settings for the ISX031 GMSL sensor, pro
   - [Libcamhal Config for IPU6EPMTL](#libcamhal-config-for-ipu6epmtl)
   - [Libcamhal Config for IPU75XA](#libcamhal-config-for-ipu75xa)
   - [Libcamhal Config for IPU8](#libcamhal-config-for-ipu8)
+- [Libcamhal Configuration File Setup (ASL configured systems)](#libcamhal-configuration-file-setup-asl-configured-systems)
+- [Auto Media-Ctl Routing Setup (ASL Configured Systems)](#auto-media-ctl-routing-setup-asl-configured-systems)
 - [Sensor Verification](#sensor-verification)
 - [Supported Configurations](#supported-configurations)
 - [Stream Verification](#stream-verification)
@@ -44,7 +46,7 @@ This document details the configuration settings for the ISX031 GMSL sensor, pro
 
 This section describes the physical AIC (Add-In Card) hardware setup, including link port layout and jumper configurations for MIPI PHY selection.
 
-### MAX9296 (REV B) Connection
+### MAX9296 AIC (REV B) Connection
 
 > **Note:** Samtec cables and an external power supply are required to connect the MAX9296 AIC to the baseboard.
 
@@ -112,7 +114,7 @@ Use the sensor ACPI HID in the **Custom HID** field.
 
 <details>
 <summary> MAX9296 DPHY + 4x ISX031 </summary>
-<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+<p align="left">(<a href="#max9296-aic-rev-b-connection">Back to Hardware Setup</a>)</p>
 > **Note:** No control logic or external clock is required.
 
 >**BIOS Camera Option 1 Path:**\
@@ -163,10 +165,10 @@ Use the sensor ACPI HID in the **Custom HID** field.
 
 <details>
 <summary>MAX9296 DPHY + 4x ISX031</summary>
-<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+<p align="left">(<a href="#max9296-aic-rev-b-connection">Back to Hardware Setup</a>)</p>
 
 >**Connection:**\
- Refer to [MAX9296 (REV B) Connection](#max9296-rev-b-connection) for hardware connection and jumper setup.
+ Refer to [MAX9296 AIC (REV B) Connection](#max9296-aic-rev-b-connection) for hardware connection and jumper setup.
 
 > **Note:** No control logic or external clock is required.
 
@@ -443,6 +445,12 @@ Use the sensor ACPI HID in the **Custom HID** field.
 
 <h3>IMPORTANT: Turn off the BIOS setting to use the ASL method.</h3>
 
+>**BIOS Camera Option 1 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 1` -> **Disabled**
+
+>**BIOS Camera Option 2 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 2` -> **Disabled**
+
 Using the ASL configuration exercises the [maxim-serdes](../../drivers/media/i2c/maxim-serdes/) drivers.
 
 To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](../acpi/kernelspace.md#compile-and-load).
@@ -452,25 +460,25 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 
 <details>
 <summary> MAX9296 DPHY + 4x D3 ISX031 GMSL sensor use case </summary>
-<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+<p align="left">(<a href="#max9296-aic-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max9296_d3_isx031.asl](../../acpi/ipu6/max9296_d3_isx031.asl)\
+>**ASL:** [max9296_d3_isx031.asl](../../acpi/ipu6/max9296_d3_isx031.asl)
 
 </details>
 
 <details>
 <summary> MAX9296 DPHY + 1x LI ISX031 GMSL sensor use case </summary>
-<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+<p align="left">(<a href="#max9296-aic-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max9296_li_isx031.asl](../../acpi/ipu6/max9296_li_isx031.asl)\
+>**ASL:** [max9296_li_isx031.asl](../../acpi/ipu6/max9296_li_isx031.asl)
 
 </details>
 
 <details>
 <summary> MAX9296 DPHY + 1x Sensing ISX031 GMSL sensor use case </summary>
-<p align="left">(<a href="#max9296-rev-b-connection">Back to Hardware Setup</a>)</p>
+<p align="left">(<a href="#max9296-aic-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max9296_sensing_isx031.asl](../../acpi/ipu6/max9296_sensing_isx031.asl)\
+>**ASL:** [max9296_sensing_isx031.asl](../../acpi/ipu6/max9296_sensing_isx031.asl)
 
 </details>
 
@@ -478,11 +486,11 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 DPHY + 8x D3 ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-d-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu6/max96724_dphy_d3_isx031.asl)\
+>**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu6/max96724_dphy_d3_isx031.asl)
 
 </details>
 
-<p align="right">(<a href="../acpi/userspace-gmsl.md#construct-pipeline">Go to Pipeline Configuration</a>)</p>
+  <p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
 
 ---
 ### ASL Configuration for IPU75XA
@@ -491,7 +499,7 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 CPHY + 8x D3 ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_d3_isx031.asl](../../acpi/ipu7/max96724_d3_isx031.asl)\
+>**ASL:** [max96724_d3_isx031.asl](../../acpi/ipu7/max96724_d3_isx031.asl)
 
 </details>
 
@@ -499,7 +507,7 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 CPHY + 1x LI ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_li_isx031.asl](../../acpi/ipu7/max96724_li_isx031.asl)\
+>**ASL:** [max96724_li_isx031.asl](../../acpi/ipu7/max96724_li_isx031.asl)
 
 </details>
 
@@ -507,7 +515,7 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 CPHY + 1x Sensing ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_sensing_isx031.asl](../../acpi/ipu7/max96724_sensing_isx031.asl)\
+>**ASL:** [max96724_sensing_isx031.asl](../../acpi/ipu7/max96724_sensing_isx031.asl)
 
 </details>
 
@@ -515,11 +523,11 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 DPHY + 6x D3 ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-d-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu7/max96724_dphy_d3_isx031.asl)\
+>**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu7/max96724_dphy_d3_isx031.asl)
 
 </details>
 
-<p align="right">(<a href="../acpi/userspace-gmsl.md#construct-pipeline">Go to Pipeline Configuration</a>)</p>
+  <p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
 
 ---
 ### ASL Configuration for IPU8
@@ -528,7 +536,7 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 CPHY + 8x D3 ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_d3_isx031.asl](../../acpi/ipu8/max96724_d3_isx031.asl)\
+>**ASL:** [max96724_d3_isx031.asl](../../acpi/ipu8/max96724_d3_isx031.asl)
 
 </details>
 
@@ -536,7 +544,7 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 CPHY + 1x LI ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_li_isx031.asl](../../acpi/ipu8/max96724_li_isx031.asl)\
+>**ASL:** [max96724_li_isx031.asl](../../acpi/ipu8/max96724_li_isx031.asl)
 
 </details>
 
@@ -544,7 +552,7 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 CPHY + 1x Sensing ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-c-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_sensing_isx031.asl](../../acpi/ipu8/max96724_sensing_isx031.asl)\
+>**ASL:** [max96724_sensing_isx031.asl](../../acpi/ipu8/max96724_sensing_isx031.asl)
 
 </details>
 
@@ -552,17 +560,14 @@ To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](..
 <summary> MAX96724 DPHY + 6x D3 ISX031 GMSL sensor use case </summary>
 <p align="left">(<a href="#max96724-aic-d-phy-rev-b-connection">Back to Hardware Setup</a>)</p>
 
->**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu8/max96724_dphy_d3_isx031.asl)\
+>**ASL:** [max96724_dphy_d3_isx031.asl](../../acpi/ipu8/max96724_dphy_d3_isx031.asl)
 
 </details>
 
-<p align="right">(<a href="../acpi/userspace-gmsl.md#construct-pipeline">Go to Pipeline Configuration</a>)</p>
+  <p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
 
 ---
 ## Libcamhal Configuration File Setup (BIOS-Configured Systems)
-
-**Note:**\
-For ASL-configured systems, refer to [acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md#stream-verification) for the libcamhal configuration file setup.
 
 #### Libcamhal Config for IPU6EP
 
@@ -681,6 +686,18 @@ Please use config from [VTG ipu8](https://github.com/intel/ipu7-camera-hal/tree/
 <p align="right">(<a href="#stream-verification">Go to Stream Verification</a>)</p>
 
 ---
+## Libcamhal Configuration File Setup (ASL-Configured Systems)
+
+For ASL-configured systems, refer to [acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md#new-libcamhal-configuration-files) for the libcamhal configuration file setup.
+
+<p align="right">(<a href="#sensor-verification">Go to Sensor Verification</a>)</p>
+
+---
+## Auto Media-Ctl Routing Setup (ASL Configured Systems)
+
+Please refer to [How to use mc-setup.sh](../acpi/userspace-gmsl.md#how-to-use-mc-setupsh)
+
+---
 ## Sensor Verification
 
 After completing the setup, verify that the sensor is probed and registered with the V4L2 framework:
@@ -689,6 +706,9 @@ After completing the setup, verify that the sensor is probed and registered with
 
 When using the BIOS configuration, the output for a single camera should look like the example below.
 ![media-ctl output](img-entity-isx031-gmsl.png)
+
+When using the ASL configuration, the output for a single camera should look like the example below.
+![media-ctl output-asl](img-entity-isx031-gmsl-asl.png)
 
 ---
 ## Supported Configurations
@@ -702,9 +722,15 @@ When using the BIOS configuration, the output for a single camera should look li
 ---
 ## Stream Verification
 
-> **Note:** \
-> For an ASL-configured system, refer to [acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md) for pipeline setup and stream verification commands.
+When using BIOS configuration, follow the sections below:
+- [Environment Setup](#environment-setup)
+- [Stream with GStreamer icamerasrc](#stream-with-gstreamer-icamerasrc)
 
+When using ASL configuration, follow sections in [acpi/userspace-gmsl.md](../acpi/userspace-gmsl.md):
+- [Construct Pipeline](../acpi/userspace-gmsl.md#construct-pipeline)
+- [Stream Verification for ASL](../acpi/userspace-gmsl.md#stream-verification)
+
+---
 ### Environment Setup
 
 Export the environment variables below:
@@ -765,6 +791,7 @@ For IPU6 only, configure the `isys_freq` value:
 | 1280x720 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=1 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1280,height=720' ! glimagesink sync=false |
 
 <p align="right">(<a href="#supported-configurations">Back to Supported Configurations</a>)</p>
+
 ---
 #### Sensor Format Selection
 
@@ -785,6 +812,7 @@ For IPU6 only, configure the `isys_freq` value:
 | x6 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-5 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=6 scene-mode=normal device-name=isx031-6 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 | x8 | gst-launch-1.0 icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-1 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-2 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-3 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-4 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-5 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-6 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-7 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false icamerasrc num-buffers=-1 num-vc=8 scene-mode=normal device-name=isx031-8 printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=UYVY,width=1920,height=1536' ! glimagesink sync=false |
 
+---
 ## Streaming Result
 
 | Number of Stream | IO Mode  | FPS Result |ipu6ep|ipu6epmtl|ipu75xa|ipu8|
@@ -816,3 +844,6 @@ The highest-bandwidth configurations tested are listed below.
   3. CPHY 2-trio per MIPI Port
      - 4x 1920x1536 @ 30fps (default)
      - 3x 1920x1536 @ 60fps
+
+---
+[↑ Back to Top](#description)
