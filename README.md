@@ -193,8 +193,8 @@ Build and install these software dependencies in your target system:
 | IPU Version       | ipu-camera-bins                          | ipu-camera-hal                           | icamerasrc                               |
 |-------------------|------------------------------------------|------------------------------------------|------------------------------------------|
 | IPU6EP, IPU6EPMTL | d9421fef539f24fc80c27002d5da753e193b0670 | 5aa9a3bd3d5582667915d93b0128a02953adbbbc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
-| IPU75XA           | cead7320d84ee9ade4f60d74e935b16b5a760945 | ef30767553685b83034e42325992a2442c5fcb2c | 7517af78f49a18dde6de86042055aa14ebe6d184 |
-| IPU8              | adf55525ab9d370828723b1ff8bee76ed7a492e8 | fd1efb6f2ef25fd24775a303cc71af6139d797eb | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+| IPU75XA           | adf55525ab9d370828723b1ff8bee76ed7a492e8 | a17d17718e8df9e74940fac32beda016836ef43b | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+| IPU8              | adf55525ab9d370828723b1ff8bee76ed7a492e8 | a17d17718e8df9e74940fac32beda016836ef43b | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 
 </details>
 
@@ -226,26 +226,6 @@ Build and install these software dependencies in your target system:
     git checkout main
     git submodule update --init --recursive
 
-<details>
-<summary> Workaround for IPU7/IPU8 AR0234 RAW sensor </summary>
-
-> **Note:** Workaround required for IPU7/IPU8 **RAW sensor** due to tuning dependency.
-
-By default, `ipu7-drivers` submodule tracks the tip of its `main` branch.
-For IPU75XA,
-
-    cd ipu7-drivers
-    git checkout 44bbc2de71fe5e7a5a7124d4c5e5900e70e13736
-    cd ..
-
-For IPU8,
-
-    cd ipu7-drivers
-    git checkout bed9b71d5be56d0e24c771c7a6ec83fd0a9db433
-    cd ..
-
-</details>
-
 **Build and install** modules using DKMS
 
     sudo dkms remove ipu-camera-sensor/0.1
@@ -271,7 +251,7 @@ For IPU8,
 1. Power cycle target system with sensors connected.
 2. Import sensor profile into BIOS, under section `BIOS Configuration Table` in respective userspace.md.
    - E.g. ISX031 GMSL using [userspace-gmsl.md](doc/isx031/userspace-gmsl.md#acpi-setup---bios-configuration)
-   - E.g. AR0234 MIPI using [userspace-mipi.md](doc/ar0234/userspace-mipi.md#bios-configuration-table)
+   - E.g. AR0234 MIPI using [userspace-mipi.md](doc/ar0234/userspace-mipi.md#acpi-setup---bios-configuration)
 
 <p align="right">(<a href="#setup-procedure">back to Setup Procedure</a>)</p>
 
@@ -300,7 +280,7 @@ ASL Configuration is added since release/26Q2.1.
 
 1. Reference stream verification for different sensor setup can be found in [doc/{sensor}](doc/) and respective userspace.md files.
    - E.g. ISX031 GMSL using [userspace-gmsl.md](doc/isx031/userspace-gmsl.md#stream-verification)
-   - E.g. AR0234 MIPI using [userspace-mipi.md](doc/ar0234/userspace-mipi.md#sample-userspace-command)
+   - E.g. AR0234 MIPI using [userspace-mipi.md](doc/ar0234/userspace-mipi.md#stream-verification)
 
 <p align="right">(<a href="#setup-procedure">back to Setup Procedure</a>)</p>
 
