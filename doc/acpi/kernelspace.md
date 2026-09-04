@@ -213,6 +213,7 @@ Serializer-specific defines in ASL are used to specify the serializer configurat
 | LI ISX031     | 0x62 | - | - | 4 | - |
 | Sensing ISX031| 0x40 | 7 | 1 | 4 | - |
 | RS D457       | 0x40 | - | - | 2 | Package () { 0 } for VC0 on Pipe X <br> Package () { 1 } for VC1 on Pipe Y <br> Package () { 2 } for VC2 on Pipe Z <br> Package () { 3 } for VC3 on Pipe U |
+| D3 AR0234     | 0x40 | - | - | 2 | - |
 
 </details>
 
@@ -257,7 +258,8 @@ Make sure the below ASL source files are at least a **subset** of your current h
 - [D457 GMSL 3D on MAX96724](../../acpi/ipu7/max96724_rs_d457.asl)
 - [LI ISX031 GMSL on MAX96724](../../acpi/ipu7/max96724_li_isx031.asl)
 - [Sensing ISX031 GMSL on MAX96724](../../acpi/ipu7/max96724_sensing_isx031.asl)
-- [2D+2D, 2D+3D GMSL mix-and-match on MAX96724](../../acpi/ipu7/max96724_mixed.asl)
+- [2D YUV + 2D YUV, 2D YUV + 3D YUV GMSL mix-and-match on MAX96724](../../acpi/ipu7/max96724_mixed.asl)
+- [2D RAW + 2D YUV, 2D YUV + 2D RAW GMSL mix-and-match on MAX96724](../../acpi/ipu7/max96724_mixed_d3_ar0234_isx031.asl)
 - [FrameSync on MAX96724](../../acpi/ipu7/max96724_sensing_isx031_fs.asl)
 
 <p align="right">(<a href="#compile-and-load">Go to Compile and Load</a>)</p>
@@ -274,7 +276,8 @@ Make sure the below ASL source files are at least a **subset** of your current h
 - [D457 GMSL 3D on MAX96724](../../acpi/ipu8/max96724_rs_d457.asl)
 - [LI ISX031 GMSL on MAX96724](../../acpi/ipu8/max96724_li_isx031.asl)
 - [Sensing ISX031 GMSL on MAX96724](../../acpi/ipu8/max96724_sensing_isx031.asl)
-- [2D+2D, 2D+3D GMSL mix-and-match on MAX96724](../../acpi/ipu8/max96724_mixed.asl)
+- [2D YUV + 2D YUV, 2D YUV + 3D YUV GMSL mix-and-match on MAX96724](../../acpi/ipu8/max96724_mixed.asl)
+- [2D RAW + 2D YUV, 2D YUV + 2D RAW GMSL mix-and-match on MAX96724](../../acpi/ipu8/max96724_mixed_d3_ar0234_isx031.asl)
 
 <p align="right">(<a href="#compile-and-load">Go to Compile and Load</a>)</p>
 
