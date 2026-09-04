@@ -655,7 +655,7 @@ Hence, pipeline will be configured as UYVY8_1X16 for Depth stream, but Video Nod
 
 >**Note:** This step is only necessary when streaming with the RealSense SDK. If you are using v4l2src or v4l2-ctl, you can skip it and use the video device directly.
 
-Running the script below creates symlinks for the video devices used by the RealSense SDK. The symlink must be used with librealsense pull request [#15007](https://github.com/IntelRealSense/librealsense/pull/15007).
+Running the script below creates symlinks for the video devices used by the RealSense SDK. The symlink must be used with librealsense pull request [#15636](https://github.com/IntelRealSense/librealsense/pull/15636).
 
     sudo ../../script/d4xx/upstream-rs-enum.sh
 
@@ -672,7 +672,7 @@ For example, if the Depth and RGB streams from link 0 on DES0 are enabled, the D
 
 ##### Sample Subdev Symlink
 
-The subdev symlink uses the syntax video-rs-{stream-type}-sd-{index}. The stream type and index follow the same rule as the capture-node symlink, except that the target is the subdev node instead of the video capture node. The subdev node is used to configure the sensor, and it is required for librealsense pull request [#15007](https://github.com/IntelRealSense/librealsense/pull/15007).
+The subdev symlink uses the syntax video-rs-{stream-type}-sd-{index}. The stream type and index follow the same rule as the capture-node symlink, except that the target is the subdev node instead of the video capture node. The subdev node is used to configure the sensor, and it is required for librealsense pull request [#15636](https://github.com/IntelRealSense/librealsense/pull/15636).
 
 | Sample Entity      | Sample symlink                                |
 | ---                | ---                                           |
@@ -688,8 +688,8 @@ There are SDK changes to support Intel IPU that are currently under review.
 
     git clone https://github.com/realsenseai/librealsense.git
     cd librealsense
-    git fetch origin pull/15007/head:pr-15007
-    git checkout pr-15007
+    git fetch origin pull/15636/head:pr-15636
+    git checkout pr-15636
     mkdir build && cd build
     cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
     make -j2
