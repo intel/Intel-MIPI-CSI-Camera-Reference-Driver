@@ -522,6 +522,7 @@ MMAP Command
 <summary>device-name</summary>
 
 | AIC Link         | Stream | device-name  |
+| ---------------- | ------ | ------------ |
 | A or DES0 Link 0 | Depth  | d4xx-1-depth |
 | A or DES0 Link 0 | RGB    | d4xx-1-rgb   |
 | A or DES0 Link 0 | IR     | d4xx-1-ir    |
@@ -553,7 +554,7 @@ For more details, please refer to icamerasrc device-name property for more detai
 <summary> num-vc </summary>
 
 | use case | num-vc |
-| --- | --- | --- |
+| --- | --- |
 | 1x stream | 1 |
 | 2x stream | 2 |
 | 3x stream | 3 |
