@@ -71,7 +71,7 @@
  */
 
 
-DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
+DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260909)
 {
     External (_SB.PC00, DeviceObj)
 
@@ -256,6 +256,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #define DESCH_SER_Z_VC Package () { 2 }
             #define DESCH_SER_U_VC Package () { 3 }
             #define DESCH_SER_FSIN_GPIO 0
+            #define DESCH_SER_FSIN_GPIO_2 1
             #define DESCH_SER_FSYNC_RX_ID 7
             #define CAM_ALIAS 0x55
             #define CAM_LANES 2
@@ -277,6 +278,9 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_ROB", 0x20260827)
             #undef DESCH_SER_U_VC
 #ifdef DESCH_SER_FSIN_GPIO
             #undef DESCH_SER_FSIN_GPIO
+#endif
+#ifdef DESCH_SER_FSIN_GPIO_2
+            #undef DESCH_SER_FSIN_GPIO_2
 #endif
 #ifdef DESCH_SER_FSYNC_RX_ID
             #undef DESCH_SER_FSYNC_RX_ID
