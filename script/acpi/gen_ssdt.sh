@@ -29,8 +29,8 @@ if [ "$IASL_VERSION" -lt 20260408 ]; then
 fi
 
 if ! grep -qF 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' /etc/default/grub; then
-    echo 'ERROR: /etc/default/grub must contain GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' >&2
-    exit 1
+    echo 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' | sudo tee -a /etc/default/grub
+    sudo update-grub
 fi
 
 FW_BASE_DIR="/tmp"
