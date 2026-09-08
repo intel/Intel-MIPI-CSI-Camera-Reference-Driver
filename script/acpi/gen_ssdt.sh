@@ -15,10 +15,27 @@
 # limitations under the License.
 #
 
-set -ex
 shopt -s nullglob
 
+IASL_VERSION="$(iasl -v 2>&1 | grep -oE '[0-9]{8}' | head -n1)"
+if [ -z "$IASL_VERSION" ]; then
+    echo "ERROR: unable to determine iasl version" >&2
+    exit 1
+fi
+
+if [ "$IASL_VERSION" -lt 20260408 ]; then
+    echo "ERROR: iasl version $IASL_VERSION is too old; need 20260408 or newer" >&2
+    exit 1
+fi
+
+if ! grep -qF 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' /etc/default/grub; then
+    echo 'ERROR: /etc/default/grub must contain GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' >&2
+    exit 1
+fi
+
+FW_BASE_DIR="/tmp"
 DIR="kernel/firmware/acpi"
+SSDT_IMG="$FW_BASE_DIR/img_ssdt.img"
 
 if [ -z "$1" ]; then
     echo "Usage: $0 <asl file>"
@@ -31,9 +48,10 @@ AML="${1%.asl}.aml"
 
 # Remove any stale outputs from a previous run so a failed recompile
 # cannot leave the old AML in place to be packaged below.
-rm -f "$AML" ./img_ssdt.img
+rm -f "$AML" "$SSDT_IMG"
 
 iasl -li "$1"
+ASL_DIR="$PWD"
 
 # iasl can return 0 with warnings but skip writing the AML on errors;
 # guard against that as well.
@@ -42,9 +60,22 @@ if [ ! -f "$AML" ]; then
     exit 1
 fi
 
+cd "$FW_BASE_DIR"
 mkdir -p "$DIR"
 rm -f "$DIR"/*
-cp "$AML" "$DIR"
-find kernel | cpio -H newc --create > img_ssdt.img
+cp "$ASL_DIR"/"$AML" "$FW_BASE_DIR"/"$DIR"
+find kernel | cpio -H newc --create > "$SSDT_IMG"
 
-sudo cp img_ssdt.img /boot
+if [ -f "$SSDT_IMG" ]; then
+    echo "Successful generation of $SSDT_IMG"
+else
+    echo "ERROR: failed to generate $SSDT_IMG" >&2
+    exit 1
+fi
+
+if sudo cp "$SSDT_IMG" /boot; then
+    echo "Successful copy of $SSDT_IMG to /boot"
+else
+    echo "ERROR: failed to copy $SSDT_IMG to /boot" >&2
+    exit 1
+fi
