@@ -97,6 +97,9 @@ Name(_CRS, ResourceTemplate ()  // _CRS: Current Resource Settings
 #ifdef DESCH_SER_FSIN_GPIO
         DESCH_SER_FSIN_GPIO,   // Extra pin (e.g. MFP7 on MAX9295)
 #endif
+#ifdef DESCH_SER_FSIN_GPIO_2
+        DESCH_SER_FSIN_GPIO_2,   // Extra pin (e.g. MFP7 on MAX9295)
+#endif
     }
 })
 
@@ -156,6 +159,9 @@ Name (MFP, Package()
         #endif
         #ifdef DESCH_SER_FSIN_GPIO
         Package () { "gmsl-frame-sync-gpio-pin", DESCH_SER_FSIN_GPIO },
+        #endif
+        #ifdef DESCH_SER_FSIN_GPIO_2
+        Package () { "gmsl-frame-sync-gpio-pin-2", DESCH_SER_FSIN_GPIO_2 },
         #endif
     },
 })
