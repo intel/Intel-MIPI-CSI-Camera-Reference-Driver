@@ -332,7 +332,7 @@ Install acpica tools version [20260408](https://github.com/acpica/acpica/release
 
 Run helper script to generate initramfs image from ASL source file and copy to /boot
 
-    ../../script/gen_ssdt.sh ../../acpi/{create-your-own.asl}
+    ../../script/acpi/gen_ssdt.sh ../../acpi/{create-your-own.asl}
 
 ### Load SSDT initramfs
 
