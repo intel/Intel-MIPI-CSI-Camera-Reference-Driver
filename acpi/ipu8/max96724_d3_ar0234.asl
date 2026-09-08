@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: GPL-2.0
  * Copyright (c) 2026 Intel Corporation.
  *
- * SSDT overlay: D3 AR0234 GMSL camera configuration on PTL platform
- *   Two MAX96724 deserializers (DES0, DES1) with CPHY connection to PTL platform,
+ * SSDT overlay: D3 AR0234 GMSL camera configuration on IPU8 platform
+ *   Two MAX96724 deserializers (DES0, DES1) with CPHY connection to IPU8 platform,
  *   each carrying four D3 AR0234 cameras over GMSL Links 0..3, fronted by MAX9295A serializers.
  *
  * DES-level defines (set per DESx, undef'd at the end of each Device):
