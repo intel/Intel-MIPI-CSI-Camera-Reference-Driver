@@ -330,7 +330,7 @@ Install acpica tools version [20260408](https://github.com/acpica/acpica/release
 
 ### Compile ASL source file and load SSDT initramfs
 
-Run helper script to automate ASL compilation, initramfs image with ASL SSDT and GRUB configuration
+Run helper script to automate ASL compilation, initramfs image generation, and GRUB configuration (you will be prompted for sudo).
 
     ../../script/acpi/gen_ssdt.sh ../../acpi/{create-your-own.asl}
 
