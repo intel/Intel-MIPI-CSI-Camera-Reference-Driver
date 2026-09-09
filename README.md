@@ -33,35 +33,36 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 
 | GMSL Sensor                                 | User Guide                                  | Vendor          | IPU6EP | IPU6EPMTL | IPU75XA | IPU8 |
 |---------------------------------------------|---------------------------------------------|-----------------|:------:|:---------:|:-------:|:----:|
-| [AR0233+GW5300](doc/ar0233/kernelspace.md)  | [User Guide](doc/ar0233/userspace-gmsl.md)  | Sensing         |❌ |✅|✅|❌|
-| [AR0234](doc/ar0234/kernelspace.md)         | [User Guide](doc/ar0234/userspace-gmsl.md)  | D3 Embedded     |❌ |✅|✅|✅|
-| [AR0820+GW5300](doc/ar0820/kernelspace.md)  | [User Guide](doc/ar0820/userspace-gmsl.md)  | Sensing         |❌ |✅|✅|❌|
-| D457                                        | [User Guide](doc/d4xx/userspace-gmsl.md)    | RealSense       |❌ |✅|✅|✅|
-| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-gmsl.md)  | D3 Embedded     |✅*|✅|✅|✅|
-| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-gmsl.md)  | Leopard Imaging |✅*|✅|✅|✅|
-| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-gmsl.md)  | Sensing         |✅*|✅|✅|✅|
+| [AR0233+GW5300](doc/ar0233/kernelspace.md)  | [User Guide](doc/ar0233/userspace-gmsl.md)  | Sensing         |❌ |✅B|✅B|❌ |
+| [AR0234](doc/ar0234/kernelspace.md)         | [User Guide](doc/ar0234/userspace-gmsl.md)  | D3 Embedded     |❌ |✅ |✅A|✅A|
+| [AR0820+GW5300](doc/ar0820/kernelspace.md)  | [User Guide](doc/ar0820/userspace-gmsl.md)  | Sensing         |❌ |✅B|✅B|❌ |
+| D457                                        | [User Guide](doc/d4xx/userspace-gmsl.md)    | RealSense       |❌ |✅ |✅ |✅ |
+| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-gmsl.md)  | D3 Embedded     |✅B|✅ |✅ |✅ |
+| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-gmsl.md)  | Leopard Imaging |✅B|✅ |✅ |✅ |
+| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-gmsl.md)  | Sensing         |✅B|✅ |✅ |✅ |
 
 
 | MIPI Sensor                                 | User Guide                                  | Vendor          | IPU6EP | IPU6EPMTL | IPU75XA | IPU8 |
 |---------------------------------------------|---------------------------------------------|-----------------|:------:|:---------:|:-------:|:----:|
-| [AR0234](doc/ar0234/kernelspace.md)         | [User Guide](doc/ar0234/userspace-mipi.md)  | D3 Embedded     |❌ |✅ |✅ |✅|
-| [AR0830+AP1302](doc/ar0830/kernelspace.md)  | [User Guide](doc/ar0830/userspace-mipi.md)  | Leopard Imaging |❌ |✅*|✅*|❌|
-| IMX415                                      | [User Guide](doc/imx415/userspace-mipi.md)  | Leopard Imaging |❌ |✅*|❌ |❌|
-| [IMX586](doc/imx586/kernelspace.md)         | [User Guide](doc/imx586/userspace-mipi.md)  | Leopard Imaging |❌ |✅*|❌ |❌|
-| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-mipi.md)  | D3 Embedded     |✅*|✅ |✅ |✅|
-| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-mipi.md)  | Sensing         |✅*|✅*|✅*|❌|
-| OV13B10                                     | [User Guide](doc/ov13b10/userspace-mipi.md) | Leopard Imaging |❌ |❌ |✅ |✅|
+| [AR0234](doc/ar0234/kernelspace.md)         | [User Guide](doc/ar0234/userspace-mipi.md)  | D3 Embedded     |❌ |✅B|✅B|✅B|
+| [AR0830+AP1302](doc/ar0830/kernelspace.md)  | [User Guide](doc/ar0830/userspace-mipi.md)  | Leopard Imaging |❌ |✅B|✅B|❌ |
+| IMX415                                      | [User Guide](doc/imx415/userspace-mipi.md)  | Leopard Imaging |❌ |✅B|❌ |❌ |
+| [IMX586](doc/imx586/kernelspace.md)         | [User Guide](doc/imx586/userspace-mipi.md)  | Leopard Imaging |❌ |✅B|❌ |❌ |
+| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-mipi.md)  | D3 Embedded     |✅B|✅ |✅ |✅ |
+| [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-mipi.md)  | Sensing         |✅B|✅B|✅B|❌ |
+| OV13B10                                     | [User Guide](doc/ov13b10/userspace-mipi.md) | Leopard Imaging |❌ |❌ |✅ |✅ |
 
 > **Note:** \
 > Items marked with ✅ are enabled by BIOS and ASL method. \
-> Items marked with ✅* are enabled by BIOS method ONLY.\
+> Items marked with ✅B are enabled by BIOS method ONLY. \
+> Items marked with ✅A are enabled by ASL method ONLY. \
 > Items marked with ❌ are not enabled by BIOS or ASL method.
 
 > **Note:** \
-IPU6EP represents TWL platforms; \
-IPU6EPMTL represents MTL and ARL platforms; \
-IPU75XA represents PTL platforms; \
-IPU8 represents NVL platforms.
+> IPU6EP represents TWL platforms. \
+> IPU6EPMTL represents MTL and ARL platforms. \
+> IPU75XA represents PTL platforms. \
+> IPU8 represents NVL platforms.
 
 ---
 ## Supported Ubuntu and Kernel Version
