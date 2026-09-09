@@ -15,6 +15,7 @@ This document contains information of imaging specific ACPI SSDT ASL sources com
     <li><a href="#what-are-acpi-asl-source-files">What are ACPI ASL Source Files?</a></li>
     <li><a href="#reference-asl-source-files">Reference ASL Source Files</a></li>
     <li><a href="#asl-source-files-for-different-use-cases">ASL Source Files for Different Use Cases</a></li>
+    <li><a href="#kernel-dependencies-for-ssdt-asl-method">Kernel Dependencies for SSDT ASL Method</a></li>
     <li><a href="#compile-and-load">Compile and Load ACPI ASL Source Files</a></li>
   </ol>
 </details>
@@ -284,6 +285,32 @@ Make sure the below ASL source files are at least a **subset** of your current h
 </details>
 
 <p align="right">(<a href="#compile-and-load">Go to Compile and Load</a>)</p>
+
+## Kernel Dependencies for SSDT ASL method
+
+For GMSL setups using SSDT ASL method, the base kernel needs the following kernel configs to be enabled. If they are not enabled, rebuild your kernel with below kernel configs.
+
+    CONFIG_COMPILE_TEST=y
+    CONFIG_I2C_ATR=m
+
+>**Note:** `CONFIG_COMPILE_TEST` is a dependency config for `CONFIG_I2C_ATR`.
+
+To rebuild [Intel Linux-Kernel-Overlay](https://github.com/intel/linux-kernel-overlay.git), follow the instructions in [Intel BKC using Getting Started Guide (GSG)](../../README.md#intel-bkc-using-getting-started-guide-gsg).
+Before running `build.sh`, add above configs to `kernel-config/features/ipu.cfg`.
+
+If you are rebuilding kernel from other source, make sure to add the configs into `.config` and run `make olddefconfig` before building the kernel.
+
+After installing the kernel and reboot, verify `i2c_atr` module is present and used by `max_serdes`.
+
+If `CONFIG_I2C_ATR=m`, verify the `i2c_atr` module is loaded:
+
+    lsmod | grep i2c_atr
+
+You should see output similar to below:
+
+    i2c_atr                24576  1 max_serdes
+
+If `CONFIG_I2C_ATR=y`, there will be no `lsmod` output for `i2c_atr`.
 
 ## Compile and Load
 
