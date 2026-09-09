@@ -56,12 +56,13 @@ IPU8 represents NVL platforms.
 |--------------------|-----------------|-----------------|
 | IPU6EP / IPU6EPMTL | 24.04.4         | 6.12 Intel BKC  |
 |                    | 24.04.4         | 6.17 Canonical  |
+|                    | 24.04.4         | 6.18 Intel BKC  |
 |                    | 26.04           | 7.0 Canonical   |
 | IPU75XA            | 24.04.4         | 6.17 Intel BKC  |
 |                    | 24.04.4         | 6.17 Canonical  |
+|                    | 24.04.4         | 6.18 Intel BKC  |
 |                    | 26.04           | 7.0 Canonical   |
-| IPU8               | 24.04.4         | 6.18 Intel BKC  |
-|                    | 24.04.4         | 7.0 IOT Next    |
+| IPU8               | 24.04.4         | 7.0 IOT Next    |
 
 ## Directory Structure
 
