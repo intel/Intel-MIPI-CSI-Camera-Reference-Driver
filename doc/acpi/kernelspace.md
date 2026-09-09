@@ -328,18 +328,14 @@ Install acpica tools version [20260408](https://github.com/acpica/acpica/release
     make
     sudo make install
 
-### Compile ASL source file
+### Compile ASL source file and load SSDT initramfs
 
-Run helper script to generate initramfs image from ASL source file and copy to /boot
+Run helper script to automate ASL compilation, initramfs image with ASL SSDT and GRUB configuration
 
     ../../script/acpi/gen_ssdt.sh ../../acpi/{create-your-own.asl}
 
-### Load SSDT initramfs
+Reboot into BIOS settings and make sure all camera-related BIOS settings are disabled
 
-Add the following line to /etc/default/grub for GRUB to load the SSDT initramfs. Update and reboot. Make sure all camera-related BIOS settings are disabled.
-
-    echo 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' | sudo tee -a /etc/default/grub
-    sudo update-grub
     sudo reboot
 
 #### Unload SSDT initramfs
