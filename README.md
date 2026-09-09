@@ -82,8 +82,8 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 |             | 26.04           | 7.0                  |                  |✅|✅|
 
 > **Note:** \
-> ✅* indicates that ASL support is **NOT AVAILABLE** for 6.18 (BKC) **by default**. Please rebuild the 6.18 Kernel Overlay with ASL support enabled. For more details, please refer to [doc/acpi/kernelspace.md](doc/acpi/kernelspace.md).\
-> To use Intel BKC, please refer [here](#intel-bkc-using-getting-started-guide-gsg) for more details.
+> ✅* indicates that ASL support is **NOT AVAILABLE by default** for 6.18 (BKC). Please rebuild the 6.18 Kernel Overlay with ASL support enabled. For more details, please refer to [Kernel Dependencies](doc/acpi/kernelspace.md#kernel-dependencies-for-ssdt-asl-method).\
+> To use Intel BKC, please refer to [Intel BKC Using Getting Started Guide (GSG)](#intel-bkc-using-getting-started-guide-gsg) for more details.
 
 ---
 ## Directory Structure
