@@ -21,6 +21,7 @@
 
 #include <linux/kernel.h>
 #include <linux/i2c.h>
+#include <linux/i2c-atr.h>
 #include <linux/i2c-mux.h>
 #include <linux/gpio/consumer.h>
 #include <linux/gpio/machine.h>
@@ -29,11 +30,23 @@
 #include <linux/slab.h>
 #include <linux/pm.h>
 #include <linux/of_gpio.h>
+#include <linux/of_device.h>
 
 #include "serdes.h"
 #include "regmap-retry.h"
 
 #include "media/ipu-acpi-pdata.h"
+
+#define MAX96717F_FORWARD_LINK_FREQ_MHZ 3000
+#define MAX9X_REMOTE_STREAM_COLLECT_MS 80
+
+static LIST_HEAD(max9x_des_list);
+static DEFINE_MUTEX(max9x_des_list_mutex);
+
+static bool max9x_acpi_is_max96717f(const char *ser_name)
+{
+	return ser_name && !strcmp(ser_name, "max96717f");
+}
 
 static const s64 max9x_op_sys_clock[] =  {
 	MAX9X_LINK_FREQ_MBPS_TO_HZ(2500),
@@ -84,6 +97,7 @@ int max9x_get_ops(char dev_id,
 		rval = max9295_get_ops(common_ops, serial_ops, csi_ops, lf_ops, trans_ops);
 		break;
 	case MAX96717:
+	case MAX96717F:
 		rval = max96717_get_ops(common_ops, serial_ops, csi_ops, lf_ops, trans_ops);
 		break;
 	default:
@@ -117,12 +131,20 @@ static struct max9x_desc max9x_chips[] = {
 	},
 	/*need to check dev_id and others when used*/
 	[MAX96717] = {
-		.dev_id = 0x91,
+		.dev_id = 0xBF,
 		.rev_reg = 0xE,
 		.serdes_type = MAX9X_SERIALIZER,
 		.chip_type = MAX96717,
 		.get_max9x_ops = max9x_get_ops,
 	},
+	[MAX96717F] = {
+		.dev_id = 0xC8,
+		.rev_reg = 0xE,
+		.serdes_type = MAX9X_SERIALIZER,
+		.chip_type = MAX96717F,
+		.get_max9x_ops = max9x_get_ops,
+	},
+
 };
 
 static const struct of_device_id max9x_of_match[] = {
@@ -130,6 +152,7 @@ static const struct of_device_id max9x_of_match[] = {
 	{ .compatible = "max9x,max96724", .data = &max9x_chips[MAX96724] },
 	{ .compatible = "max9x,max9295", .data = &max9x_chips[MAX9295] },
 	{ .compatible = "max9x,max96717", .data = &max9x_chips[MAX96717] },
+	{ .compatible = "max9x,max96717f", .data = &max9x_chips[MAX96717F] },
 	{}
 };
 MODULE_DEVICE_TABLE(of, max9x_of_match);
@@ -140,6 +163,7 @@ static const struct i2c_device_id max9x_id[] = {
 	{ "max96724", MAX96724 },
 	{ "max9295", MAX9295 },
 	{ "max96717", MAX96717 },
+	{ "max96717f", MAX96717F },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, max9x_id);
@@ -181,6 +205,10 @@ static int max9x_parse_subdev_pdata(struct max9x_common *common, struct max9x_su
 
 static int max9x_select_i2c_chan(struct i2c_mux_core *muxc, u32 chan_id);
 static int max9x_deselect_i2c_chan(struct i2c_mux_core *muxc, u32 chan_id);
+static int max9x_i2c_atr_init(struct max9x_common *common);
+static void max9x_i2c_atr_deinit(struct max9x_common *common);
+static struct i2c_adapter *max9x_link_adapter(struct max9x_common *common,
+					      unsigned int link_id);
 
 static int max9x_des_isolate_serial_link(struct max9x_common *common, unsigned int link_id);
 static int max9x_des_deisolate_serial_link(struct max9x_common *common, unsigned int link_id);
@@ -240,6 +268,19 @@ static struct max9x_pdata *pdata_sensor(struct device *dev, struct max9x_subdev_
 	return NULL;
 }
 
+static bool max9x_is_max96717_serializer(struct max9x_common *common)
+{
+       return common->type == MAX9X_SERIALIZER && common->des &&
+              (common->des->chip_type == MAX96717 ||
+               common->des->chip_type == MAX96717F);
+}
+
+static bool max9x_is_max96717f_serializer(struct max9x_common *common)
+{
+       return common->type == MAX9X_SERIALIZER && common->des &&
+              common->des->chip_type == MAX96717F;
+}
+
 static struct max9x_pdata *parse_ser_pdata(struct device *dev, const char *ser_name, char *suffix,
 					   unsigned int ser_nlanes, unsigned int phys_addr,
 					   unsigned int virt_addr, struct max9x_subdev_pdata *ser_sdinfo,
@@ -276,6 +317,7 @@ static struct max9x_pdata *parse_ser_pdata(struct device *dev, const char *ser_n
 	ser_video_pipe->serial_link_id = 0;
 	ser_video_pipe->pipe_id = ser_sdinfo->serial_link_id;
 	ser_video_pipe->src_csi_id = 1; /* PHY B typically */
+	ser_video_pipe->stream_id = ser_sdinfo->serial_link_id;
 
 	ser_video_pipe->num_data_types = 1;
 	ser_video_pipe->data_types = devm_kzalloc(dev,
@@ -366,6 +408,16 @@ static void *parse_serdes_pdata(struct device *dev)
 	if (!des_pdata->video_pipes)
 		return NULL;
 
+	bool force_group_3gbps = false;
+	for (unsigned int i = 0; i < des_pdata->num_serial_links; i++) {
+		struct serdes_subdev_info *sdinfo = &serdes_pdata->subdev_info[i];
+
+		if (max9x_acpi_is_max96717f(serdes_pdata->ser_name)) {
+			force_group_3gbps = true;
+			break;
+		}
+	}
+
 	for (unsigned int serial_link_id = 0; serial_link_id < des_pdata->num_serial_links; serial_link_id++) {
 		struct max9x_serial_link_pdata *serial_link = &des_pdata->serial_links[serial_link_id];
 		unsigned int video_pipe_id = serial_link_id;
@@ -384,11 +436,20 @@ static void *parse_serdes_pdata(struct device *dev)
 
 		serial_link->link_id = serial_link_id;
 		serial_link->link_type = MAX9X_LINK_TYPE_GMSL2;
-		serial_link->rx_freq_mhz = 6000;
+		serial_link->rx_freq_mhz = force_group_3gbps ?
+			MAX96717F_FORWARD_LINK_FREQ_MHZ : 6000;
 		serial_link->tx_freq_mhz = 187;
 
 		des_video_pipe->serial_link_id = serial_link_id;
 		des_video_pipe->pipe_id = video_pipe_id;
+		/*
+		 * For MAX9296, src_pipe_id programs RX50/RX51 STR_SEL and
+		 * therefore selects the incoming GMSL stream-id, not the remote
+		 * serializer hardware pipe. Use the generated video pipe ID as
+		 * the stream-id; MAX96717F still uses its only hardware pipe Z
+		 * internally, but transmits this unique stream-id to avoid
+		 * same-DES aggregation conflicts.
+		 */
 		des_video_pipe->src_pipe_id = video_pipe_id;
 		des_video_pipe->num_maps = 3;
 		des_video_pipe->maps = devm_kzalloc(dev,
@@ -543,7 +604,7 @@ static int max9x_remap_serializers_resume(struct max9x_common *common, unsigned 
 		dev_err(dev, "Device not present at 0x%02x", phys_addr);
 		goto err_regmap;
 	} else {
-		dev_info(dev, "DEV_ID before: 0x%02x", val);
+		dev_dbg(dev, "DEV_ID before: 0x%02x", val);
 	}
 
 	ret = regmap_write_retry(phys_map, 0x00, (virt_addr & 0x7f) << 1);
@@ -560,7 +621,7 @@ static int max9x_remap_serializers_resume(struct max9x_common *common, unsigned 
 		dev_err(dev, "Device not present after remap to 0x%02x", virt_addr);
 		goto err_regmap;
 	} else {
-		dev_info(dev, "DEV_ID after: 0x%02x", val);
+		dev_dbg(dev, "DEV_ID after: 0x%02x", val);
 	}
 
 err_regmap:
@@ -769,6 +830,7 @@ int max9x_common_init_i2c_client(struct max9x_common *common,
 
 	mutex_init(&common->link_mutex);
 	mutex_init(&common->isolate_mutex);
+	INIT_LIST_HEAD(&common->des_list);
 	common->isolated_link = -1;
 	common->selected_link = -1;
 
@@ -846,6 +908,12 @@ int max9x_common_init_i2c_client(struct max9x_common *common,
 	if (ret)
 		goto err_enable;
 
+	if (common->type == MAX9X_DESERIALIZER) {
+		mutex_lock(&max9x_des_list_mutex);
+		list_add_tail(&common->des_list, &max9x_des_list);
+		mutex_unlock(&max9x_des_list_mutex);
+	}
+
 	dev_dbg(dev, "Probe successfully.");
 
 	goto err_phys_map;
@@ -854,7 +922,10 @@ err_enable:
 	max9x_disable(common);
 
 err_adapters:
-	i2c_mux_del_adapters(common->muxc);
+	if (common->atr)
+		max9x_i2c_atr_deinit(common);
+	else
+		i2c_mux_del_adapters(common->muxc);
 
 err_phys_map:
 	if (common->phys_map) {
@@ -879,6 +950,13 @@ void max9x_destroy(struct max9x_common *common)
 
 	dev_dbg(common->dev, "Destroy");
 
+	if (common->type == MAX9X_DESERIALIZER) {
+		mutex_lock(&max9x_des_list_mutex);
+		if (!list_empty(&common->des_list))
+			list_del_init(&common->des_list);
+		mutex_unlock(&max9x_des_list_mutex);
+	}
+
 	max9x_disable_translations(common);
 
 	for (link_id = 0; link_id < common->num_serial_links; link_id++) {
@@ -897,7 +975,10 @@ void max9x_destroy(struct max9x_common *common)
 	v4l2_subdev_cleanup(&common->v4l.sd);
 	media_entity_cleanup(&common->v4l.sd.entity);
 
-	i2c_mux_del_adapters(common->muxc);
+	if (common->atr)
+		max9x_i2c_atr_deinit(common);
+	else
+		i2c_mux_del_adapters(common->muxc);
 	mutex_destroy(&common->link_mutex);
 	mutex_destroy(&common->isolate_mutex);
 	for (int i = 0; i < common->num_csi_links; i++) {
@@ -1100,12 +1181,30 @@ static int max9x_get_chip_type(unsigned int dev_id)
 	return -1;
 }
 
+static const struct max9x_desc *max9x_get_matched_desc(struct i2c_client *client)
+{
+       const struct of_device_id *of_id;
+       const struct i2c_device_id *id;
+
+       of_id = of_match_device(max9x_of_match, &client->dev);
+       if (of_id)
+               return of_id->data;
+
+       id = i2c_match_id(max9x_id, client);
+       if (id && id->driver_data)
+               return &max9x_chips[id->driver_data];
+
+       return NULL;
+}
+
+
 int max9x_verify_devid(struct max9x_common *common)
 {
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
 	struct regmap *phys_map = common->phys_map;
 	unsigned int dev_id, dev_rev;
+	const struct max9x_desc *matched_desc;
 	int chip_type, ret;
 
 	/*
@@ -1124,13 +1223,23 @@ int max9x_verify_devid(struct max9x_common *common)
 		} else
 			return ret;
 	}
+       matched_desc = max9x_get_matched_desc(common->client);
+       if (matched_desc) {
+               if (dev_id != matched_desc->dev_id) {
+                       dev_warn(dev, "Chip ID 0x%x does not match expected ID 0x%x",
+                                dev_id, matched_desc->dev_id);
+                       return -EINVAL;
+               }
+               common->des = matched_desc;
+       } else {
+               chip_type = max9x_get_chip_type(dev_id);
+               if (chip_type < 0) {
+                       dev_warn(dev, "Unknown chip ID 0x%x", dev_id);
+                       return -EINVAL;
+               }
+               common->des = &max9x_chips[chip_type];
+        }
 
-	chip_type = max9x_get_chip_type(dev_id);
-	if (chip_type < 0) {
-		dev_warn(dev, "Unknown chip ID 0x%x", dev_id);
-		return -EINVAL;
-	}
-	common->des = &max9x_chips[chip_type];
 	common->type = common->des->serdes_type;
 	TRY(ret, regmap_read_retry(map, common->des->rev_reg, &dev_rev));
 	dev_rev = FIELD_GET(MAX9X_DEV_REV_FIELD, dev_rev);
@@ -1201,7 +1310,7 @@ int max9x_remap_serializers(struct max9x_common *common, unsigned int link_id)
 		dev_err(common->dev, "Device not present at 0x%02x", phys_addr);
 		goto err_virt_regmap;
 	} else {
-		dev_info(common->dev, "DEV_ID before: 0x%02x", val);
+		dev_dbg(common->dev, "DEV_ID before: 0x%02x", val);
 	}
 
 	ret = regmap_write_retry(phys_map, 0x00, (virt_addr & 0x7f) << 1);
@@ -1218,7 +1327,7 @@ int max9x_remap_serializers(struct max9x_common *common, unsigned int link_id)
 		dev_err(common->dev, "Device not present after remap to 0x%02x", virt_addr);
 		goto err_virt_regmap;
 	} else {
-		dev_info(common->dev, "DEV_ID after: 0x%02x", val);
+		dev_dbg(common->dev, "DEV_ID after: 0x%02x", val);
 	}
 
 err_virt_regmap:
@@ -1239,6 +1348,171 @@ err_deisolate:
 	return ret;
 }
 
+static int max9x_i2c_atr_attach_client(struct i2c_atr *atr, u32 chan_id,
+				       const struct i2c_client *client,
+				       u16 alias)
+{
+	struct max9x_common *common = i2c_atr_get_driver_data(atr);
+	struct max9x_pdata *pdata = common->dev->platform_data;
+	unsigned int phys_addr = client->addr;
+
+	if (chan_id >= common->num_serial_links)
+		return -EINVAL;
+
+	dev_dbg(common->dev, "ATR attach chan %u client 0x%02x alias 0x%02x",
+		chan_id, client->addr, alias);
+
+	if (pdata) {
+		for (unsigned int i = 0; i < pdata->num_subdevs; i++) {
+			struct max9x_subdev_pdata *subdev_pdata = &pdata->subdevs[i];
+
+			if (subdev_pdata->board_info.addr == client->addr) {
+				phys_addr = subdev_pdata->phys_addr ?
+					subdev_pdata->phys_addr : client->addr;
+				break;
+			}
+		}
+	}
+
+	if (common->type == MAX9X_SERIALIZER && common->translation_ops &&
+	    common->translation_ops->add)
+		return common->translation_ops->add(common, 0, alias,
+						    phys_addr);
+
+	return 0;
+}
+
+static void max9x_i2c_atr_detach_client(struct i2c_atr *atr, u32 chan_id,
+					const struct i2c_client *client)
+{
+	struct max9x_common *common = i2c_atr_get_driver_data(atr);
+	struct max9x_pdata *pdata = common->dev->platform_data;
+	unsigned int phys_addr = client->addr;
+
+	if (chan_id >= common->num_serial_links)
+		return;
+
+	dev_dbg(common->dev, "ATR detach chan %u client 0x%02x",
+		chan_id, client->addr);
+
+	if (pdata) {
+		for (unsigned int i = 0; i < pdata->num_subdevs; i++) {
+			struct max9x_subdev_pdata *subdev_pdata = &pdata->subdevs[i];
+
+			if (subdev_pdata->board_info.addr == client->addr) {
+				phys_addr = subdev_pdata->phys_addr ?
+					subdev_pdata->phys_addr : client->addr;
+				break;
+			}
+		}
+	}
+
+	if (common->type == MAX9X_SERIALIZER && common->translation_ops &&
+	    common->translation_ops->remove)
+		common->translation_ops->remove(common, 0, client->addr,
+						phys_addr);
+}
+
+static int max9x_i2c_atr_select(struct i2c_atr *atr, u32 chan_id)
+{
+	struct max9x_common *common = i2c_atr_get_driver_data(atr);
+
+	return max9x_select_i2c_chan(common->muxc, chan_id);
+}
+
+static void max9x_i2c_atr_deselect(struct i2c_atr *atr, u32 chan_id)
+{
+	struct max9x_common *common = i2c_atr_get_driver_data(atr);
+
+	max9x_deselect_i2c_chan(common->muxc, chan_id);
+}
+
+static const struct i2c_atr_ops max9x_i2c_atr_ops = {
+	.attach_client = max9x_i2c_atr_attach_client,
+	.detach_client = max9x_i2c_atr_detach_client,
+	.select = max9x_i2c_atr_select,
+	.deselect = max9x_i2c_atr_deselect,
+};
+
+static void max9x_i2c_atr_deinit(struct max9x_common *common)
+{
+	unsigned int link_id;
+
+	if (!common->atr)
+		return;
+
+	for (link_id = 0; link_id < common->num_serial_links; link_id++)
+		i2c_atr_del_adapter(common->atr, link_id);
+
+	i2c_atr_delete(common->atr);
+	common->atr = NULL;
+
+	kfree(common->atr_adap);
+	common->atr_adap = NULL;
+}
+
+static int max9x_i2c_atr_init(struct max9x_common *common)
+{
+	unsigned int link_id;
+	int ret;
+
+	if (!common->num_serial_links)
+		return -ENODEV;
+
+	common->atr_adap = kcalloc(common->num_serial_links,
+				   sizeof(*common->atr_adap), GFP_KERNEL);
+	if (!common->atr_adap)
+		return -ENOMEM;
+
+	common->atr = i2c_atr_new(common->client->adapter, common->dev,
+				  &max9x_i2c_atr_ops,
+				  common->num_serial_links);
+	if (IS_ERR(common->atr)) {
+		ret = PTR_ERR(common->atr);
+		common->atr = NULL;
+		kfree(common->atr_adap);
+		common->atr_adap = NULL;
+		return ret;
+	}
+
+	i2c_atr_set_driver_data(common->atr, common);
+
+	for (link_id = 0; link_id < common->num_serial_links; link_id++) {
+		if (!common->serial_link[link_id].enabled)
+			continue;
+
+		ret = i2c_atr_add_adapter(common->atr, link_id, common->dev,
+					  NULL);
+		if (ret)
+			goto err_deinit;
+
+		common->atr_adap[link_id] =
+			i2c_atr_get_adapter(common->atr, link_id);
+		if (!common->atr_adap[link_id]) {
+			ret = -ENODEV;
+			goto err_deinit;
+		}
+	}
+
+	dev_info(common->dev, "Using I2C ATR child adapters");
+
+	return 0;
+
+err_deinit:
+	max9x_i2c_atr_deinit(common);
+	return ret;
+}
+
+static struct i2c_adapter *max9x_link_adapter(struct max9x_common *common,
+					      unsigned int link_id)
+{
+	if (common->atr_adap && link_id < common->num_serial_links &&
+	    common->atr_adap[link_id])
+		return common->atr_adap[link_id];
+
+	return common->muxc->adapter[link_id];
+}
+
 int max9x_create_adapters(struct max9x_common *common)
 {
 	struct device *dev = common->dev;
@@ -1248,7 +1522,10 @@ int max9x_create_adapters(struct max9x_common *common)
 	unsigned int ms;
 	int err = 0;
 
-	for (link_id = 0; link_id < common->num_serial_links; link_id++) {
+	for (unsigned int link_idx = 0; link_idx < common->num_serial_links; link_idx++) {
+		link_id = (common->type == MAX9X_DESERIALIZER) ?
+			(common->num_serial_links - 1 - link_idx) : link_idx;
+
 		err = max9x_sysfs_create_get_link(common, link_id);
 		if (err) {
 			dev_err(dev, "failed to create sysfs lock status file for link %d",
@@ -1293,6 +1570,13 @@ err_disable:
 		common->serial_link[link_id].enabled = false;
 	}
 
+	err = max9x_i2c_atr_init(common);
+	if (!err)
+		return 0;
+
+	dev_warn(dev, "I2C ATR init failed (%d), falling back to legacy mux",
+		 err);
+
 	for (link_id = 0; link_id < common->num_serial_links; link_id++) {
 		max9x_setup_translations(common);
 
@@ -1312,6 +1596,7 @@ static void max9x_des_s_csi_link(struct max9x_common *common,
 				 unsigned int serial_link_id, int enable)
 {
 	unsigned int video_pipe_id;
+	unsigned long handled_csi = 0;
 	int err = 0;
 
 	for (video_pipe_id = 0; video_pipe_id < common->num_video_pipes;
@@ -1340,6 +1625,17 @@ static void max9x_des_s_csi_link(struct max9x_common *common,
 
 			if (common->csi_link[csi_link_id].config.auto_start)
 				continue; /* Already started at probe */
+
+			if (csi_link_id >= BITS_PER_LONG) {
+				dev_warn(common->dev,
+					 "Too many CSI links to track %u",
+					 csi_link_id);
+				continue;
+			}
+
+			if (handled_csi & BIT(csi_link_id))
+				continue;
+			handled_csi |= BIT(csi_link_id);
 
 			if (enable && !video_pipe->config.map[map_id].is_csi_enabled) {
 				if (common->csi_link_ops->enable) {
@@ -1391,17 +1687,14 @@ static int _max9x_s_remote_stream(struct max9x_common *common, u32 sink_pad,
 		return -ENODEV;
 	}
 
-	if (common->type == MAX9X_DESERIALIZER) {
-		ret = enable ? v4l2_subdev_enable_streams(remote_sd,
-							  remote_pad->index,
-							  BIT(sink_stream)) :
-			       v4l2_subdev_disable_streams(remote_sd,
-							   remote_pad->index,
-							   BIT(sink_stream));
-
-	} else {
-		ret = v4l2_subdev_call(remote_sd, video, s_stream, enable);
-	}
+	ret = enable ? v4l2_subdev_enable_streams(remote_sd,
+						  remote_pad->index,
+						  BIT(sink_stream)) :
+		       v4l2_subdev_disable_streams(remote_sd,
+						   remote_pad->index,
+						   BIT(sink_stream));
+	if (ret == -EALREADY)
+		return 0;
 
 	if (ret) {
 		dev_err(common->dev, "Failed to %s stream %s %u:%u",
@@ -1413,11 +1706,146 @@ static int _max9x_s_remote_stream(struct max9x_common *common, u32 sink_pad,
 	return ret;
 }
 
-static int _max9x_des_set_stream(struct max9x_common *common, u32 sink_pad,
-				 u32 sink_stream, int enable)
+static int max9x_des_get_remote_source_stream(struct max9x_common *common,
+					      unsigned int link_id,
+					      u32 *source_stream)
+{
+	struct v4l2_subdev_state *remote_state;
+	struct v4l2_subdev *remote_sd;
+	struct v4l2_subdev_route *route;
+	u32 sink_pad = max9x_serial_link_to_pad(common, link_id);
+	struct media_pad *remote_pad;
+
+	if (sink_pad >= common->v4l.num_pads)
+		return -EINVAL;
+
+	remote_pad = media_pad_remote_pad_first(&common->v4l.pads[sink_pad]);
+	if (IS_ERR_OR_NULL(remote_pad))
+		return IS_ERR(remote_pad) ? PTR_ERR(remote_pad) : -ENODEV;
+
+	remote_sd = media_entity_to_v4l2_subdev(remote_pad->entity);
+	if (!remote_sd)
+		return -ENODEV;
+
+	remote_state = v4l2_subdev_lock_and_get_active_state(remote_sd);
+	for_each_active_route(&remote_state->routing, route) {
+		if (route->source_pad == remote_pad->index) {
+			*source_stream = route->source_stream;
+			v4l2_subdev_unlock_state(remote_state);
+			return 0;
+		}
+	}
+	v4l2_subdev_unlock_state(remote_state);
+
+	/*
+	 * If userspace has not programmed the remote serializer route yet,
+	 * preserve the current two-link mapping: link A -> stream 0,
+	 * link B -> stream 1.
+	 */
+	*source_stream = link_id;
+	return 0;
+}
+
+static int max9x_des_set_remote_stream(struct max9x_common *common,
+				       unsigned int link_id, int enable)
+{
+	u32 sink_pad = max9x_serial_link_to_pad(common, link_id);
+	u32 remote_stream;
+	int ret;
+
+	if (sink_pad >= common->v4l.num_pads)
+		return -EINVAL;
+
+	ret = max9x_des_get_remote_source_stream(common, link_id,
+						 &remote_stream);
+	if (ret)
+		return ret;
+
+	if (enable && (common->v4l.remote_stream_enabled & BIT(link_id)))
+		return 0;
+
+	if (!enable && !(common->v4l.remote_stream_enabled & BIT(link_id)))
+		return 0;
+
+	ret = max9x_des_isolate_serial_link(common, link_id);
+	if (ret)
+		return ret;
+
+	ret = _max9x_s_remote_stream(common, sink_pad, remote_stream, enable);
+	if (ret)
+		goto out_deisolate;
+
+	if (enable)
+		common->v4l.remote_stream_enabled |= BIT(link_id);
+	else
+		common->v4l.remote_stream_enabled &= ~BIT(link_id);
+
+out_deisolate:
+	if (max9x_des_deisolate_serial_link(common, link_id) && !ret)
+		ret = -EIO;
+
+	return ret;
+}
+
+static int max9x_des_set_all_remote_streams(struct max9x_common *common,
+					    int enable)
+{
+	unsigned long changed = 0;
+	int ret = 0;
+
+	for (unsigned int link_id = 0; link_id < common->num_serial_links;
+	     link_id++) {
+		if (!common->serial_link[link_id].enabled)
+			continue;
+
+		ret = max9x_des_set_remote_stream(common, link_id, enable);
+		if (ret)
+			goto rollback;
+
+		changed |= BIT(link_id);
+	}
+
+	return 0;
+
+rollback:
+	if (enable) {
+		for (unsigned int link_id = 0; link_id < common->num_serial_links;
+		     link_id++) {
+			if (changed & BIT(link_id))
+				max9x_des_set_remote_stream(common, link_id,
+							    false);
+		}
+	}
+
+	return ret;
+}
+
+static int max9x_des_wait_remote_stream_start(struct max9x_common *common)
+{
+	unsigned long timeout = jiffies + msecs_to_jiffies(10000);
+
+	do {
+		mutex_lock(&max9x_des_list_mutex);
+		if (!common->v4l.remote_stream_starting) {
+			mutex_unlock(&max9x_des_list_mutex);
+			return 0;
+		}
+		mutex_unlock(&max9x_des_list_mutex);
+
+		usleep_range(1000, 1050);
+	} while (time_is_after_jiffies(timeout));
+
+	dev_err(common->dev, "Timed out waiting for remote stream start");
+	return -ETIMEDOUT;
+}
+
+static int _max9x_des_set_stream(struct max9x_common *common,
+				 u32 sink_pad, u32 sink_stream, int enable)
 {
 	int rxport = 0;
 	int ret = 0;
+	bool start_all_remote_streams = false;
+	bool stream_registered = false;
 
 	if (sink_pad >= common->v4l.num_pads)
 		return -EINVAL;
@@ -1428,21 +1856,86 @@ static int _max9x_des_set_stream(struct max9x_common *common, u32 sink_pad,
 			sink_pad);
 		return -EINVAL;
 	}
-	if (enable)
+	if (enable) {
+		if (common->atr) {
+			mutex_lock(&max9x_des_list_mutex);
+			if (!common->v4l.ref_count &&
+			    !common->v4l.remote_stream_starting) {
+				common->v4l.remote_stream_starting = true;
+				start_all_remote_streams = true;
+			}
+			common->v4l.ref_count++;
+			stream_registered = true;
+			mutex_unlock(&max9x_des_list_mutex);
+
+			if (start_all_remote_streams) {
+				msleep(MAX9X_REMOTE_STREAM_COLLECT_MS);
+				ret = max9x_des_set_all_remote_streams(common,
+								       true);
+				mutex_lock(&max9x_des_list_mutex);
+				common->v4l.remote_stream_starting = false;
+				mutex_unlock(&max9x_des_list_mutex);
+			} else {
+				ret = max9x_des_wait_remote_stream_start(common);
+				if (!ret &&
+				    !(common->v4l.remote_stream_enabled &
+				      BIT(rxport)))
+					ret = max9x_des_set_remote_stream(common,
+									  rxport,
+									  true);
+			}
+		} else {
+			ret = _max9x_s_remote_stream(common, sink_pad,
+						     sink_stream, enable);
+			if (!ret) {
+				common->v4l.ref_count++;
+				stream_registered = true;
+			}
+		}
+
+		if (ret) {
+			dev_err(common->dev,
+				"Failed to enable remote stream for sink %s %u:%u",
+				common->v4l.sd.entity.name, sink_pad, sink_stream);
+			if (common->atr) {
+				mutex_lock(&max9x_des_list_mutex);
+				if (stream_registered &&
+				    common->v4l.ref_count > 0)
+					common->v4l.ref_count--;
+				mutex_unlock(&max9x_des_list_mutex);
+			}
+			return ret;
+		}
+
+		max9x_des_s_csi_link(common, rxport, enable);
+	} else {
 		max9x_des_s_csi_link(common, rxport, enable);
 
-	ret = _max9x_s_remote_stream(common, sink_pad, sink_stream, enable);
-	if (ret) {
-		dev_err(common->dev,
-			"Failed to %s remote stream for sink %s %u:%u",
-			enable ? "enable" : "disable",
-			common->v4l.sd.entity.name, sink_pad, sink_stream);
-		return ret;
+		if (common->atr) {
+			mutex_lock(&max9x_des_list_mutex);
+			if (common->v4l.ref_count > 0)
+				common->v4l.ref_count--;
+			if (!common->v4l.ref_count)
+				ret = max9x_des_set_all_remote_streams(common,
+								       false);
+			mutex_unlock(&max9x_des_list_mutex);
+		} else {
+			if (common->v4l.ref_count > 0)
+				common->v4l.ref_count--;
+			ret = _max9x_s_remote_stream(common, sink_pad,
+						     sink_stream, enable);
+		}
+		if (ret) {
+			dev_err(common->dev,
+				"Failed to disable remote stream for sink %s %u:%u",
+				common->v4l.sd.entity.name, sink_pad, sink_stream);
+			if (common->v4l.ref_count > 0)
+				max9x_des_s_csi_link(common, rxport, true);
+			return ret;
+		}
 	}
-	if (!enable)
-		max9x_des_s_csi_link(common, rxport, enable);
 
-	return 0;
+	return ret;
 }
 
 static int _max9x_ser_set_stream(struct max9x_common *common, u32 sink_pad,
@@ -1741,21 +2234,25 @@ static int max9x_init_state(struct v4l2_subdev *sd,
 			    struct v4l2_subdev_state *state)
 {
 	struct max9x_common *common = max9x_sd_to_common(sd);
+	int des_sink_pad = max9x_serial_link_to_pad(common, 0);
+	int des_source_pad = max9x_csi_link_to_pad(common, 0);
+	int ser_sink_pad = max9x_csi_link_to_pad(common, 0);
+	int ser_source_pad = max9x_serial_link_to_pad(common, 0);
 
 	struct v4l2_subdev_route des_routes[] = {
 		{
-			.sink_pad = 5,
+			.sink_pad = des_sink_pad,
 			.sink_stream = 0,
-			.source_pad = 0,
+			.source_pad = des_source_pad,
 			.source_stream = 0,
 			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE,
 		},
 	};
 	struct v4l2_subdev_route ser_routes[] = {
 		{
-			.sink_pad = 0,
+			.sink_pad = ser_sink_pad,
 			.sink_stream = 0,
-			.source_pad = 2,
+			.source_pad = ser_source_pad,
 			.source_stream = 0,
 			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE,
 		},
@@ -1768,6 +2265,14 @@ static int max9x_init_state(struct v4l2_subdev *sd,
 		.num_routes = ARRAY_SIZE(ser_routes),
 		.routes = ser_routes,
 	};
+
+	if (common->type == MAX9X_DESERIALIZER &&
+	    (des_sink_pad < 0 || des_source_pad < 0))
+		return -EINVAL;
+
+	if (common->type == MAX9X_SERIALIZER &&
+	    (ser_sink_pad < 0 || ser_source_pad < 0))
+		return -EINVAL;
 
 	if (common->type == MAX9X_DESERIALIZER)
 		return _max9x_set_routing(sd, state, &des_routing);
@@ -1795,6 +2300,12 @@ static int max9x_registered(struct v4l2_subdev *sd)
 	struct device *dev = common->dev;
 	int ret;
 
+	dev_dbg(dev, "registered callback: type=%d links=%d subdevs=%d atr=%p",
+		common->type, common->num_serial_links,
+		common->dev->platform_data ?
+		((struct max9x_pdata *)common->dev->platform_data)->num_subdevs : -1,
+		common->atr);
+
 	for (unsigned int link_id = 0; link_id < common->num_serial_links; link_id++) {
 		if (!common->serial_link[link_id].enabled) {
 			dev_dbg(dev, "Serial-link %d not enabled, skipping subdevs", link_id);
@@ -1808,29 +2319,32 @@ static int max9x_registered(struct v4l2_subdev *sd)
 			if (subdev_pdata) {
 				struct max9x_pdata *ser_pdata =
 					subdev_pdata->board_info.platform_data;
+				struct i2c_adapter *adapter =
+					max9x_link_adapter(common, link_id);
 				struct v4l2_subdev *subdev = NULL;
 
 				WARN_ON(ser_pdata->num_serial_links < 1);
 
 				ser_pdata->serial_links[0].des_client = common->client;
 				ser_pdata->serial_links[0].des_link_id = link_id;
+				if (!adapter)
+					return -ENODEV;
+
 				/*
-				 * Isolate this link until after reset and potential address remapping,
-				 * avoiding a race condition with two serializers resetting same
-				 * physical i2c at the same time
+				 * Initial serializer probe/remap still needs an isolated
+				 * MAX9296 link because both remote serializers share the
+				 * same physical address before remap.  ATR is used as the
+				 * adapter, so later child I2C can avoid legacy mux select.
 				 */
 				ret = max9x_des_isolate_serial_link(common, link_id);
 				if (!ret)
 					subdev = v4l2_i2c_new_subdev_board(
-						sd->v4l2_dev,
-						common->muxc->adapter[link_id],
-						&subdev_pdata->board_info,
-						NULL);
+						sd->v4l2_dev, adapter,
+						&subdev_pdata->board_info, NULL);
 
 				ret = max9x_des_deisolate_serial_link(common, link_id);
 				if (ret)
 					return ret;
-
 				if (IS_ERR_OR_NULL(subdev)) {
 					dev_err(dev, "Failure registering serializer %s (0x%02x)",
 						subdev_pdata->board_info.type,
@@ -1869,12 +2383,16 @@ static int max9x_registered(struct v4l2_subdev *sd)
 
 				if (subdev_pdata->serial_link_id == link_id) {
 					char dev_id[I2C_NAME_SIZE];
+					struct i2c_adapter *adapter =
+						max9x_link_adapter(common, link_id);
 
 					snprintf(dev_id, sizeof(dev_id), "i2c-%s",
 						 subdev_pdata->board_info.dev_name);
 
-					dev_dbg(dev, "Registering sensor %s (%s)...",
-						subdev_pdata->board_info.type, dev_id);
+					dev_dbg(dev, "Registering sensor %s (%s) on link %u adapter %s",
+						subdev_pdata->board_info.type,
+						dev_id, link_id,
+						adapter ? adapter->name : "<none>");
 
 					struct gpiod_lookup_table *sensor_gpios;
 
@@ -1901,7 +2419,7 @@ static int max9x_registered(struct v4l2_subdev *sd)
 
 					struct v4l2_subdev *subdev =
 						v4l2_i2c_new_subdev_board(sd->v4l2_dev,
-									  common->muxc->adapter[link_id],
+									  adapter,
 									  &subdev_pdata->board_info, NULL);
 
 					gpiod_remove_lookup_table(sensor_gpios);
@@ -1924,8 +2442,8 @@ static int max9x_registered(struct v4l2_subdev *sd)
 									     PAD_SIGNAL_DEFAULT);
 					int local_pad = max9x_csi_link_to_pad(common, 0);
 
-					dev_dbg(dev, "Create link from sen pad %d -> ser link %d (pad %d)",
-						remote_pad, link_id,
+					dev_dbg(dev, "Create link from sen pad %d -> ser csi 0 (pad %d)",
+						remote_pad,
 						local_pad);
 
 					ret = media_create_pad_link(&subdev->entity, remote_pad,
@@ -2335,7 +2853,6 @@ static int max9x_parse_serial_link_pdata(struct max9x_common *common,
 {
 	struct device *dev = common->dev;
 	unsigned int serial_link_id = serial_link_pdata->link_id;
-
 	if (serial_link_id >= common->num_serial_links) {
 		dev_err(dev, "Serial link pdata: Invalid link id");
 		return -EINVAL;
@@ -2348,6 +2865,13 @@ static int max9x_parse_serial_link_pdata(struct max9x_common *common,
 	serial_link->config.link_type = serial_link_pdata->link_type;
 	serial_link->config.rx_freq_mhz = serial_link_pdata->rx_freq_mhz;
 	serial_link->config.tx_freq_mhz = serial_link_pdata->tx_freq_mhz;
+
+       if (max9x_is_max96717f_serializer(common)) {
+               serial_link->config.rx_freq_mhz = MAX96717F_FORWARD_LINK_FREQ_MHZ;
+               serial_link_pdata->rx_freq_mhz = MAX96717F_FORWARD_LINK_FREQ_MHZ;
+
+       }
+
 
 	if (serial_link_pdata->poc_regulator[0] != 0) {
 		serial_link->poc_regulator = devm_regulator_get_optional(dev, serial_link_pdata->poc_regulator);
@@ -2371,6 +2895,10 @@ static int max9x_parse_video_pipe_pdata(struct max9x_common *common,
 	unsigned int pipe_id = video_pipe_pdata->pipe_id;
 	unsigned int max_maps;
 	unsigned int max_data_types;
+
+	if (max9x_is_max96717_serializer(common))
+		pipe_id = 0;
+
 
 	if (serial_link_id >= common->num_serial_links) {
 		dev_err(dev, "Video pdata: Invalid serial link id");
@@ -2435,6 +2963,7 @@ static int max9x_parse_video_pipe_pdata(struct max9x_common *common,
 		}
 
 		pipe->config.src_csi = video_pipe_pdata->src_csi_id;
+		pipe->config.stream_id = video_pipe_pdata->stream_id;
 
 		for (unsigned int i = 0; i < video_pipe_pdata->num_data_types; i++) {
 			pipe->config.data_type[i] = video_pipe_pdata->data_types[i];
@@ -2507,13 +3036,19 @@ int max9x_select_i2c_chan(struct i2c_mux_core *muxc, u32 chan_id)
 	struct max9x_common *common = i2c_mux_priv(muxc);
 	int ret = 0;
 	unsigned long timeout = jiffies + msecs_to_jiffies(10000);
+	bool already_isolated = false;
 
 	if (unlikely(chan_id > common->num_serial_links))
 		return -EINVAL;
 
 	do {
 		mutex_lock(&common->isolate_mutex);
-		if (common->selected_link < 0 || chan_id == common->selected_link)
+		if (chan_id == common->isolated_link) {
+			already_isolated = true;
+			break;
+		}
+
+		if (common->isolated_link < 0)
 			break;
 
 		mutex_unlock(&common->isolate_mutex);
@@ -2526,11 +3061,13 @@ int max9x_select_i2c_chan(struct i2c_mux_core *muxc, u32 chan_id)
 		}
 	} while (1);
 
-	common->selected_link = chan_id;
-
-	if (common->serial_link_ops && common->serial_link_ops->select)
+	if (!already_isolated &&
+	    common->serial_link_ops && common->serial_link_ops->select)
 		ret = common->serial_link_ops->select(common, chan_id);
+	if (!ret && !already_isolated)
+		common->selected_link = chan_id;
 
+unlock:
 	mutex_unlock(&common->isolate_mutex);
 
 	return ret;
@@ -2545,10 +3082,12 @@ int max9x_deselect_i2c_chan(struct i2c_mux_core *muxc, u32 chan_id)
 		return -EINVAL;
 
 	mutex_lock(&common->isolate_mutex);
-	if (common->serial_link_ops && common->serial_link_ops->deselect)
+	if (common->selected_link == chan_id &&
+	    common->serial_link_ops && common->serial_link_ops->deselect)
 		ret = common->serial_link_ops->deselect(common, chan_id);
+	if (!ret && common->selected_link == chan_id)
+		common->selected_link = -1;
 
-	common->selected_link = -1;
 	mutex_unlock(&common->isolate_mutex);
 
 	return ret;
@@ -2564,7 +3103,7 @@ int max9x_des_isolate_serial_link(struct max9x_common *common, unsigned int link
 		return -EINVAL;
 	}
 
-	dev_info(common->dev, "Isolate %d", link_id);
+	dev_dbg(common->dev, "Isolate %d", link_id);
 
 	do {
 		mutex_lock(&common->isolate_mutex);
@@ -2589,7 +3128,7 @@ int max9x_des_isolate_serial_link(struct max9x_common *common, unsigned int link
 		ret = common->serial_link_ops->isolate(common, link_id);
 
 	mutex_unlock(&common->isolate_mutex);
-	dev_info(common->dev, "Isolate %d complete", link_id);
+	dev_dbg(common->dev, "Isolate %d complete", link_id);
 
 	return ret;
 }
@@ -2601,14 +3140,14 @@ int max9x_des_deisolate_serial_link(struct max9x_common *common, unsigned int li
 	if (link_id >= common->num_serial_links)
 		return -EINVAL;
 
-	dev_info(common->dev, "Deisolate %d", link_id);
+	dev_dbg(common->dev, "Deisolate %d", link_id);
 
 	mutex_lock(&common->isolate_mutex);
 	if (common->serial_link_ops && common->serial_link_ops->deisolate)
 		ret = common->serial_link_ops->deisolate(common, link_id);
 
 	common->isolated_link = -1;
-	dev_info(common->dev, "Deisolate %d complete", link_id);
+	dev_dbg(common->dev, "Deisolate %d complete", link_id);
 	mutex_unlock(&common->isolate_mutex);
 
 	return ret;
@@ -2790,6 +3329,7 @@ static struct i2c_driver max9x_driver = {
 module_i2c_driver(max9x_driver);
 
 MODULE_LICENSE("GPL v2");
+MODULE_IMPORT_NS(I2C_ATR);
 MODULE_AUTHOR("Josh Watts <jwatts@d3embedded.com>");
 MODULE_AUTHOR("Yan, Dongcheng <dongcheng.yan@intel.com>");
 MODULE_DESCRIPTION("Common logic for Maxim GMSL serializers & deserializers");

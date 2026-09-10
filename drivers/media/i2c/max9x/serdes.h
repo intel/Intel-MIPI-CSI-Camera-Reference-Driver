@@ -27,6 +27,7 @@
 #include <linux/types.h>
 #include <linux/module.h>
 #include <linux/i2c.h>
+#include <linux/list.h>
 #include <linux/regmap.h>
 #include <linux/gpio/consumer.h>
 #include <linux/gpio/driver.h>
@@ -137,6 +138,7 @@ enum max9x_chip_type {
 	MAX96724 = 1,
 	MAX9295,
 	MAX96717,
+	MAX96717F,
 	MAX96724F,
 	MAX96724R,
 };
@@ -172,6 +174,7 @@ struct max9x_serdes_pipe_config {
 	// Serializer
 	//TODO: dst_link?
 	unsigned int src_csi;
+	unsigned int stream_id;
 	unsigned int *data_type;
 	unsigned int num_data_types;
 	//TODO: MIPI VC filter mask
@@ -211,6 +214,8 @@ struct max9x_serdes_v4l {
 	struct v4l2_ctrl *link_freq; // CSI link frequency, used to determine ISP clock
 	struct v4l2_mbus_framefmt *ffmts;
 	int ref_count;
+	unsigned long remote_stream_enabled;
+	bool remote_stream_starting;
 };
 
 struct max9x_serdes_csi_link {
@@ -246,13 +251,15 @@ struct max9x_serdes_line_fault {
 };
 
 struct max9x_common {
-	struct max9x_desc *des;
+	const struct max9x_desc *des;
 	struct device *dev;
 	struct i2c_client *client;
 	struct regmap *map;
 	struct i2c_client *phys_client;
 	struct regmap *phys_map;
 	struct i2c_mux_core *muxc;
+	struct i2c_atr *atr;
+	struct i2c_adapter **atr_adap;
 	struct gpio_chip gpio_chip;
 	enum max9x_serdes_type type;
 
@@ -279,7 +286,7 @@ struct max9x_common {
 	int num_line_faults;
 
 	struct max9x_serdes_v4l v4l;
-
+	struct list_head des_list;
 	struct mutex link_mutex;
 	struct mutex isolate_mutex;
 	int isolated_link;

@@ -30,6 +30,11 @@
 
 #include "max9296.h"
 
+#define MAX9296_GMSL2_3GBPS_MHZ 3000
+#define MAX9296_MAX96717_SRC_PIPE_Z 2
+#define MAX9296_MIPI_CSI2_DT_FS 0x00
+#define MAX9296_MIPI_CSI2_DT_FE 0x01
+
 // Params
 int max9296_serial_link_timeout_ms = MAX9296_DEFAULT_SERIAL_LINK_TIMEOUT_MS;
 module_param(max9296_serial_link_timeout_ms, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
@@ -58,11 +63,16 @@ static int max9296_set_video_pipe_map(struct max9x_common *common, unsigned int 
 static int max9296_set_csi_double_loading_mode(struct max9x_common *common, unsigned int csi_id, unsigned int bpp);
 static int max9296_set_csi_link_enabled(struct max9x_common *common, unsigned int csi_id, bool enable);
 static int max9296_set_video_pipe_enabled(struct max9x_common *common, unsigned int pipe_id, bool enable);
+static int max9296_set_csi_video_pipes_enabled(struct max9x_common *common,
+					       unsigned int csi_id,
+					       bool enable);
 static int max9296_set_serial_link_routing(struct max9x_common *common, unsigned int link_id);
 static int max9296_disable_serial_link(struct max9x_common *common, unsigned int link_id);
 static int max9296_enable_serial_link(struct max9x_common *common, unsigned int link_id);
 static int max9296_isolate_serial_link(struct max9x_common *common, unsigned int link);
 static int max9296_deisolate_serial_link(struct max9x_common *common, unsigned int link);
+static int max9296_select_serial_link(struct max9x_common *common, unsigned int link);
+static int max9296_deselect_serial_link(struct max9x_common *common, unsigned int link);
 static int max9296_wait_link_lock(struct max9x_common *common, int link);
 static int max9296_enable_csi_link(struct max9x_common *common, unsigned int csi_link_id);
 static int max9296_disable_csi_link(struct max9x_common *common, unsigned int csi_link_id);
@@ -154,12 +164,21 @@ static int max9296_set_initial_deskew(struct max9x_common *common, unsigned int 
 {
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
+	int ret;
 
 	dev_dbg(dev, "CSI link %d: Initial deskew %s", csi_id, enable ? "enabled" : "disabled");
 
 	/* clamp initial deskew width to 7 which is 8*32k UI*/
 	if (width > 7)
 		width = 7;
+
+	/* Keep one-shot initial deskew, but avoid periodic deskew while streaming.
+	 * On the dual-MAX9295 path the periodic calibration coincides with CSI-2
+	 * packet header/CRC errors and pink frames.
+	 */
+	ret = regmap_write(map, MAX9296_MIPI_TX_DESKEW_PERIODIC(csi_id), 0);
+	if (ret)
+		return ret;
 
 	return regmap_write(map, MAX9296_MIPI_TX_DESKEW_INIT(csi_id),
 			    MAX9X_FIELD_PREP(MAX9296_MIPI_TX_DESKEW_INIT_AUTO_EN, enable) |
@@ -413,25 +432,27 @@ static int max9296_set_video_pipe_maps_enabled(struct max9x_common *common, unsi
 	return 0;
 }
 
-static int max9296_set_video_pipe_map(struct max9x_common *common, unsigned int pipe_id,
-				      unsigned int map_id, struct max9x_serdes_mipi_map *mipi_map)
+static int max9296_set_video_pipe_map_dt(struct max9x_common *common,
+					 unsigned int pipe_id, unsigned int map_id,
+					 struct max9x_serdes_mipi_map *mipi_map,
+					 unsigned int src_dt, unsigned int dst_dt)
 {
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
 	int ret;
 
 	dev_dbg(dev, "Video-pipe %d, map %d: VC%d:DT%02x->VC%d:DT%02x, dst_csi=%d ",
-		pipe_id, map_id, mipi_map->src_vc, mipi_map->src_dt,
-		mipi_map->dst_vc, mipi_map->dst_dt, mipi_map->dst_csi);
+		pipe_id, map_id, mipi_map->src_vc, src_dt,
+		mipi_map->dst_vc, dst_dt, mipi_map->dst_csi);
 
 	TRY(ret, regmap_write(map, MAX9296_MAP_SRC_L(pipe_id, map_id),
 			MAX9X_FIELD_PREP(MAX9296_MAP_SRC_L_VC_FIELD, mipi_map->src_vc) |
-			MAX9X_FIELD_PREP(MAX9296_MAP_SRC_L_DT_FIELD, mipi_map->src_dt))
+			MAX9X_FIELD_PREP(MAX9296_MAP_SRC_L_DT_FIELD, src_dt))
 	);
 
 	TRY(ret, regmap_write(map, MAX9296_MAP_DST_L(pipe_id, map_id),
 			MAX9X_FIELD_PREP(MAX9296_MAP_DST_L_VC_FIELD, mipi_map->dst_vc) |
-			MAX9X_FIELD_PREP(MAX9296_MAP_DST_L_DT_FIELD, mipi_map->dst_dt))
+			MAX9X_FIELD_PREP(MAX9296_MAP_DST_L_DT_FIELD, dst_dt))
 	);
 
 	TRY(ret, regmap_write(map, MAX9296_MAP_SRCDST_H(pipe_id, map_id),
@@ -445,6 +466,13 @@ static int max9296_set_video_pipe_map(struct max9x_common *common, unsigned int 
 	);
 
 	return 0;
+}
+
+static int max9296_set_video_pipe_map(struct max9x_common *common, unsigned int pipe_id,
+				      unsigned int map_id, struct max9x_serdes_mipi_map *mipi_map)
+{
+	return max9296_set_video_pipe_map_dt(common, pipe_id, map_id, mipi_map,
+					    mipi_map->src_dt, mipi_map->dst_dt);
 }
 
 /**
@@ -519,23 +547,32 @@ static int max9296_set_csi_link_enabled(struct max9x_common *common, unsigned in
 
 	if (enable && csi_link->usecount == 0) {
 		// Enable && first user
+		ret = max9296_set_csi_video_pipes_enabled(common, csi_id, false);
+		if (ret)
+			goto err_unlock;
+
 		ret = max9296_set_initial_deskew(common, csi_id, csi_link->config.auto_init_deskew_enabled,
 						 csi_link->config.initial_deskew_width);
 		if (ret)
-			goto err_unlock;
+			goto err_enable_pipes;
 
 		ret = max9296_set_phy_dpll_freq(common, csi_id, csi_link->config.freq_mhz);
 		if (ret)
-			goto err_unlock;
+			goto err_enable_pipes;
 
 		ret = max9296_set_phy_dpll_enabled(common, csi_id, true);
 		if (ret)
-			goto err_unlock;
+			goto err_enable_pipes;
 
 		ret = max9296_set_phy_enabled(common, csi_id, true);
 		if (ret)
-			goto err_unlock;
+			goto err_enable_pipes;
 
+		usleep_range(10000, 11000);
+
+		ret = max9296_set_csi_video_pipes_enabled(common, csi_id, true);
+		if (ret)
+			goto err_unlock;
 	} else if (!enable && csi_link->usecount == 1) {
 		// Disable && no more users
 		ret = max9296_set_phy_enabled(common, csi_id, false);
@@ -556,6 +593,10 @@ err_unlock:
 	mutex_unlock(&csi_link->csi_mutex);
 
 	return ret;
+
+err_enable_pipes:
+	max9296_set_csi_video_pipes_enabled(common, csi_id, true);
+	goto err_unlock;
 }
 
 static int max9296_set_video_pipe_enabled(struct max9x_common *common, unsigned int pipe_id, bool enable)
@@ -570,6 +611,40 @@ static int max9296_set_video_pipe_enabled(struct max9x_common *common, unsigned 
 			MAX9X_FIELD_PREP(MAX9296_VIDEO_PIPE_EN_FIELD(pipe_id), enable ? 1U : 0U));
 }
 
+static int max9296_set_csi_video_pipes_enabled(struct max9x_common *common,
+					       unsigned int csi_id,
+					       bool enable)
+{
+	unsigned int pipe_id;
+	int ret;
+
+	for (pipe_id = 0; pipe_id < common->num_video_pipes; pipe_id++) {
+		struct max9x_serdes_pipe_config *config;
+		unsigned int map_id;
+		bool pipe_uses_csi = false;
+
+		if (!common->video_pipe[pipe_id].enabled)
+			continue;
+
+		config = &common->video_pipe[pipe_id].config;
+		for (map_id = 0; map_id < config->num_maps; map_id++) {
+			if (config->map[map_id].dst_csi == csi_id) {
+				pipe_uses_csi = true;
+				break;
+			}
+		}
+
+		if (!pipe_uses_csi)
+			continue;
+
+		ret = max9296_set_video_pipe_enabled(common, pipe_id, enable);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
 /***** max9296_serial_link_ops auxiliary functions *****/
 static int max9296_set_serial_link_rate(struct max9x_common *common, unsigned int link_id)
 {
@@ -577,6 +652,7 @@ static int max9296_set_serial_link_rate(struct max9x_common *common, unsigned in
 	struct regmap *map = common->map;
 	struct max9x_serdes_serial_config *config = &common->serial_link[link_id].config;
 	int tx_rate, rx_rate;
+	int ret;
 
 	tx_rate = max9x_serdes_mhz_to_rate(max9296_tx_rates, ARRAY_SIZE(max9296_tx_rates), config->tx_freq_mhz);
 	if (tx_rate < 0)
@@ -588,10 +664,34 @@ static int max9296_set_serial_link_rate(struct max9x_common *common, unsigned in
 
 	dev_dbg(dev, "Serial-link %d: TX=%d MHz RX=%d MHz", link_id, config->tx_freq_mhz, config->rx_freq_mhz);
 
+	ret = regmap_update_bits(map, MAX9296_PHY_REM_CTRL,
+			MAX9296_PHY_REM_CTRL_TX_FIELD,
+			MAX9X_FIELD_PREP(MAX9296_PHY_REM_CTRL_TX_FIELD, tx_rate));
+	if (ret)
+		return ret;
+
 	return regmap_update_bits(map, MAX9296_PHY_REM_CTRL,
-			MAX9296_PHY_REM_CTRL_TX_FIELD | MAX9296_PHY_REM_CTRL_RX_FIELD,
-			MAX9X_FIELD_PREP(MAX9296_PHY_REM_CTRL_TX_FIELD, tx_rate) |
+			MAX9296_PHY_REM_CTRL_RX_FIELD,
 			MAX9X_FIELD_PREP(MAX9296_PHY_REM_CTRL_RX_FIELD, rx_rate));
+}
+
+static void max9296_force_group_3gbps_pipe_z(struct max9x_common *common)
+{
+	unsigned int i;
+
+	/* MAX9296 uses one GMSL2 forward rate for the whole deserializer.
+	 * If a generic module does not lock at 6Gbps, retry the whole DES group
+	 * at 3Gbps so the serializer can be probed and identified by DEV_ID.
+	 */
+	for (i = 0; i < common->num_serial_links; i++) {
+		if (common->serial_link[i].enabled)
+			common->serial_link[i].config.rx_freq_mhz = MAX9296_GMSL2_3GBPS_MHZ;
+	}
+
+	/*
+	 * Leave video_pipe[].config.src_pipe unchanged. For MAX9296 this field
+	 * selects GMSL stream-id, and dual MAX96717 links require unique ids.
+	 */
 }
 
 static int max9296_set_serial_link_routing(struct max9x_common *common, unsigned int link_id)
@@ -614,20 +714,49 @@ static int max9296_set_serial_link_routing(struct max9x_common *common, unsigned
 		if (ret)
 			return ret;
 
-		ret = max9296_set_video_pipe_maps_enabled(common, pipe_id, config->num_maps);
+		bool has_fs_map = false;
+		bool has_fe_map = false;
+		unsigned int remap_id = 0;
+
+		for (map_id = 0; map_id < config->num_maps; map_id++) {
+			if (config->map[map_id].src_dt == MAX9296_MIPI_CSI2_DT_FS)
+				has_fs_map = true;
+			if (config->map[map_id].src_dt == MAX9296_MIPI_CSI2_DT_FE)
+				has_fe_map = true;
+		}
+
+		ret = max9296_set_video_pipe_maps_enabled(common, pipe_id,
+								  (has_fs_map && has_fe_map) ? config->num_maps : config->num_maps * 3);
 		if (ret)
 			return ret;
 
 		for (map_id = 0; map_id < config->num_maps; map_id++) {
-			ret = max9296_set_video_pipe_map(common, pipe_id, map_id, &config->map[map_id]);
+			ret = max9296_set_video_pipe_map(common, pipe_id, remap_id++, &config->map[map_id]);
 			if (ret)
 				return ret;
 
+			if (has_fs_map && has_fe_map)
+				goto set_double_loading;
+
+			ret = max9296_set_video_pipe_map_dt(common, pipe_id, remap_id++,
+								   &config->map[map_id],
+								   MAX9296_MIPI_CSI2_DT_FS,
+								   MAX9296_MIPI_CSI2_DT_FS);
+			if (ret)
+				return ret;
+
+			ret = max9296_set_video_pipe_map_dt(common, pipe_id, remap_id++,
+								   &config->map[map_id],
+								   MAX9296_MIPI_CSI2_DT_FE,
+								   MAX9296_MIPI_CSI2_DT_FE);
+			if (ret)
+				return ret;
+
+set_double_loading:
 			ret = max9296_set_csi_double_loading_mode(common,
 								  config->map[map_id].dst_csi, config->dbl_pixel_bpp);
 			if (ret)
 				return ret;
-
 			if (!config->map[map_id].is_csi_enabled && common->csi_link[config->map[map_id].dst_csi].config.auto_start) {
 				ret = max9296_set_csi_link_enabled(common, config->map[map_id].dst_csi, true);
 				if (ret)
@@ -691,26 +820,42 @@ static int max9296_wait_link_lock(struct max9x_common *common, int link)
 /***** max9296_serial_link_ops auxiliary functions *****/
 
 /***** max9296_serial_link_ops *****/
-static int max9296_isolate_serial_link(struct max9x_common *common, unsigned int link)
+static int max9296_set_selected_links(struct max9x_common *common,
+				      unsigned int link_cfg, bool reset)
 {
 	struct device *dev = common->dev;
 	struct regmap *map = common->map;
+	unsigned int fields;
+	unsigned int vals;
+	int ret;
+
+	TRY_DEV_HERE(ret, regmap_update_bits(map, MAX9296_GMSL1_EN,
+		MAX9296_GMSL1_EN_LINK_EN_FIELD,
+		FIELD_PREP(MAX9296_GMSL1_EN_LINK_EN_FIELD, link_cfg)),
+		dev);
+
+	fields = MAX9296_CTRL0_AUTO_CFG_FIELD | MAX9296_CTRL0_LINK_CFG_FIELD;
+	vals = FIELD_PREP(MAX9296_CTRL0_AUTO_CFG_FIELD, 0) |
+	       FIELD_PREP(MAX9296_CTRL0_LINK_CFG_FIELD, link_cfg);
+	if (reset) {
+		fields |= MAX9296_CTRL0_RESET_ONESHOT_FIELD;
+		vals |= FIELD_PREP(MAX9296_CTRL0_RESET_ONESHOT_FIELD, 1);
+	}
+
+	return regmap_update_bits(map, MAX9296_CTRL0, fields, vals);
+}
+
+static int max9296_isolate_serial_link(struct max9x_common *common, unsigned int link)
+{
+	struct device *dev = common->dev;
 	unsigned int link_cfg;
-	unsigned int auto_link;
 	int ret;
 
 	dev_dbg(dev, "Isolate link %d", link);
 
-	auto_link = 0;
 	link_cfg = (link == 0) ? MAX9296_LINK_A : MAX9296_LINK_B;
 
-	TRY_DEV_HERE(ret, regmap_update_bits(map, MAX9296_CTRL0,
-		MAX9296_CTRL0_AUTO_CFG_FIELD | MAX9296_CTRL0_LINK_CFG_FIELD,
-		FIELD_PREP(MAX9296_CTRL0_AUTO_CFG_FIELD, auto_link)
-		| FIELD_PREP(MAX9296_CTRL0_LINK_CFG_FIELD, link_cfg)),
-		dev);
-
-	TRY_DEV_HERE(ret, max9296_serial_link_reset(common, link), dev);
+	TRY_DEV_HERE(ret, max9296_set_selected_links(common, link_cfg, true), dev);
 
 	TRY_DEV_HERE(ret, max9296_wait_link_lock(common, link), dev);
 
@@ -720,9 +865,7 @@ static int max9296_isolate_serial_link(struct max9x_common *common, unsigned int
 static int max9296_deisolate_serial_link(struct max9x_common *common, unsigned int link)
 {
 	struct device *dev = common->dev;
-	struct regmap *map = common->map;
 	unsigned int link_cfg;
-	unsigned int auto_link = 0;
 	int ret;
 	bool link_a = common->serial_link[0].detected;
 	bool link_b = common->serial_link[1].detected;
@@ -740,20 +883,21 @@ static int max9296_deisolate_serial_link(struct max9x_common *common, unsigned i
 
 	dev_dbg(dev, "Deisolate link %d (link_cfg=%d)", link, link_cfg);
 
-	TRY_DEV_HERE(ret, regmap_update_bits(
-			map,
-			MAX9296_CTRL0,
-			MAX9296_CTRL0_AUTO_CFG_FIELD
-			|MAX9296_CTRL0_LINK_CFG_FIELD,
-			FIELD_PREP(MAX9296_CTRL0_AUTO_CFG_FIELD, auto_link)
-			|FIELD_PREP(MAX9296_CTRL0_LINK_CFG_FIELD, link_cfg)),
-		dev);
-
-	TRY_DEV_HERE(ret, max9296_serial_link_reset(common, link), dev);
+	TRY_DEV_HERE(ret, max9296_set_selected_links(common, link_cfg, true), dev);
 
 	TRY_DEV_HERE(ret, max9296_wait_link_lock(common, link), dev);
 
 	return 0;
+}
+
+static int max9296_select_serial_link(struct max9x_common *common, unsigned int link)
+{
+	return max9296_isolate_serial_link(common, link);
+}
+
+static int max9296_deselect_serial_link(struct max9x_common *common, unsigned int link)
+{
+	return max9296_deisolate_serial_link(common, link);
 }
 
 static int max9296_enable_serial_link(struct max9x_common *common, unsigned int link_id)
@@ -773,6 +917,19 @@ static int max9296_enable_serial_link(struct max9x_common *common, unsigned int 
 		return ret;
 
 	ret = max9296_isolate_serial_link(common, link_id);
+	if (ret == -ETIMEDOUT &&
+	    common->serial_link[link_id].config.rx_freq_mhz != MAX9296_GMSL2_3GBPS_MHZ) {
+		dev_info(common->dev,
+			 "Serial-link %u did not lock at 6Gbps; retrying DES group at 3Gbps before serializer DEV_ID probe",
+			 link_id);
+		max9296_force_group_3gbps_pipe_z(common);
+
+		ret = max9296_set_serial_link_rate(common, link_id);
+		if (ret)
+			return ret;
+
+		ret = max9296_isolate_serial_link(common, link_id);
+	}
 	if (ret)
 		return ret;
 
@@ -827,6 +984,8 @@ static int max9296_disable_serial_link(struct max9x_common *common, unsigned int
 static struct max9x_serial_link_ops max9296_serial_link_ops = {
 	.enable = max9296_enable_serial_link,
 	.disable = max9296_disable_serial_link,
+	.select = max9296_select_serial_link,
+	.deselect = max9296_deselect_serial_link,
 	.isolate = max9296_isolate_serial_link,
 	.deisolate = max9296_deisolate_serial_link,
 };
@@ -847,9 +1006,82 @@ static struct max9x_csi_link_ops max9296_csi_link_ops = {
 	.disable = max9296_disable_csi_link,
 };
 
+
+#define MAX9296A_FSYNC_0                       0x3e0
+#define MAX9296A_FSYNC_0_OUT_PIN               BIT(5)
+#define MAX9296A_FSYNC_0_EN_VS_GEN             BIT(4)
+#define MAX9296A_FSYNC_0_MODE                  GENMASK(3, 2)
+#define MAX9296A_FSYNC_0_METHOD                GENMASK(1, 0)
+
+
+#define MAX9296A_REG3                          0x3
+#define MAX9296A_REG3_UART_1_EN                        BIT(6)
+
+
+
+#define MAX9296A_GPIO_A(x)                     (0x2b0 + (x) * 0x3)
+#define MAX9296A_GPIO_A_RES_CFG                        BIT(7)
+#define MAX9296A_GPIO_A_TX_EN                  BIT(1)
+#define MAX9296A_GPIO_A_OUT_DIS                        BIT(0)
+#define MAX9296A_GPIO_B(x)                     (0x2b1 + (x) * 0x3)
+#define MAX9296A_GPIO_B_TX_ID                  GENMASK(4, 0)
+#define MAX9296A_GPIO_C(x)                     (0x2b2 + (x) * 0x3)
+
+
+#define DES_FSYNC_MODE 2
+#define DES_FSYNC_METHOD 0
+#define DES_FSYNC_INPUT_PIN 6
+#define DES_FSYNC_TX_ID 7
+
+
+static int max9296_configure_frame_sync(struct regmap *map)
+{
+	unsigned int fsync0;
+	unsigned int val = BIT(5) | (DES_FSYNC_TX_ID & GENMASK(4, 0));
+	int ret;
+
+	fsync0 = FIELD_PREP(MAX9296A_FSYNC_0_MODE, DES_FSYNC_MODE) |
+		 FIELD_PREP(MAX9296A_FSYNC_0_METHOD, DES_FSYNC_METHOD);
+
+
+       ret = regmap_write(map, MAX9296A_FSYNC_0, fsync0);
+       if (ret)
+               return ret;
+
+
+       if (DES_FSYNC_INPUT_PIN == 6) {
+               /*
+                * MFP6 shares the UART1/TX1 function on MAX9296A. Clear
+                * UART_1_EN so the pad is available to the GPIO forwarding
+                * path before arming it as an external FSYNC input.
+                */
+               ret = regmap_update_bits(map, MAX9296A_REG3,
+                                        MAX9296A_REG3_UART_1_EN, 0);
+               if (ret)
+                       return ret;
+       }
+
+       //MAX9296A_FSYNC_MODE_SLAVE
+       ret = regmap_write(map, MAX9296A_GPIO_A(DES_FSYNC_INPUT_PIN),
+                          MAX9296A_GPIO_A_RES_CFG |
+                          MAX9296A_GPIO_A_TX_EN |
+                          MAX9296A_GPIO_A_OUT_DIS);
+       if (ret)
+               return ret;
+
+       ret = regmap_write(map, MAX9296A_GPIO_B(DES_FSYNC_INPUT_PIN), val);
+       if (ret)
+               return ret;
+
+       return regmap_write(map, MAX9296A_GPIO_C(DES_FSYNC_INPUT_PIN), val);
+
+
+}
+
 static int max9296_enable(struct max9x_common *common)
 {
 	struct device *dev = common->dev;
+	struct regmap *map = common->map;
 	int link_id;
 	int ret;
 
@@ -863,6 +1095,10 @@ static int max9296_enable(struct max9x_common *common)
 
 	ret = max9296_configure_csi_dphy(common);
 
+	if (ret)
+		return ret;
+
+	ret = max9296_configure_frame_sync(map);
 	if (ret)
 		return ret;
 

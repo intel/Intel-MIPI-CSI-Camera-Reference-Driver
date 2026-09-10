@@ -136,6 +136,7 @@ obj-m += 6.12.0/drivers/media/pci/intel/
 endif
 
 obj-y += drivers/media/platform/intel/
+obj-m += drivers/i2c/i2c-atr.o
 obj-m += drivers/media/i2c/
 
 subdir-ccflags-y += $(subdir-ccflags-m)

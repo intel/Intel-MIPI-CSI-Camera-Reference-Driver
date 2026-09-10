@@ -40,8 +40,27 @@ enum max96717_gpio_pull_updn_sel {
 #define MAX96717_NUM_SERIAL_LINKS 1
 #define MAX96717_NUM_VIDEO_PIPES 1
 #define MAX96717_NUM_MIPI_MAPS 1
-#define MAX96717_NUM_CSI_LINKS 1
+#define MAX96717_NUM_CSI_LINKS 2
 #define MAX96717_NUM_GPIO 11
+#define MAX96717_NUM_DATA_TYPES 4
+
+#define MAX96717_PIPE_Z(pipe_id) ((pipe_id) + 2)
+
+#define MAX96717_REG2 (0x2)
+#define MAX96717_REG2_VID_TX_EN_FIELD(pipe_id) BIT(MAX96717_PIPE_Z(pipe_id) + 4)
+
+#define MAX96717_VIDEO_TX0(pipe_id) (0x100 + MAX96717_PIPE_Z(pipe_id) * 8)
+#define MAX96717_VIDEO_TX0_AUTO_BPP_EN_FIELD BIT(3)
+#define MAX96717_VIDEO_TX1(pipe_id) (0x101 + MAX96717_PIPE_Z(pipe_id) * 8)
+#define MAX96717_VIDEO_TX1_BPP_FIELD GENMASK(5, 0)
+#define MAX96717_VIDEO_TX2(pipe_id) (0x102 + MAX96717_PIPE_Z(pipe_id) * 8)
+#define MAX96717_VIDEO_TX2_DRIFT_DET_EN_FIELD BIT(1)
+#define MAX96717_TX3(pipe_id) (0x53 + MAX96717_PIPE_Z(pipe_id) * 4)
+#define MAX96717_TX3_TX_STR_SEL_FIELD GENMASK(1, 0)
+
+#define MAX96717_CMU2 (0x302)
+#define MAX96717_CMU2_PFDDIV_RSHORT_FIELD GENMASK(6, 4)
+#define MAX96717_CMU2_PFDDIV_RSHORT_1_1V 1
 
 #define MAX96717_GPIO(gpio) (0x2BE + ((gpio) * 3))
 #define MAX96717_GPIO_A(gpio) (MAX96717_GPIO(gpio) + 0)
@@ -64,15 +83,18 @@ enum max96717_gpio_pull_updn_sel {
  * in spite of the max96717 only having 1 video pipe
  */
 #define MAX96717_FRONTTOP_0 (0x308)
-#define MAX96717_FRONTTOP_0_SEL_CSI_FIELD(pipe_id) BIT(pipe_id + 2)
-#define MAX96717_FRONTTOP_0_START_CSI_FIELD(csi_id) BIT((csi_id) + 5)
+#define MAX96717_FRONTTOP_0_SEL_CSI_FIELD(pipe_id) BIT(MAX96717_PIPE_Z(pipe_id))
+#define MAX96717_FRONTTOP_0_START_CSI_FIELD(csi_id) BIT((csi_id) + 4)
 #define MAX96717_FRONTTOP_9 (0x311)
-#define MAX96717_FRONTTOP_9_START_VIDEO_FIELD(pipe_id, csi_id) BIT((pipe_id + 2) + 4 * (csi_id + 1))
+#define MAX96717_FRONTTOP_9_START_VIDEO_FIELD(pipe_id, csi_id) BIT(MAX96717_PIPE_Z(pipe_id) + 4 * (csi_id))
 #define MAX96717_FRONTTOP_10 (0x312)
 #define MAX96717_FRONTTOP_10_DBL8_FIELD(pipe_id) BIT(2)
 #define MAX96717_FRONTTOP_11 (0x313)
 #define MAX96717_FRONTTOP_11_DBL10_FIELD(pipe_id) BIT(2)
 #define MAX96717_FRONTTOP_11_DBL12_FIELD(pipe_id) BIT(6)
+#define MAX96717_FRONTTOP_12(pipe_id, dt_slot) (0x314 + MAX96717_PIPE_Z(pipe_id) * 2 + (dt_slot))
+#define MAX96717_MEM_DT_SEL_FIELD GENMASK(5, 0)
+#define MAX96717_MEM_DT_EN_FIELD BIT(6)
 #define MAX96717_FRONTTOP_16 (0x318)
 #define MAX96717_FRONTTOP_16_FIELD GENMASK(5, 0)
 #define MAX96717_FRONTTOP_16_ENABLE BIT(6)
@@ -81,8 +103,21 @@ enum max96717_gpio_pull_updn_sel {
 #define MAX96717_FRONTTOP_2X_BPP_FIELD GENMASK(4, 0)
 
 #define MAX96717_MIPI_RX (0x330)
+#define MAX96717_MIPI_RX_0 (MAX96717_MIPI_RX + 0)
+#define MAX96717_MIPI_RX_0_PHY_CFG_FIELD GENMASK(2, 0)
+#define MAX96717_MIPI_RX_0_PHY_CFG_A_ONLY 0x4
+#define MAX96717_MIPI_RX_0_PHY_CFG_B_ONLY 0x5
+#define MAX96717_MIPI_RX_0_PHY_CFG_A_AND_B 0x6
+#define MAX96717_MIPI_RX_0_NONCONTCLK_EN_FIELD BIT(6)
 #define MAX96717_MIPI_RX_1 (MAX96717_MIPI_RX + 1)
-#define MAX96717_MIPI_RX_1_SEL_CSI_LANES_FIELD(csi_id) (GENMASK(1, 0) << ((csi_id + 1) * 4))
+#define MAX96717_MIPI_RX_1_SEL_CSI_LANES_FIELD(csi_id) (GENMASK(1, 0) << ((csi_id) * 4))
+#define MAX96717_EXTA(dt_slot) (0x3dc + (dt_slot))
+
+#define MAX96717_NUM_ALIASES 2 /* 2 per i2c bus */
+#define MAX96717_I2C_SRC(i2c_id, n) ((i2c_id == 0 ? 0x42 : (0x550 + (4 * ((i2c_id) - 1)))) + (2 * (n)) + 0)
+#define MAX96717_I2C_SRC_FIELD GENMASK(7, 1)
+#define MAX96717_I2C_DST(i2c_id, n) ((i2c_id == 0 ? 0x42 : (0x550 + (4 * ((i2c_id) - 1)))) + (2 * (n)) + 1)
+#define MAX96717_I2C_DST_FIELD GENMASK(7, 1)
 
 #define MAX96717_EXT11 (0x383)
 #define MAX96717_TUNNEL_MODE BIT(7)
