@@ -3469,6 +3469,13 @@ static int ds5_s_ctrl(struct v4l2_ctrl *ctrl)
 
 			dev_dbg(&state->client->dev, "%s(): offset %x, size: %x\n",
 							__func__, offset, size);
+			if (size < 4 || size > ctrl->dims[0]) {
+				dev_err(&state->client->dev,
+					"%s(): Invalid ERB size: %u\n", __func__, size);
+				ret = -EINVAL;
+				break;
+			}
+
 			len = sizeof(struct hwm_cmd) + size;
 			erb_cmd = devm_kzalloc(&state->client->dev,	len, GFP_KERNEL);
 			if (!erb_cmd) {
@@ -3483,14 +3490,17 @@ static int ds5_s_ctrl(struct v4l2_ctrl *ctrl)
 			erb_cmd->param2 = size;
 			ret = ds5_send_hwmc(state, sizeof(struct hwm_cmd), erb_cmd);
 			if (!ret)
-				ret = ds5_get_hwmc(state, erb_cmd->Data, len, &size);
+				ret = ds5_get_hwmc(state, erb_cmd->Data, size, &size);
+			if (!ret && (size < 4 || size > ctrl->dims[0]))
+				ret = -EBADMSG;
 			if (ret) {
 				dev_err(&state->client->dev,
 					"%s(): ERB cmd failed, ret: %d,"
 					"requested size: %d, actual size: %d\n",
 					__func__, ret, erb_cmd->param2, size);
 				devm_kfree(&state->client->dev, erb_cmd);
-				return -EAGAIN;
+				ret = -EAGAIN;
+				break;
 			}
 
 			// Actual size returned from FW
@@ -3524,6 +3534,12 @@ static int ds5_s_ctrl(struct v4l2_ctrl *ctrl)
 					*((u8 *)ctrl->p_new.p_u8 + 1),
 					*((u8 *)ctrl->p_new.p_u8 + 2),
 					*((u8 *)ctrl->p_new.p_u8 + 3));
+			if (size > ctrl->dims[0] - 4) {
+				dev_err(&state->client->dev,
+					"%s(): Invalid EWB size: %u\n", __func__, size);
+				ret = -EINVAL;
+				break;
+			}
 
 			ewb_cmd = devm_kzalloc(&state->client->dev,
 					sizeof(struct hwm_cmd) + size,
@@ -3549,7 +3565,8 @@ static int ds5_s_ctrl(struct v4l2_ctrl *ctrl)
 					"requested size: %d, actual size: %d\n",
 					__func__, ret, ewb_cmd->param2, size);
 				devm_kfree(&state->client->dev, ewb_cmd);
-				return -EAGAIN;
+				ret = -EAGAIN;
+				break;
 			}
 
 			devm_kfree(&state->client->dev, ewb_cmd);
@@ -3849,7 +3866,8 @@ static int ds5_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 	case DS5_CAMERA_CID_AE_ROI_GET:
 		if (ctrl->p_new.p_u16) {
-			u16 len = sizeof(struct hwm_cmd) + 12;
+			u16 data_capacity = 12;
+			u16 len = sizeof(struct hwm_cmd) + data_capacity;
 			u16 dataLen = 0;
 			struct hwm_cmd *ae_roi_cmd;
 			ae_roi_cmd = devm_kzalloc(&state->client->dev, len, GFP_KERNEL);
@@ -3866,15 +3884,19 @@ static int ds5_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 				devm_kfree(&state->client->dev, ae_roi_cmd);
 				return ret;
 			}
-			ret = ds5_get_hwmc(state, ae_roi_cmd->Data, len, &dataLen);
-			if (!ret && dataLen <= ctrl->dims[0])
+			ret = ds5_get_hwmc(state, ae_roi_cmd->Data,
+					data_capacity, &dataLen);
+			if (!ret && dataLen == data_capacity)
 				memcpy(ctrl->p_new.p_u16, ae_roi_cmd->Data + 4, 8);
+			else if (!ret)
+				ret = -EBADMSG;
 			devm_kfree(&state->client->dev, ae_roi_cmd);
 		}
 		break;
 	case DS5_CAMERA_CID_AE_SETPOINT_GET:
 	if (ctrl->p_new.p_s32) {
-		u16 len = sizeof(struct hwm_cmd) + 8;
+		u16 data_capacity = 8;
+		u16 len = sizeof(struct hwm_cmd) + data_capacity;
 		u16 dataLen = 0;
 		struct hwm_cmd *ae_setpoint_cmd;
 		ae_setpoint_cmd = devm_kzalloc(&state->client->dev,	len, GFP_KERNEL);
@@ -3891,8 +3913,12 @@ static int ds5_g_volatile_ctrl(struct v4l2_ctrl *ctrl)
 			devm_kfree(&state->client->dev, ae_setpoint_cmd);
 			return ret;
 		}
-		ret = ds5_get_hwmc(state, ae_setpoint_cmd->Data, len, &dataLen);
-		memcpy(ctrl->p_new.p_s32, ae_setpoint_cmd->Data + 4, 4);
+		ret = ds5_get_hwmc(state, ae_setpoint_cmd->Data,
+				data_capacity, &dataLen);
+		if (!ret && dataLen == data_capacity)
+			memcpy(ctrl->p_new.p_s32, ae_setpoint_cmd->Data + 4, 4);
+		else if (!ret)
+			ret = -EBADMSG;
 		dev_dbg(&state->client->dev, "%s(): len: %d, 0x%x \n",
 			__func__, dataLen, *(ctrl->p_new.p_s32));
 		devm_kfree(&state->client->dev, ae_setpoint_cmd);
