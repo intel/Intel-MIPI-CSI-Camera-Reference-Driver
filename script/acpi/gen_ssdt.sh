@@ -23,8 +23,8 @@ if [ -z "$IASL_VERSION" ]; then
     exit 1
 fi
 
-if [ "$IASL_VERSION" -lt 20260408 ]; then
-    echo "ERROR: iasl version $IASL_VERSION is too old; need 20260408 or newer" >&2
+if [ "$IASL_VERSION" -lt 20250807 ]; then
+    echo "ERROR: iasl version $IASL_VERSION is too old; need 20250807 or newer" >&2
     exit 1
 fi
 

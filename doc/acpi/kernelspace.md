@@ -55,7 +55,7 @@ ASL files already have macros that describe the FWnode and I2C information for e
 - Modularity: Users do not need to recompile the `ipu-acpi` driver to add new sensors. Removes the dependency on BIOS.
 
 ### Requirement to use SSDT ASL method
-- To compile ASL source files, you need to install `acpica` tools version 20260408 or later. Refer to [Compile and Load](#compile-and-load) section for details.
+- To compile ASL source files, you need to install `acpica` tools version 20250807 or later. Refer to [Compile and Load](#compile-and-load) section for details.
 - GMSL setup enabled through this method requires **CONFIG_I2C_ATR** turned on in base kernel. If you are using Intel BKC, you might want to rebuild the kernel overlay with this config enabled.
 
 ## What are ACPI ASL Source Files?
@@ -320,11 +320,11 @@ This section contains steps to compile your ASL source files into AML binary tab
 
     sudo apt-get install flex bison
 
-Install acpica tools version [20260408](https://github.com/acpica/acpica/releases/tag/20260408)
+Install acpica tools version [20250807](https://github.com/acpica/acpica/releases/tag/20250807)
 
-    wget https://github.com/acpica/acpica/releases/download/20260408/acpica-unix-20260408.tar.gz
-    tar zxf ./acpica-unix-20260408.tar.gz
-    cd acpica-unix-20260408/
+    wget https://github.com/acpica/acpica/releases/download/20250807/acpica-unix-20250807.tar.gz
+    tar zxf ./acpica-unix-20250807.tar.gz
+    cd acpica-unix-20250807/
     make
     sudo make install
 

@@ -172,12 +172,12 @@ Build and install these software dependencies in your target system:
 <summary> Show details </summary>
 
 > v4l-utils with version >= 1.30 is **mandatory** for GMSL setup. \
-> acpica with version >= 20260408 is **mandatory** for ACPI ASL setup.
+> acpica with version >= 20250807 is **mandatory** for ACPI ASL setup.
 
 | Tool | Repository | Tag     | Steps to setup |
 |------|------------|---------| -----|
 | v4l-utils | [v4l-utils](https://github.com/gjasny/v4l-utils) | stable-1.30 | Build from repo |
-| acpica | [acpica](https://github.com/open-acpica/acpica.git) | 20260408    | Refer [here](doc/acpi/kernelspace.md#compile-and-load) |
+| acpica | [acpica](https://github.com/open-acpica/acpica.git) | 20250807    | Refer [here](doc/acpi/kernelspace.md#compile-and-load) |
 
 </details>
 
