@@ -28,8 +28,8 @@ if [ "$IASL_VERSION" -lt 20250807 ]; then
     exit 1
 fi
 
-if ! grep -qF 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' /etc/default/grub; then
-    echo 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' | sudo tee -a /etc/default/grub
+if ! grep -qF 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' /etc/default/grub.d/ssdt.cfg; then
+    echo 'GRUB_EARLY_INITRD_LINUX_CUSTOM="img_ssdt.img"' | sudo tee /etc/default/grub.d/ssdt.cfg
     sudo update-grub
 fi
 
