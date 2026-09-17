@@ -34,7 +34,8 @@
 #   INTC10CD = D4XX camera   (entity prefixes: "DS5 mux", "D4XX depth/rgb/ir/imu")
 #   INTC113C = ISX031 camera (entity prefix:   "isx031")
 #   OVTI13B1 = OV13B10 camera (entity prefix: "ov13b10")
-#   INTC1138 = MAX9295 / MAX96717 serializer    (entity prefix: "max96717")
+#   INTC1138 = MAX9295 serializer               (entity prefix: "max96717")
+#   INTC1141 = MAX96717 serializer              (entity prefix: "max96717")
 #   INTC1137 = MAX9296A deserializer            (entity prefix: "max9296a")
 #   INTC1139 = MAX96724 deserializer            (entity prefix: "max96724")
 
@@ -103,6 +104,7 @@ declare -A MIPI_SENSOR_HID=(
 # ---- Serializer / Deserializer HID -> v4l entity prefix ---------------------
 declare -A SER_PREFIX=(
     [INTC1138]="max96717"
+    [INTC1141]="max96717"
 )
 declare -A DES_PREFIX=(
     [INTC1137]="max9296a"
