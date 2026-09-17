@@ -340,9 +340,9 @@ Reboot into BIOS settings and make sure all camera-related BIOS settings are dis
 
 #### Unload SSDT initramfs
 
-To revert to the legacy setup using BIOS and ipu-acpi, remove the line below from /etc/default/grub, run update-grub, and reboot.
+To revert to the legacy setup using BIOS and ipu-acpi, remove /etc/default/grub.d/ssdt.cfg, run update-grub, and reboot.
 
-    sudo sed -i '/GRUB_EARLY_INITRD_LINUX_CUSTOM/d' /etc/default/grub
+    sudo rm -f /etc/default/grub.d/ssdt.cfg
     sudo update-grub
     sudo reboot
 
