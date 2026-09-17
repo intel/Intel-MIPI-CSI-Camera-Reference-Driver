@@ -1968,6 +1968,7 @@ static const struct max96717_chip_info max96717_info = {
 static const struct acpi_device_id max96717_acpi_ids[] = {
 	{ "INTC1138", (kernel_ulong_t)&max9295a_info},
 	{ "INTC1140", (kernel_ulong_t)&max9295d_info},
+	{ "INTC1141", (kernel_ulong_t)&max96717_info},
 	{}
 };
 MODULE_DEVICE_TABLE(acpi, max96717_acpi_ids);
