@@ -308,9 +308,6 @@ static int max_ser_set_pipe_dts(struct max_ser_priv *priv, struct max_ser_pipe *
 			return ret;
 	}
 
-	if (num_dts == pipe->num_dts)
-		return 0;
-
 	for (i = num_dts; i < ser->ops->num_dts_per_pipe; i++) {
 		ret = ser->ops->set_pipe_dt_en(ser, pipe, i, false);
 		if (ret)
@@ -1126,21 +1123,21 @@ static int max_ser_update_pipe(struct max_ser_priv *priv,
 	if (ser->ops->set_pipe_vcs) {
 		ret = ser->ops->set_pipe_vcs(ser, pipe, vcs);
 		if (ret)
-			goto err_free_dts;
+			goto err_revert_vcs;
 	}
 
 	ret = max_ser_set_pipe_mode(priv, pipe, &mode);
 	if (ret)
-		goto err_revert_vcs;
+		goto err_revert_mode;
 
 	ret = max_ser_set_pipe_dts(priv, pipe, dts, num_dts);
 	if (ret)
-		goto err_revert_mode;
+		goto err_revert_dts;
 
 	if (ser->ops->vs_independent) {
 		ret = ser->ops->set_vs_independent(ser);
 		if (ret)
-			goto err_revert_mode;
+			goto err_revert_dts;
 	}
 
 	pipe->vcs = vcs;
@@ -1154,8 +1151,12 @@ static int max_ser_update_pipe(struct max_ser_priv *priv,
 
 	return 0;
 
+err_revert_dts:
+	max_ser_set_pipe_dts(priv, pipe, pipe->dts, pipe->num_dts);
+
 err_revert_mode:
-	max_ser_set_pipe_mode(priv, pipe, &pipe->mode);
+	if (ser->ops->set_pipe_mode)
+		ser->ops->set_pipe_mode(ser, pipe, &pipe->mode);
 
 err_revert_vcs:
 	if (ser->ops->set_pipe_vcs)
@@ -1172,14 +1173,31 @@ static int max_ser_update_phy(struct max_ser_priv *priv,
 			      struct max_ser_phy *phy, u64 *streams_masks)
 {
 	struct max_ser *ser = priv->ser;
+	struct v4l2_subdev_route *route;
 	u32 pad = max_ser_phy_to_pad(ser, phy);
 	bool enable_changed = !streams_masks[pad] != !priv->streams_masks[pad];
 	bool enable = !!streams_masks[pad];
-	struct max_ser_pipe *pipe;
+	unsigned int selected_pipes = 0;
+	unsigned int updated_pipes = 0;
+	unsigned int i;
 	int ret;
 
-	pipe = max_ser_find_phy_pipe(ser, phy, streams_masks[pad]);
-	if (!pipe)
+	for_each_active_route(&state->routing, route) {
+		struct max_ser_pipe *pipe;
+
+		if (route->sink_pad != pad ||
+		    !(BIT_ULL(route->sink_stream) & streams_masks[pad]))
+			continue;
+
+		pipe = max_ser_find_phy_pipe(ser, phy,
+					     BIT_ULL(route->sink_stream));
+		if (!pipe)
+			return -ENOENT;
+
+		selected_pipes |= BIT(pipe->index);
+	}
+
+	if (enable && !selected_pipes)
 		return -ENOENT;
 
 	if (!enable && enable_changed) {
@@ -1188,29 +1206,56 @@ static int max_ser_update_phy(struct max_ser_priv *priv,
 			return ret;
 	}
 
-	ret = max_ser_update_pipe(priv, pipe, state, streams_masks);
-	if (ret)
-		goto err_revert_phy_disable;
+	for (i = 0; i < ser->ops->num_pipes; i++) {
+		struct max_ser_pipe *pipe = &ser->pipes[i];
 
-	ret = max_ser_update_pipe_enable(priv, pipe, state, streams_masks);
-	if (ret)
-		goto err_revert_pipe_update;
+		if (pipe->phy_id != phy->index)
+			continue;
+		if (!pipe->enabled && !(selected_pipes & BIT(i)))
+			continue;
+
+		if (selected_pipes & BIT(i)) {
+			ret = max_ser_update_pipe(priv, pipe, state, streams_masks);
+			if (ret) {
+				max_ser_update_pipe(priv, pipe, state,
+						    priv->streams_masks);
+				goto err_revert_pipes;
+			}
+		}
+
+		ret = max_ser_update_pipe_enable(priv, pipe, state, streams_masks);
+		if (ret) {
+			if (selected_pipes & BIT(i))
+				max_ser_update_pipe(priv, pipe, state,
+						    priv->streams_masks);
+			goto err_revert_pipes;
+		}
+
+		updated_pipes |= BIT(i);
+	}
 
 	if (enable && enable_changed) {
 		ret = max_ser_phy_set_active(ser, phy, enable);
 		if (ret)
-			goto err_revert_update_pipe_enable;
+			goto err_revert_pipes;
 	}
 
 	return 0;
 
-err_revert_update_pipe_enable:
-	max_ser_update_pipe_enable(priv, pipe, state, priv->streams_masks);
+err_revert_pipes:
+	for (i = 0; i < ser->ops->num_pipes; i++) {
+		struct max_ser_pipe *pipe = &ser->pipes[i];
 
-err_revert_pipe_update:
-	max_ser_update_pipe(priv, pipe, state, priv->streams_masks);
+		if (!(updated_pipes & BIT(i)))
+			continue;
 
-err_revert_phy_disable:
+		max_ser_update_pipe_enable(priv, pipe, state,
+					   priv->streams_masks);
+		if (selected_pipes & BIT(i))
+			max_ser_update_pipe(priv, pipe, state,
+					    priv->streams_masks);
+	}
+
 	if (!enable && enable_changed)
 		max_ser_phy_set_active(ser, phy, !enable);
 
