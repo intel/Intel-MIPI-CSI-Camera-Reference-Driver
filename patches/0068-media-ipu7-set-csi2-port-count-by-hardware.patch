@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Khai Wen, Ng <khai.wen.ng@intel.com>
+Date: Mon, 21 Sep 2026 00:00:00 +0000
+Subject: [PATCH] media: ipu7: set CSI2 port count by hardware version
+
+IPU7 provides four CSI2 ports, while IPU7P5 and IPU8 provide three.
+The common platform data initialization currently uses the four-entry
+offset table for every hardware version, causing an invalid fourth CSI2
+entity to be registered on IPU7P5 and IPU8.
+
+Pass the PCI-selected hardware version to the platform data initializer
+and set the number of ports accordingly.
+
+Signed-off-by: Khai Wen, Ng <khai.wen.ng@intel.com>
+
+---
+ drivers/media/pci/intel/ipu7/ipu7.c | 12 +++++++++---
+ drivers/media/pci/intel/ipu7/ipu7.h | 3 ++-
+ 2 files changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.c b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.c
+index 18aebd0..156ff42 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.c
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.c
+@@ -2110,9 +2110,15 @@ static const struct ipu_buttress_ctrl ipu8_psys_buttress_ctrl = {
+ };
+ 
+ void ipu_internal_pdata_init(struct ipu_isys_internal_pdata *isys_ipdata,
+-			     struct ipu_psys_internal_pdata *psys_ipdata)
++			     struct ipu_psys_internal_pdata *psys_ipdata,
++			     u8 hw_ver)
+ {
+-	isys_ipdata->csi2.nports = ARRAY_SIZE(ipu7_csi_offsets);
++	if (is_ipu7(hw_ver))
++		isys_ipdata->csi2.nports = 4;
++	else if (is_ipu7p5(hw_ver) || is_ipu8(hw_ver))
++		isys_ipdata->csi2.nports = 3;
++	else
++		isys_ipdata->csi2.nports = 0;
+ 	isys_ipdata->csi2.offsets = ipu7_csi_offsets;
+ 	isys_ipdata->num_parallel_streams = IPU7_ISYS_NUM_STREAMS;
+ 	psys_ipdata->hw_variant.spc_offset = IPU7_PSYS_SPC_OFFSET;
+@@ -2571,7 +2577,7 @@ static int ipu7_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+ 		return -ENODEV;
+ 	}
+ 
+-	ipu_internal_pdata_init(isys_ipdata, psys_ipdata);
++	ipu_internal_pdata_init(isys_ipdata, psys_ipdata, isp->hw_ver);
+ 
+ 	isys_base = isp->base + isys_ipdata->hw_variant.offset;
+ 	psys_base = isp->base + psys_ipdata->hw_variant.offset;
+diff --git a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.h b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.h
+index b48bc1d..cd97e3d 100644
+--- a/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.h
++++ b/ipu7-drivers/drivers/media/pci/intel/ipu7/ipu7.h
+@@ -244,6 +244,7 @@ struct ipu7_psys_pdata {
+ int request_cpd_fw(const struct firmware **firmware_p, const char *name,
+ 		   struct device *device);
+ void ipu_internal_pdata_init(struct ipu_isys_internal_pdata *isys_ipdata,
+-			     struct ipu_psys_internal_pdata *psys_ipdata);
++			     struct ipu_psys_internal_pdata *psys_ipdata,
++			     u8 hw_ver);
+ void ipu7_dump_fw_error_log(const struct ipu7_bus_device *adev);
+ #endif /* IPU7_H */
+-- 
+2.51.1
