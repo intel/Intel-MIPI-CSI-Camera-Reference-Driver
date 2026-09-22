@@ -2488,11 +2488,16 @@ static int max_des_set_routing(struct v4l2_subdev *sd,
 {
 	struct max_des_priv *priv = sd_to_priv(sd);
 	struct max_des *des = priv->des;
+	int ret;
 
 	if (which == V4L2_SUBDEV_FORMAT_ACTIVE && des->active)
 		return -EBUSY;
 
-	return __max_des_set_routing(sd, state, routing);
+	ret = __max_des_set_routing(sd, state, routing);
+	if (!ret && which == V4L2_SUBDEV_FORMAT_ACTIVE)
+		max_des_reset_pipe_assignments(des);
+
+	return ret;
 }
 
 static int max_des_update_link(struct max_des_priv *priv,
@@ -2699,9 +2704,9 @@ static int max_des_update_streams(struct v4l2_subdev *sd,
 	int ret;
 
 	/*
-	 * Rebuild per-link stream-to-pipe assignments for this update cycle.
-	 * Keep this out of set_routing() so route negotiation does not mutate
-	 * live runtime state while streams are active.
+	 * Active routing changes reset per-link stream-to-pipe assignments.
+	 * Reset them again for each stream update so they are configured
+	 * according to current routing and stream masks.
 	 */
 	max_des_reset_pipe_assignments(des);
 
