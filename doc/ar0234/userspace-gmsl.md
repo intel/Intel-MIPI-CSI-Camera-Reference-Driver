@@ -159,12 +159,14 @@ Use the sensor ACPI HID in the **Custom HID** field.
 
 Using the ASL configuration exercises the [maxim-serdes](../../drivers/media/i2c/maxim-serdes/) drivers.
 
-To compile ASL and load an SSDT overlay image, refer to [acpi/kernelspace.md](../acpi/kernelspace.md#compile-and-load).
+To compile the ASL and load an SSDT overlay image, refer to [Compile ASL source file and load SSDT initramfs](../acpi/kernelspace.md#compile-asl-source-file-and-load-ssdt-initramfs).
+
+To unload an SSDT overlay image, refer to [Unload SSDT initramfs](../acpi/kernelspace.md#unload-ssdt-initramfs).
 
 ### ASL Configuration for IPU6EPMTL
 
 <details>
-<summary> MAX9296 DPHY + 2x D3 AR0234 GMSL sensors use case </summary>
+<summary> MAX9296 DPHY + 4x D3 AR0234 GMSL sensors use case </summary>
 <p align="left">(<a href="#max9296-aic-rev-b-connection">Back to Hardware Setup</a>)</p>
 
 >**ASL:** [max9296_d3_ar0234.asl](../../acpi/ipu6/max9296_d3_ar0234.asl)
@@ -212,7 +214,7 @@ Please use recommended config from [ipu6epmtl](../../config/ar0234/ipu6epmtl).
 #### Libcamhal Config for IPU6EPMTL
 
 <details>
-<summary>2x GMSL sensors use case </summary>
+<summary>4x GMSL sensors use case </summary>
 
 Please use config from [ipu6epmtl](../../config/ar0234/ipu6epmtl).
 
@@ -397,11 +399,11 @@ For example, to enable 8 streams, user can launch 2 terminals, with each termina
 |:----------------:|:--------:|:----------:|:----:|:-------:|:-----:|:--:|
 | x1               | USERPTR  | 30         |❌|✅|✅|✅|
 | x2               | USERPTR  | 30         |❌|✅|✅|✅|
-| x4               | USERPTR  | 30         |❌|❌|✅|✅|
+| x4               | USERPTR  | 30         |❌|✅|✅|✅|
 | x8               | USERPTR  | 30         |❌|❌|✅|❌|
 | x1               | DMA MODE | 30         |❌|✅|✅|✅|
 | x2               | DMA MODE | 30         |❌|✅|✅|✅|
-| x4               | DMA MODE | 30         |❌|❌|✅|✅|
+| x4               | DMA MODE | 30         |❌|✅|✅|✅|
 | x8               | DMA MODE | 30         |❌|❌|✅|❌|
 
 ### Highest Bandwidth Configuration
