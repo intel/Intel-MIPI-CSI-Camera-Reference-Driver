@@ -2,10 +2,9 @@
  * SPDX-License-Identifier: GPL-2.0
  * Copyright (c) 2026 Intel Corporation.
  *
- * SSDT overlay: D3 AR0234 GMSL camera configuration with MAX9296A deserializer on IPU6EPMTL platform.
- *   One MAX9296A deserializer (DES0, two GMSL links) with DPHY connection to IPU6EPMTL platform,
- *   carrying two AR0234 cameras over GMSL Links 0..1, fronted by MAX9295A serializers.
- *
+ * SSDT overlay: D3 AR0234 GMSL camera configuration on IPU6EPMTL platform
+ *   Two MAX9296A deserializers (DES0, DES1) with DPHY connection to IPU6EPMTL platform,
+ *   each carrying two D3 AR0234 cameras over GMSL Links 0..1, fronted by MAX9295A serializers.
  *
  * DES-level defines (set per DESx, undef'd at the end of each Device):
  *   DES_PHY_TYPE       - DES PHY type (0 for CPHY, 1 for DPHY)
@@ -31,7 +30,7 @@
  *   CAM_LANES          - Number of MIPI data lanes for the camera (e.g. 2, 4)
  */
 
-DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260715)
+DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260924)
 {
     External (_SB.PC00, DeviceObj)
 
@@ -53,7 +52,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260715)
             #define LINK_FREQ 700000000
             #include "_des_common_max9296.asl"
 
-            // Channel 0
+            // Channel-level defines for Channel 0
             #define DESCH_LINK_NUM 0
             #define DESCH_CH CH00
             #define DESCH_SER SER0
@@ -78,7 +77,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260715)
             #undef CAM_ALIAS
             #undef CAM_LANES
 
-            // Channel 1
+            // Channel-level defines for Channel 1
             #define DESCH_LINK_NUM 1
             #define DESCH_CH CH01
             #define DESCH_SER SER1
@@ -103,7 +102,83 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260715)
             #undef CAM_ALIAS
             #undef CAM_LANES
 
-            // Clean up DES-level defines
+            // Clean up DES0-level defines
+            #undef DES_PHY_TYPE
+            #undef DES_I2C_ADDR
+            #undef DES_LANES
+            #undef DES_INTERNAL_PHY
+            #undef DES_TO_MIPI_PORT
+            #undef DES_I2C_BUS
+            #undef DES_PATH
+            #undef DES_REF
+            #undef LINK_FREQ
+        }
+
+        Device (DES1)
+        {
+            // DES-level defines for DES1
+            #define DES_PHY_TYPE 1
+            #define DES_I2C_ADDR 0x0048
+            #define DES_LANES 4
+            #define DES_INTERNAL_PHY 2
+            #define DES_TO_MIPI_PORT 4
+            #define DES_I2C_BUS "\\_SB.PC00.I2C0"
+            #define DES_PATH "\\_SB.PC00.DES1"
+            #define DES_REF \_SB.PC00.DES1
+            #define LINK_FREQ 700000000
+            #include "_des_common_max9296.asl"
+
+            // Channel-level defines for Channel 0
+            #define DESCH_LINK_NUM 0
+            #define DESCH_CH CH00
+            #define DESCH_SER SER0
+            #define DESCH_CAM CAM0
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH00"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH00.SER0"
+            #define DESCH_SER_REF \_SB.PC00.DES1.CH00.SER0
+            #define DESCH_SER_GPIOREF ^^SER0
+            #define CAM_ALIAS 0x54
+            #define CAM_LANES 2
+            #include "_des_ch_common_ar0234.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+
+            // Channel-level defines for Channel 1
+            #define DESCH_LINK_NUM 1
+            #define DESCH_CH CH01
+            #define DESCH_SER SER1
+            #define DESCH_CAM CAM1
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH01"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH01.SER1"
+            #define DESCH_SER_REF \_SB.PC00.DES1.CH01.SER1
+            #define DESCH_SER_GPIOREF ^^SER1
+            #define CAM_ALIAS 0x55
+            #define CAM_LANES 2
+            #include "_des_ch_common_ar0234.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+
+            // Clean up DES1-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
             #undef DES_LANES
