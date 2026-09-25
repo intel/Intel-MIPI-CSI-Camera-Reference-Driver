@@ -177,12 +177,13 @@
         <vcAggregator value="max9x a,1"/>
     </Sensor>
 
-    <Sensor name="ar0234_acpi-1" description="ar0234 sensor on DES0 Link A" virtualChannel="true" vcSeq="0" vcGroupId="0">
+    <Sensor name="ar0234_acpi-1" description="ar0234 sensor on DES0 Link A" virtualChannel="true" vcGroupId="0">
         <MediaCtlConfig id="0" mediaCfg="1" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
             <videonode name="Intel IPU6 ISYS Capture 0" videoNodeType="VIDEO_GENERIC"/>
             <videonode name="Intel IPU6 CSI2 0" videoNodeType="VIDEO_ISYS_RECEIVER"/>
             <videonode acpiName="\_SB_.PC00.DES0.CH00.SER0.CAM0" videoNodeType="VIDEO_PIXEL_ARRAY"/>
         </MediaCtlConfig>
+        <vcAggregator value="maxim-serdes,0"/>
         <StaticMetadata>
             <!-- list of stream config info. Meanings of each part is "format,widthxheight,field(0 is none, 7 is alternate),mcId" -->
             <supportedStreamConfig value="V4L2_PIX_FMT_NV12,1280x960,0,0"/>
@@ -239,12 +240,13 @@
         <forceFlushIpuBuffer value="true"/>
     </Sensor>
 
-    <Sensor name="ar0234_acpi-2" description="ar0234 sensor on DES0 Link B" virtualChannel="true" vcSeq="1" vcGroupId="0">
+    <Sensor name="ar0234_acpi-2" description="ar0234 sensor on DES0 Link B" virtualChannel="true" vcGroupId="0">
         <MediaCtlConfig id="0" mediaCfg="1" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
             <videonode name="Intel IPU6 ISYS Capture 1" videoNodeType="VIDEO_GENERIC"/>
             <videonode name="Intel IPU6 CSI2 0" videoNodeType="VIDEO_ISYS_RECEIVER"/>
             <videonode acpiName="\_SB_.PC00.DES0.CH01.SER1.CAM1" videoNodeType="VIDEO_PIXEL_ARRAY"/>
         </MediaCtlConfig>
+        <vcAggregator value="maxim-serdes,1"/>
         <StaticMetadata>
             <!-- list of stream config info. Meanings of each part is "format,widthxheight,field(0 is none, 7 is alternate),mcId" -->
             <supportedStreamConfig value="V4L2_PIX_FMT_NV12,1280x960,0,0"/>
@@ -301,12 +303,13 @@
         <forceFlushIpuBuffer value="true"/>
     </Sensor>
 
-    <Sensor name="ar0234_acpi-3" description="ar0234 sensor on DES1 Link A" virtualChannel="true" vcSeq="0" vcGroupId="0">
+    <Sensor name="ar0234_acpi-3" description="ar0234 sensor on DES1 Link A" virtualChannel="true" vcGroupId="0">
         <MediaCtlConfig id="0" mediaCfg="1" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
             <videonode name="Intel IPU6 ISYS Capture 32" videoNodeType="VIDEO_GENERIC"/>
             <videonode name="Intel IPU6 CSI2 4" videoNodeType="VIDEO_ISYS_RECEIVER"/>
             <videonode acpiName="\_SB_.PC00.DES1.CH00.SER0.CAM0" videoNodeType="VIDEO_PIXEL_ARRAY"/>
         </MediaCtlConfig>
+        <vcAggregator value="maxim-serdes,0"/>
         <StaticMetadata>
             <!-- list of stream config info. Meanings of each part is "format,widthxheight,field(0 is none, 7 is alternate),mcId" -->
             <supportedStreamConfig value="V4L2_PIX_FMT_NV12,1280x960,0,0"/>
@@ -363,12 +366,13 @@
         <forceFlushIpuBuffer value="true"/>
     </Sensor>
 
-    <Sensor name="ar0234_acpi-4" description="ar0234 sensor on DES1 Link B" virtualChannel="true" vcSeq="1" vcGroupId="0">
+    <Sensor name="ar0234_acpi-4" description="ar0234 sensor on DES1 Link B" virtualChannel="true" vcGroupId="0">
         <MediaCtlConfig id="0" mediaCfg="1" ConfigMode="AUTO" outputWidth="1280" outputHeight="960" format="V4L2_PIX_FMT_SGRBG10">
             <videonode name="Intel IPU6 ISYS Capture 33" videoNodeType="VIDEO_GENERIC"/>
             <videonode name="Intel IPU6 CSI2 4" videoNodeType="VIDEO_ISYS_RECEIVER"/>
             <videonode acpiName="\_SB_.PC00.DES1.CH01.SER1.CAM1" videoNodeType="VIDEO_PIXEL_ARRAY"/>
         </MediaCtlConfig>
+        <vcAggregator value="maxim-serdes,1"/>
         <StaticMetadata>
             <!-- list of stream config info. Meanings of each part is "format,widthxheight,field(0 is none, 7 is alternate),mcId" -->
             <supportedStreamConfig value="V4L2_PIX_FMT_NV12,1280x960,0,0"/>
