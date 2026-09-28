@@ -16,6 +16,7 @@
  *   DES_PATH                 - DES ACPI path string (e.g. "\\_SB.PC00.DES0")
  *   DES_REF                  - DES ACPI namespace reference (e.g. \_SB.PC00.DES0)
  *   DES_PIPE_STR_AUTOSELECT  - DES pipe stream autoselect (0/1)
+ *   I2C_SPEED                - I2C bus speed across DES, SER and CAM (e.g. 100000 for 100kHz)
  *
  * Channel-level defines (set per CHxx, undef'd by _des_ch_common_d457.asl):
  *   DESCH_LINK_NUM           - Channel/link number (0..3) - used for _ADR, reg, SER remote port
@@ -57,6 +58,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_PATH "\\_SB.PC00.DES0"
             #define DES_REF \_SB.PC00.DES0
             #define DES_PIPE_STR_AUTOSELECT 0
+            #define I2C_SPEED 100000
             #include "_des_common_max96724.asl"
 
             // Channel 0
@@ -147,6 +149,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DES_PATH
             #undef DES_REF
             #undef DES_PIPE_STR_AUTOSELECT
+            #undef I2C_SPEED
         }
 
         Device (DES1)
@@ -161,6 +164,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_PATH "\\_SB.PC00.DES1"
             #define DES_REF \_SB.PC00.DES1
             #define DES_PIPE_STR_AUTOSELECT 0
+            #define I2C_SPEED 100000
             #include "_des_common_max96724.asl"
 
             // Channel 0
@@ -251,6 +255,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DES_PATH
             #undef DES_REF
             #undef DES_PIPE_STR_AUTOSELECT
+            #undef I2C_SPEED
         }
     }
 }
