@@ -200,6 +200,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DES_PATH "\\_SB.PC00.DES1"
             #define DES_REF \_SB.PC00.DES1
             #define DES_PIPE_STR_AUTOSELECT 0
+            #define I2C_SPEED 100000
             #include "_des_common_max96724.asl"
 
             // Channel 0 (D3 ISX031)
@@ -313,6 +314,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef DES_PATH
             #undef DES_REF
             #undef DES_PIPE_STR_AUTOSELECT
+            #undef I2C_SPEED
         }
     }
 }
