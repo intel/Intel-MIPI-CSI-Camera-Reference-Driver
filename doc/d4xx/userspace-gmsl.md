@@ -686,6 +686,13 @@ The subdev symlink uses the syntax video-rs-{stream-type}-sd-{index}. The stream
 | D4XX imu 19-0010   | /dev/video-rs-imu-sd-0 -> /dev/v4l-subdev13   |
 
 ---
+#### Prerequisite for librealsense SDK Build
+
+Install the required dependencies:
+
+    sudo apt install libusb-1.0-0-dev libglfw3-dev
+
+---
 #### Compile librealsense SDK From Source
 
 There are SDK changes to support Intel IPU that are currently under review.
