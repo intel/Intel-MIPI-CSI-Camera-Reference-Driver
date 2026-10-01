@@ -95,7 +95,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260520)
             #undef EXTERNAL_FRAME_SYNC
 #endif
 
-            // Channel 1 (Sensing ISX031)
+            // Channel 1 (D3 AR0234)
             #define DESCH_LINK_NUM 1
             #define DESCH_CH CH01
             #define DESCH_SER SER1
@@ -106,8 +106,8 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260520)
             #define DESCH_SER_REF \_SB.PC00.DES0.CH01.SER1
             #define DESCH_SER_GPIOREF ^^SER1
             #define CAM_ALIAS 0x55
-            #define CAM_LANES 4
-            #include "_des_ch_common_isx031.asl"
+            #define CAM_LANES 2
+            #include "_des_ch_common_ar0234.asl"
             #undef DESCH_CH
             #undef DESCH_SER
             #undef DESCH_CAM
@@ -119,12 +119,6 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260520)
             #undef DESCH_SER_GPIOREF
             #undef CAM_ALIAS
             #undef CAM_LANES
-#ifdef DESCH_SER_EXTRA_GPIO_PIN
-            #undef DESCH_SER_EXTRA_GPIO_PIN
-#endif
-#ifdef EXTERNAL_FRAME_SYNC
-            #undef EXTERNAL_FRAME_SYNC
-#endif
 
             // Clean up DES0-level defines
             #undef DES_PHY_TYPE
@@ -149,7 +143,7 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260520)
             #define DES_I2C_BUS "\\_SB.PC00.I2C0"
             #define DES_PATH "\\_SB.PC00.DES1"
             #define DES_REF \_SB.PC00.DES1
-            #define LINK_FREQ 700000000
+            #define LINK_FREQ 600000000
             #include "_des_common_max9296.asl"
 
             // Channel 0 (D3 ISX031)
