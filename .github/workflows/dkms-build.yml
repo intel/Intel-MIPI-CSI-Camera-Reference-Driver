@@ -162,3 +162,21 @@ jobs:
             exit 1
           fi
           echo "#### All builds succeeded for target family ${target_family}"
+
+      - name: Print DKMS logs on failure
+        if: failure()
+        run: |
+          set +e
+          echo "==== DKMS make.log files ===="
+          find /var/lib/dkms -type f -name make.log -print || true
+
+          while IFS= read -r log; do
+            echo
+            echo "==== BEGIN ${log} ===="
+            cat "${log}" || true
+            echo "==== END ${log} ===="
+          done < <(find /var/lib/dkms -type f -name make.log)
+
+          echo
+          echo "==== dmesg tail (last 200 lines) ===="
+          dmesg | tail -n 200 || true
