@@ -1208,6 +1208,8 @@ static int __maybe_unused ar0234_resume(struct device *dev)
 	mutex_lock(&ar0234_mutex);
 
 	if (ar0234->reset_gpio) {
+		gpiod_direction_output(ar0234->reset_gpio, 0);
+
 		for (count = 0; count < AR0234_PM_MAX_RETRY; count++) {
 			gpiod_set_value_cansleep(ar0234->reset_gpio, 0);
 			msleep(AR0234_REG_SLEEP_200MS);
