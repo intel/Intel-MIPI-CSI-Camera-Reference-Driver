@@ -176,7 +176,3 @@ jobs:
             cat "${log}" || true
             echo "==== END ${log} ===="
           done < <(find /var/lib/dkms -type f -name make.log)
-
-          echo
-          echo "==== dmesg tail (last 200 lines) ===="
-          dmesg | tail -n 200 || true
