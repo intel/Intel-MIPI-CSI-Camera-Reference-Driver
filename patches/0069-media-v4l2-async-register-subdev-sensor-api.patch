@@ -1,0 +1,47 @@
+From 3c80d63ecdcf51a4501cfd85c29db4b3bcd3ea21 Mon Sep 17 00:00:00 2001
+From: Sodhi, Vunny <vunny.sodhi@intel.com>
+Date: Fri, 18 Sep 2026 15:45:00 +0800
+Subject: [PATCH] media: v4l2: adapt async sensor registration for 6.18+
+
+Kernel 6.18+ exposes v4l2_async_register_subdev_sensor() as a
+convenience macro and provides its implementation as
+__v4l2_async_register_subdev_sensor(). Rename the copied V4L2 core
+implementation and its exported symbol to match that API.
+
+---
+ drivers/media/v4l2-core/v4l2-fwnode.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/v4l2-core/v4l2-fwnode.c b/drivers/media/v4l2-core/v4l2-fwnode.c
+index 8b61d6d..dffb877 100644
+--- a/drivers/media/v4l2-core/v4l2-fwnode.c
++++ b/drivers/media/v4l2-core/v4l2-fwnode.c
+@@ -1255,7 +1255,7 @@ v4l2_async_nf_parse_fwnode_sensor(struct device *dev,
+ 	return 0;
+ }
+
+-int v4l2_async_register_subdev_sensor(struct v4l2_subdev *sd)
++int __v4l2_async_register_subdev_sensor(struct v4l2_subdev *sd, struct module *module)
+ {
+ 	struct v4l2_async_notifier *notifier;
+ 	int ret;
+@@ -1278,7 +1278,7 @@ int v4l2_async_register_subdev_sensor(struct v4l2_subdev *sd)
+ 	if (ret < 0)
+ 		goto out_cleanup;
+
+-	ret = v4l2_async_register_subdev(sd);
++	ret = __v4l2_async_register_subdev(sd, module);
+ 	if (ret < 0)
+ 		goto out_unregister;
+
+@@ -1290,7 +1290,7 @@ out_cleanup:
+
+ 	return ret;
+ }
+-EXPORT_SYMBOL_GPL(v4l2_async_register_subdev_sensor);
++EXPORT_SYMBOL_GPL(__v4l2_async_register_subdev_sensor);
+
+ MODULE_DESCRIPTION("V4L2 fwnode binding parsing library");
+ MODULE_LICENSE("GPL");
+--
+2.43.0
