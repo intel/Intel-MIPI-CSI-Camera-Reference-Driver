@@ -170,75 +170,48 @@ static const struct isx031_reg isx031_framesync_stream_reg[] = {
  * Crop settings are frame-rate independent: the 30 and 60 fps variants of a
  * resolution share one register list. The frame rate is selected separately
  * through the drive-mode register (ISX031_REG_MODE_SELECT).
+ *
+ * 0xBF04-0xBF0D always mirrors 0x8AA8-0x8AB1 (crop enable, H/V size, H/V
+ * crop offset), and 0x8ADA (DCROP_DATA_SEL) is constant, so build both
+ * blocks from one set of values instead of writing each entry by hand.
  */
-static const struct isx031_reg isx031_1920_1536_reg[] = {
-	{ISX031_REG_LEN_08BIT, 0x8AA8, 0x01}, /* Crop enable */
-	{ISX031_REG_LEN_08BIT, 0x8AAA, 0x80}, /* H size = 1920 */
-	{ISX031_REG_LEN_08BIT, 0x8AAB, 0x07},
-	{ISX031_REG_LEN_08BIT, 0x8AAC, 0x00}, /* H cropped 0 */
-	{ISX031_REG_LEN_08BIT, 0x8AAD, 0x00},
-	{ISX031_REG_LEN_08BIT, 0x8AAE, 0x00}, /* V size 1536 */
-	{ISX031_REG_LEN_08BIT, 0x8AAF, 0x06},
-	{ISX031_REG_LEN_08BIT, 0x8AB0, 0x00}, /* V cropped 0 */
-	{ISX031_REG_LEN_08BIT, 0x8AB1, 0x00},
-	{ISX031_REG_LEN_08BIT, 0x8ADA, 0x03}, /* DCROP_DATA_SEL */
-	{ISX031_REG_LEN_08BIT, 0xBF04, 0x01},
-	{ISX031_REG_LEN_08BIT, 0xBF06, 0x80},
-	{ISX031_REG_LEN_08BIT, 0xBF07, 0x07},
-	{ISX031_REG_LEN_08BIT, 0xBF08, 0x00},
-	{ISX031_REG_LEN_08BIT, 0xBF09, 0x00},
-	{ISX031_REG_LEN_08BIT, 0xBF0A, 0x00},
-	{ISX031_REG_LEN_08BIT, 0xBF0B, 0x06},
-	{ISX031_REG_LEN_08BIT, 0xBF0C, 0x00},
-	{ISX031_REG_LEN_08BIT, 0xBF0D, 0x00},
-	{}
-};
+#define ISX031_DCROP_REG_LIST(h_size, h_crop, v_size, v_crop) {	\
+	{ISX031_REG_LEN_08BIT, 0x8AA8, 0x01},				\
+	{ISX031_REG_LEN_08BIT, 0x8AAA, (h_size) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0x8AAB, (h_size) >> 8},			\
+	{ISX031_REG_LEN_08BIT, 0x8AAC, (h_crop) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0x8AAD, (h_crop) >> 8},			\
+	{ISX031_REG_LEN_08BIT, 0x8AAE, (v_size) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0x8AAF, (v_size) >> 8},			\
+	{ISX031_REG_LEN_08BIT, 0x8AB0, (v_crop) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0x8AB1, (v_crop) >> 8},			\
+	{ISX031_REG_LEN_08BIT, 0x8ADA, 0x03},				\
+	{ISX031_REG_LEN_08BIT, 0xBF04, 0x01},				\
+	{ISX031_REG_LEN_08BIT, 0xBF06, (h_size) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0xBF07, (h_size) >> 8},			\
+	{ISX031_REG_LEN_08BIT, 0xBF08, (h_crop) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0xBF09, (h_crop) >> 8},			\
+	{ISX031_REG_LEN_08BIT, 0xBF0A, (v_size) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0xBF0B, (v_size) >> 8},			\
+	{ISX031_REG_LEN_08BIT, 0xBF0C, (v_crop) & 0xFF},		\
+	{ISX031_REG_LEN_08BIT, 0xBF0D, (v_crop) >> 8},			\
+	{}								\
+}
 
-static const struct isx031_reg isx031_1920_1080_reg[] = {
-	{ISX031_REG_LEN_08BIT, 0x8AA8, 0x01}, /* Crop enable */
-	{ISX031_REG_LEN_08BIT, 0x8AAA, 0x80}, /* H size = 1920 */
-	{ISX031_REG_LEN_08BIT, 0x8AAB, 0x07},
-	{ISX031_REG_LEN_08BIT, 0x8AAC, 0x00}, /* H cropped 0 */
-	{ISX031_REG_LEN_08BIT, 0x8AAD, 0x00},
-	{ISX031_REG_LEN_08BIT, 0x8AAE, 0x38}, /* V size 1080 */
-	{ISX031_REG_LEN_08BIT, 0x8AAF, 0x04},
-	{ISX031_REG_LEN_08BIT, 0x8AB0, 0xE4}, /* V cropped 228*2 */
-	{ISX031_REG_LEN_08BIT, 0x8AB1, 0x00},
-	{ISX031_REG_LEN_08BIT, 0x8ADA, 0x03}, /* DCROP_DATA_SEL */
-	{ISX031_REG_LEN_08BIT, 0xBF04, 0x01},
-	{ISX031_REG_LEN_08BIT, 0xBF06, 0x80},
-	{ISX031_REG_LEN_08BIT, 0xBF07, 0x07},
-	{ISX031_REG_LEN_08BIT, 0xBF08, 0x00},
-	{ISX031_REG_LEN_08BIT, 0xBF09, 0x00},
-	{ISX031_REG_LEN_08BIT, 0xBF0A, 0x38},
-	{ISX031_REG_LEN_08BIT, 0xBF0B, 0x04},
-	{ISX031_REG_LEN_08BIT, 0xBF0C, 0xE4},
-	{ISX031_REG_LEN_08BIT, 0xBF0D, 0x00},
-	{}
-};
+static const struct isx031_reg isx031_1920_1536_reg[] =
+	ISX031_DCROP_REG_LIST(1920, 0, 1536, 0);
 
-static const struct isx031_reg isx031_1280_720_30fps_reg[] = {
-	{ISX031_REG_LEN_08BIT, 0x8AA8, 0x01}, /* Crop enable */
-	{ISX031_REG_LEN_08BIT, 0x8AAA, 0x00}, /* H size = 1280 */
-	{ISX031_REG_LEN_08BIT, 0x8AAB, 0x05},
-	{ISX031_REG_LEN_08BIT, 0x8AAC, 0x40}, /* H croped 320*2 */
-	{ISX031_REG_LEN_08BIT, 0x8AAD, 0x01},
-	{ISX031_REG_LEN_08BIT, 0x8AAE, 0xD0}, /* V size 720 */
-	{ISX031_REG_LEN_08BIT, 0x8AAF, 0x02},
-	{ISX031_REG_LEN_08BIT, 0x8AB0, 0x98}, /* V cropped 408*2 */
-	{ISX031_REG_LEN_08BIT, 0x8AB1, 0x01},
-	{ISX031_REG_LEN_08BIT, 0x8ADA, 0x03}, /* DCROP_DATA_SEL */
-	{ISX031_REG_LEN_08BIT, 0xBF04, 0x01},
-	{ISX031_REG_LEN_08BIT, 0xBF06, 0x00},
-	{ISX031_REG_LEN_08BIT, 0xBF07, 0x05},
-	{ISX031_REG_LEN_08BIT, 0xBF08, 0x40},
-	{ISX031_REG_LEN_08BIT, 0xBF09, 0x01},
-	{ISX031_REG_LEN_08BIT, 0xBF0A, 0xD0},
-	{ISX031_REG_LEN_08BIT, 0xBF0B, 0x02},
-	{ISX031_REG_LEN_08BIT, 0xBF0C, 0x98},
-	{ISX031_REG_LEN_08BIT, 0xBF0D, 0x01},
-	{}
-};
+static const struct isx031_reg isx031_1920_1080_reg[] =
+	ISX031_DCROP_REG_LIST(1920, 0, 1080, 228);
+
+static const struct isx031_reg isx031_1280_720_30fps_reg[] =
+	ISX031_DCROP_REG_LIST(1280, 320, 720, 408);
+
+static const struct isx031_reg isx031_1920_1440_30fps_reg[] =
+	ISX031_DCROP_REG_LIST(1920, 0, 1440, 48);
+
+static const struct isx031_reg isx031_1280_960_30fps_reg[] =
+	ISX031_DCROP_REG_LIST(1280, 320, 960, 288);
 
 static const struct isx031_reg_list isx031_init_reg_list = {
 	.num_of_regs = ARRAY_SIZE(isx031_init_reg),
@@ -268,6 +241,16 @@ static const struct isx031_reg_list isx031_1920_1080_reg_list = {
 static const struct isx031_reg_list isx031_1280_720_30fps_reg_list = {
 	.num_of_regs = ARRAY_SIZE(isx031_1280_720_30fps_reg),
 	.regs = isx031_1280_720_30fps_reg,
+};
+
+static const struct isx031_reg_list isx031_1920_1440_30fps_reg_list = {
+	.num_of_regs = ARRAY_SIZE(isx031_1920_1440_30fps_reg),
+	.regs = isx031_1920_1440_30fps_reg,
+};
+
+static const struct isx031_reg_list isx031_1280_960_30fps_reg_list = {
+	.num_of_regs = ARRAY_SIZE(isx031_1280_960_30fps_reg),
+	.regs = isx031_1280_960_30fps_reg,
 };
 
 static const struct isx031_mode supported_modes[] = {
@@ -310,6 +293,22 @@ static const struct isx031_mode supported_modes[] = {
 		.datatype	= MIPI_CSI2_DT_YUV422_8B,
 		.fps		= 30,
 		.reg_list	= isx031_1280_720_30fps_reg_list,
+	},
+	{
+		.width		= 1920,
+		.height		= 1440,
+		.code		= MEDIA_BUS_FMT_UYVY8_1X16,
+		.datatype	= MIPI_CSI2_DT_YUV422_8B,
+		.fps		= 30,
+		.reg_list	= isx031_1920_1440_30fps_reg_list,
+	},
+	{
+		.width		= 1280,
+		.height		= 960,
+		.code		= MEDIA_BUS_FMT_UYVY8_1X16,
+		.datatype	= MIPI_CSI2_DT_YUV422_8B,
+		.fps		= 30,
+		.reg_list	= isx031_1280_960_30fps_reg_list,
 	},
 };
 
