@@ -218,3 +218,14 @@ for arg in "$@"; do
          -- \
        "${members[@]}"
 done
+
+# Provide a stable patch path for extracted V4L2 core sources.
+if [[ -d "$major.$minor.0/drivers/media/v4l2-core" ]]; then
+    mkdir -p drivers/media
+    if [[ -L "drivers/media/v4l2-core" ]]; then
+        rm -f "drivers/media/v4l2-core"
+    fi
+    if [[ ! -e "drivers/media/v4l2-core" ]]; then
+        ln -s "../../$major.$minor.0/drivers/media/v4l2-core" "drivers/media/v4l2-core"
+    fi
+fi

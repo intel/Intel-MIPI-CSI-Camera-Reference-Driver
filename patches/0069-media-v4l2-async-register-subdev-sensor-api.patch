@@ -1,21 +1,21 @@
 From 3c80d63ecdcf51a4501cfd85c29db4b3bcd3ea21 Mon Sep 17 00:00:00 2001
 From: Sodhi, Vunny <vunny.sodhi@intel.com>
 Date: Fri, 18 Sep 2026 15:45:00 +0800
-Subject: [PATCH] media: v4l2: adapt async sensor registration for 6.18
+Subject: [PATCH] media: v4l2: adapt async sensor registration for 6.18+
 
-Kernel 6.18 makes v4l2_async_register_subdev_sensor() a convenience
-macro and exposes its implementation as
+Kernel 6.18+ exposes v4l2_async_register_subdev_sensor() as a
+convenience macro and provides its implementation as
 __v4l2_async_register_subdev_sensor(). Rename the copied V4L2 core
 implementation and its exported symbol to match that API.
 
 ---
- 6.18.0/drivers/media/v4l2-core/v4l2-fwnode.c | 6 +++---
+ drivers/media/v4l2-core/v4l2-fwnode.c | 6 +++---
  1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/6.18.0/drivers/media/v4l2-core/v4l2-fwnode.c b/6.18.0/drivers/media/v4l2-core/v4l2-fwnode.c
+diff --git a/drivers/media/v4l2-core/v4l2-fwnode.c b/drivers/media/v4l2-core/v4l2-fwnode.c
 index 8b61d6d..dffb877 100644
---- a/6.18.0/drivers/media/v4l2-core/v4l2-fwnode.c
-+++ b/6.18.0/drivers/media/v4l2-core/v4l2-fwnode.c
+--- a/drivers/media/v4l2-core/v4l2-fwnode.c
++++ b/drivers/media/v4l2-core/v4l2-fwnode.c
 @@ -1255,7 +1255,7 @@ v4l2_async_nf_parse_fwnode_sensor(struct device *dev,
  	return 0;
  }
