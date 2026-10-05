@@ -186,15 +186,56 @@ Build and install these software dependencies in your target system:
 <details>
 <summary>Show details </summary>
 
-- ipu-camera-bins (E.g. [IPU6EP, IPU6EPMTL](https://github.com/intel/ipu6-camera-bins/tree/iotg_ipu6) / [IPU75XA, IPU8](https://github.com/intel/ipu7-camera-bins))
-- ipu-camera-hal (E.g. [IPU6EP, IPU6EPMTL](https://github.com/intel/ipu6-camera-hal/tree/iotg_ipu6) / [IPU75XA, IPU8](https://github.com/intel/ipu7-camera-hal))
-- [icamerasrc](https://github.com/intel/icamerasrc/tree/icamerasrc_slim_api)
+1. Deploy ipu-camera-bins (E.g. [IPU6EP, IPU6EPMTL](https://github.com/intel/ipu6-camera-bins/tree/iotg_ipu6) / [IPU75XA, IPU8](https://github.com/intel/ipu7-camera-bins))
+2. Compile and install ipu-camera-hal (E.g. [IPU6EP, IPU6EPMTL](https://github.com/intel/ipu6-camera-hal/tree/iotg_ipu6) / [IPU75XA, IPU8](https://github.com/intel/ipu7-camera-hal))
+3. Compile and install [icamerasrc](https://github.com/intel/icamerasrc/tree/icamerasrc_slim_api)
 
 | IPU Version       | ipu-camera-bins                          | ipu-camera-hal                           | icamerasrc                               |
 |-------------------|------------------------------------------|------------------------------------------|------------------------------------------|
-| IPU6EP, IPU6EPMTL | d9421fef539f24fc80c27002d5da753e193b0670 | 5aa9a3bd3d5582667915d93b0128a02953adbbbc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+| IPU6EP            | d9421fef539f24fc80c27002d5da753e193b0670 | 5aa9a3bd3d5582667915d93b0128a02953adbbbc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+| IPU6EPMTL         | d9421fef539f24fc80c27002d5da753e193b0670 | e71e793c1a4c968c168758dac9b338ba8a424adc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 | IPU75XA           | adf55525ab9d370828723b1ff8bee76ed7a492e8 | a17d17718e8df9e74940fac32beda016836ef43b | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 | IPU8              | adf55525ab9d370828723b1ff8bee76ed7a492e8 | a17d17718e8df9e74940fac32beda016836ef43b | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+
+> **Note:** \
+> The following instructions are for rebuilding ipu-camera-hal, which is a prerequisite to stream ASL-enabled sensors using GStreamer and icamerasrc.
+
+For IPU6EPMTL, please build using the steps below. For more details, refer to [ipu6-camera-hal](https://github.com/intel/ipu6-camera-hal).
+
+    git clone https://github.com/intel/ipu6-camera-hal.git
+    cd ipu6-camera-hal
+    mkdir build && cd build
+    git fetch origin pull/175/head:pr-175
+    git checkout e71e793c1a4c968c168758dac9b338ba8a424adc
+    cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DBUILD_CAMHAL_ADAPTOR=ON \
+    -DBUILD_CAMHAL_PLUGIN=ON \
+    -DIPU_VERSIONS="ipu6epmtl" \
+    -DUSE_PG_LITE_PIPE=ON \
+    ..
+    make && sudo make install
+    cd ..
+
+For IPU75XA and IPU8, please build using the steps below. For more details, refer to [ipu7-camera-hal](https://github.com/intel/ipu7-camera-hal).
+
+    git clone https://github.com/intel/ipu7-camera-hal.git
+    cd ipu7-camera-hal
+    mkdir build && cd build
+    git fetch origin pull/64/head:pr-64
+    git checkout a17d17718e8df9e74940fac32beda016836ef43b
+    cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DBUILD_CAMHAL_ADAPTOR=ON \
+    -DBUILD_CAMHAL_PLUGIN=ON \
+    -DIPU_VERSIONS="ipu75xa;ipu8" \
+    -DUSE_STATIC_GRAPH=ON \
+    -DUSE_STATIC_GRAPH_AUTOGEN=ON \
+    ..
+    make && sudo make install
+    cd ..
 
 </details>
 
