@@ -682,18 +682,9 @@ v4l2src does not support DMABuf which might hit some performance issue.
 >**Pro:** \
 icamerasrc supports DMABuf which offers better performance.
 
->**Con:** \
-Have dependency on [ipu7-camera-hal PR64](https://github.com/intel/ipu7-camera-hal/pull/64)
-
-Prerequisites:
-
-**ipu7-camera-hal already cloned and compiled previously**
-
-    cd ipu7-camera-hal
-    git fetch origin pull/64/head:pr-64
-    git checkout pr-64
-
-    # Rebuild and Reinstall ipu7-camera-hal
+>**Con:**
+>1. IPU75XA and IPU8 depend on [ipu7-camera-hal PR64](https://github.com/intel/ipu7-camera-hal/pull/64)
+>2. IPU6EPMTL depends on [ipu6-camera-hal PR175](https://github.com/intel/ipu6-camera-hal/pull/175)
 
 Export environment variables below
 
