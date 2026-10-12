@@ -2590,7 +2590,7 @@ static int ds5_sensor_set_stream(struct v4l2_subdev *sd, u64 streams_mask, int e
 	struct ds5 *state = container_of(sd, struct ds5, mux.sd.subdev);
 	struct ds5_sensor *sensor = container_of(sd, struct ds5_sensor, sd);
 	unsigned long start, timeout;
-	bool started = false;
+	bool started = false, stopped = false;
 	int ret, stream_ret, config_ret, vc_id, i;
 	int restore_val;
 	u16 streaming, status;
@@ -2702,23 +2702,37 @@ static int ds5_sensor_set_stream(struct v4l2_subdev *sd, u64 streams_mask, int e
 			goto restore_s_state;
 		}
 
-		u16 depth_status, rgb_status, ir_status, imu_status;
-        ds5_read(state, DS5_DEPTH_STREAM_STATUS, &depth_status);
-        ds5_read(state, DS5_RGB_STREAM_STATUS, &rgb_status);
-        ds5_read(state, DS5_IR_STREAM_STATUS, &ir_status);
-        ds5_read(state, DS5_IMU_STREAM_STATUS, &imu_status);
-		dev_dbg(&state->client->dev,
-			"%s: after stop stream: depth status %x, rgb status %x, ir status %x, imu status %x\n",
-			__func__, depth_status, rgb_status, ir_status, imu_status);
+		start = jiffies;
+		for (timeout = start + msecs_to_jiffies(DS5_STREAM_START_TIMEOUT), i = 0;
+		     time_before(jiffies, timeout);
+		     i++, msleep_range(i * DS5_START_POLL_TIME)) {
+			stream_ret = ds5_read(state, stream_status_base, &streaming);
+			config_ret = ds5_read(state, config_status_base, &status);
+			if (stream_ret >= 0 && config_ret >= 0 &&
+			    streaming == DS5_STREAM_IDLE &&
+			    !(status & DS5_STATUS_STREAMING)) {
+				stopped = true;
+				break;
+			}
+		}
 
-		u16 depth_config, rgb_config, ir_config, imu_config;
-		ds5_read(state, DS5_DEPTH_CONFIG_STATUS, &depth_config);
-        ds5_read(state, DS5_RGB_CONFIG_STATUS, &rgb_config);
-        ds5_read(state, DS5_IR_CONFIG_STATUS, &ir_config);
-        ds5_read(state, DS5_IMU_CONFIG_STATUS, &imu_config);
-		dev_dbg(&state->client->dev,
-			"%s: after stop stream: depth config %x, rgb config %x, ir config %x, imu config %x\n",
-			__func__, depth_config, rgb_config, ir_config, imu_config);
+		if (!stopped) {
+			stream_ret = ds5_read(state, stream_status_base, &streaming);
+			config_ret = ds5_read(state, config_status_base, &status);
+			if (stream_ret >= 0 && config_ret >= 0 &&
+			    streaming == DS5_STREAM_IDLE &&
+			    !(status & DS5_STATUS_STREAMING))
+				stopped = true;
+		}
+
+		if (!stopped) {
+			dev_err(&state->client->dev,
+				"%s stop streaming timed out after %ums, polls %d, stream status 0x%04x, config status 0x%04x\n",
+				__func__, jiffies_to_msecs(jiffies - start), i,
+				streaming, status);
+			ret = -EAGAIN;
+			goto restore_s_state;
+		}
 	}
 
 	ds5_read(state, config_status_base, &status);
