@@ -2591,7 +2591,7 @@ static int ds5_sensor_set_stream(struct v4l2_subdev *sd, u64 streams_mask, int e
 	struct ds5_sensor *sensor = container_of(sd, struct ds5_sensor, sd);
 	unsigned long start, timeout;
 	bool started = false;
-	int ret, vc_id, i;
+	int ret, stream_ret, config_ret, vc_id, i;
 	int restore_val;
 	u16 streaming, status;
 	u16 stream_status_base;
@@ -2670,8 +2670,15 @@ static int ds5_sensor_set_stream(struct v4l2_subdev *sd, u64 streams_mask, int e
 		}
 
 		if (!started) {
-			ds5_read(state, stream_status_base, &streaming);
-			ds5_read(state, config_status_base, &status);
+			stream_ret = ds5_read(state, stream_status_base, &streaming);
+			config_ret = ds5_read(state, config_status_base, &status);
+			if (stream_ret >= 0 && config_ret >= 0 &&
+			    streaming == DS5_STREAM_STREAMING &&
+			    (status & DS5_STATUS_STREAMING))
+				started = true;
+		}
+
+		if (!started) {
 			dev_err(&state->client->dev,
 				"%s start streaming timed out after %ums, retries %d, stream status 0x%04x, config status 0x%04x\n",
 				__func__, jiffies_to_msecs(jiffies - start), i,
