@@ -431,6 +431,9 @@ static int max_des_select_links(struct max_des_priv *priv, unsigned int mask)
 	struct max_des *des = priv->des;
 	int ret;
 
+	if (!des->ops->select_links)
+		return 0;
+
 	ret = des->ops->select_links(des, mask);
 	if (ret) {
 		priv->bound_link_mask_valid = false;
