@@ -15,9 +15,43 @@ jobs:
           fetch-depth: 0
       - name: Download latest checkpatch.pl from kernel tree
         run: |
-          base="https://raw.githubusercontent.com/torvalds/linux/master/scripts"
+          mirrors=(
+            "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/scripts"
+            "https://raw.githubusercontent.com/torvalds/linux/master/scripts"
+          )
+          # Mirrors may answer HTTP 200 with an HTML anti-bot challenge, so
+          # validate the content and treat anything unexpected as a failure.
+          validate() {
+            local name="$1" file="$2"
+            [ -s "$file" ] || return 1
+            case "$name" in
+              checkpatch.pl)
+                [ "$(head -n1 "$file")" = '#!/usr/bin/env perl' ] &&
+                  perl -c "$file" >/dev/null 2>&1 ;;
+              spelling.txt)
+                grep -q '||' "$file" &&
+                  ! grep -qvE '^(#.*|[^|]+\|\|[^|]+)?$' "$file" ;;
+              const_structs.checkpatch)
+                ! grep -qvE '^[A-Za-z_][A-Za-z0-9_]*$' "$file" ;;
+              *) return 1 ;;
+            esac
+          }
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
           for f in checkpatch.pl spelling.txt const_structs.checkpatch; do
-            curl -fsSL "${base}/${f}" -o "$GITHUB_WORKSPACE/${f}"
+            for base in "${mirrors[@]}"; do
+              if curl -fsSL --retry 3 "${base}/${f}" -o "$tmp"; then
+                if validate "$f" "$tmp"; then
+                  mv "$tmp" "$GITHUB_WORKSPACE/${f}"
+                  continue 2
+                fi
+                echo "::warning::Invalid content for ${f} from ${base} (possible anti-bot page)"
+              else
+                echo "::warning::Failed to fetch ${f} from ${base}"
+              fi
+            done
+            echo "::error::Unable to download ${f} from any mirror"
+            exit 1
           done
           chmod +x "$GITHUB_WORKSPACE/checkpatch.pl"
       - name: Run checkpatch review
