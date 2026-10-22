@@ -325,7 +325,7 @@ find_all_deserializers() {
     done
 }
 
-# Per-DES arrays (indexed by deserializer index 'd', 0..N-1):
+# Per-DES arrays (indexed by ACPI DESn number; indices may be sparse):
 declare -a DES_PATH=() DES_BA=() DES_PREFIX_NAME=() DES_SRC_PAD=()
 declare -a IPU_CSI2_ENTITY=() IPU_BASE=() CAPTURE_BASE=()
 NUM_DES=0
@@ -446,13 +446,16 @@ discover() {
     local des_dirs=()
     mapfile -t des_dirs < <(find_all_deserializers)
     if [ "${#des_dirs[@]}" -gt 0 ]; then
-        local d=0 dir
+        local d=0 dir des_path
         for dir in "${des_dirs[@]}"; do
-            if discover_one_des "$d" "$dir"; then
-                d=$((d + 1))
+            des_path=$(cat "$dir/path")
+            if [[ $des_path =~ \.DES([0-9]+)$ ]]; then
+                d=$((10#${BASH_REMATCH[1]}))
             fi
+            discover_one_des "$d" "$dir"
+            d=$((d + 1))
         done
-        NUM_DES=$d
+        NUM_DES=${#DES_PATH[@]}
     fi
     if [ "$NUM_DES" -eq 0 ] && [ "${#des_dirs[@]}" -gt 0 ]; then
         echo "WARN: ${#des_dirs[@]} deserializer ACPI device(s) found" \
@@ -481,7 +484,7 @@ discover_mipi_cameras() {
             # Skip sensors already discovered behind a deserializer.
             path=$(cat "$d/path" 2>/dev/null) || continue
             local skip=0 di
-            for ((di = 0; di < NUM_DES; di++)); do
+            for di in "${!DES_PATH[@]}"; do
                 case "$path" in "${DES_PATH[$di]}."*) skip=1; break ;; esac
             done
             [ "$skip" -eq 1 ] && continue
@@ -561,7 +564,7 @@ detect_gmsl_csi2() {
         return 1
     }
     local d des_entity csi2 src_pad base line
-    for ((d = 0; d < NUM_DES; d++)); do
+    for d in "${!DES_PATH[@]}"; do
         des_entity="${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}"
         # Extract "<src_pad> <csi2_entity>" from the entity block.
         line=$(awk -v des="$des_entity" '
@@ -601,7 +604,7 @@ detect_gmsl_csi2() {
 print_topology() {
     echo "Discovered topology:"
     local d l key
-    for ((d = 0; d < NUM_DES; d++)); do
+    for d in "${!DES_PATH[@]}"; do
         printf "  DES%d  %-34s %s %s -> %s (capture base /dev/video%s)\n" \
             "$d" "${DES_PATH[$d]}" "${DES_PREFIX_NAME[$d]}" "${DES_BA[$d]}" \
             "${IPU_CSI2_ENTITY[$d]}" "${CAPTURE_BASE[$d]}"
@@ -975,7 +978,7 @@ declare -A CFG_STREAM_FPS_REQUEST=()
 
 if [ "$#" -eq 0 ]; then
     # Default: program every discovered link with its default or fixed stream.
-    for ((d = 0; d < NUM_DES; d++)); do
+    for d in "${!DES_PATH[@]}"; do
         for l in ${LINKS_OF[$d]}; do
             key="${d}_${l}"
             CFG_DES+=("$d")
@@ -1074,15 +1077,17 @@ else
             || die "format must be a media-bus code (got '$format')"
         [ -z "$fps" ] || [[ $fps =~ ^[0-9]+([.][0-9]+)?$ ]] \
             || die "fps must be numeric (got '$fps')"
-        # Default des=0 when only one DES is present and des= was omitted.
+        # Default to the sole usable DES when des= was omitted.
         if [ -z "$des" ]; then
             if [ "$NUM_DES" -gt 1 ]; then
                 die "des= required when multiple deserializers are present (in '$arg')"
             fi
-            des=0
+            [ "$NUM_DES" -gt 0 ] || die "no usable deserializer discovered (in '$arg')"
+            des=${!DES_PATH[@]}
         fi
         [[ $des =~ ^[0-9]+$ ]] || die "des must be numeric (got '$des')"
-        (( des < NUM_DES )) || die "des=$des out of range (have ${NUM_DES} DES)"
+        [ -n "${DES_PATH[$des]:-}" ] || die \
+            "des=$des not available (usable DES indices: ${!DES_PATH[*]})"
         key="${des}_${link}"
         [ -n "${CAM_MODEL[$key]:-}" ] || die "no camera discovered on DES${des} link ${link}"
         model=${CAM_MODEL[$key]}
@@ -1322,7 +1327,7 @@ for k in "${!CFG_LINKS[@]}"; do
 done
 
 # Apply per-DES route tables.
-for ((d = 0; d < NUM_DES; d++)); do
+for d in "${!DES_PATH[@]}"; do
     [ -n "${DES_ROUTES[$d]:-}" ] || continue
     mc_R "\"${DES_PREFIX_NAME[$d]} ${DES_BA[$d]}\" [${DES_ROUTES[$d]}]"
     mc_R "\"${IPU_CSI2_ENTITY[$d]}\" [${CSI2_ROUTES[$d]}]"
