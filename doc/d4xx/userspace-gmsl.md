@@ -503,7 +503,7 @@ Please refer to the output of mc-setup.sh for the correct video node to use.
 
 >Con:
 >1. IPU75XA and IPU8 depend on [ipu7-camera-hal pull request #64](https://github.com/intel/ipu7-camera-hal/pull/64)
->2. IPU6EPMTL depends on [ipu6-camera-hal pull request #175](https://github.com/intel/ipu6-camera-hal/pull/175)
+>2. IPU6EPMTL depends on [ipu6-camera-hal pull request #188](https://github.com/intel/ipu6-camera-hal/pull/188)
 
 > Note: icamerasrc now enables all Depth, RGB, IR, and IMU streams.\
 > The Depth stream still requires additional conversion to produce meaningful data. Please refer to the [RealSense SDK section](#verify-stream-using-realsense-sdk) for more details.
@@ -532,7 +532,7 @@ Export environment variables below
 
 #### Libcamhal Config for IPU6EPMTL
 
-Rebuild [ipu6-camera-hal](https://github.com/intel/ipu6-camera-hal) with pull request [#175](https://github.com/intel/ipu6-camera-hal/pull/175)
+Rebuild [ipu6-camera-hal](https://github.com/intel/ipu6-camera-hal) with pull request [#188](https://github.com/intel/ipu6-camera-hal/pull/188)
 
 ---
 #### Libcamhal Config for IPU75XA

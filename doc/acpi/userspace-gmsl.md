@@ -684,7 +684,7 @@ icamerasrc supports DMABuf which offers better performance.
 
 >**Con:**
 >1. IPU75XA and IPU8 depend on [ipu7-camera-hal PR64](https://github.com/intel/ipu7-camera-hal/pull/64)
->2. IPU6EPMTL depends on [ipu6-camera-hal PR175](https://github.com/intel/ipu6-camera-hal/pull/175)
+>2. IPU6EPMTL depends on [ipu6-camera-hal PR188](https://github.com/intel/ipu6-camera-hal/pull/188)
 
 Export environment variables below
 
