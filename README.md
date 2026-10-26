@@ -193,7 +193,7 @@ Build and install these software dependencies in your target system:
 | IPU Version       | ipu-camera-bins                          | ipu-camera-hal                           | icamerasrc                               |
 |-------------------|------------------------------------------|------------------------------------------|------------------------------------------|
 | IPU6EP            | d9421fef539f24fc80c27002d5da753e193b0670 | 5aa9a3bd3d5582667915d93b0128a02953adbbbc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
-| IPU6EPMTL         | d9421fef539f24fc80c27002d5da753e193b0670 | e71e793c1a4c968c168758dac9b338ba8a424adc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+| IPU6EPMTL         | ef5b577a5cb585f5cd5986b8e8002619484a6c0f | 34840b1aeb47aa42482e8857142f7484e245589c | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 | IPU75XA           | 0525cdfb501b56dcffbacd4e46a13c63ab0f2866 | a78ca0eee0adacc92914176099910966ec84561c | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 | IPU8              | 0525cdfb501b56dcffbacd4e46a13c63ab0f2866 | a78ca0eee0adacc92914176099910966ec84561c | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 
@@ -205,8 +205,8 @@ For IPU6EPMTL, please build using the steps below. For more details, refer to [i
     git clone https://github.com/intel/ipu6-camera-hal.git
     cd ipu6-camera-hal
     mkdir build && cd build
-    git fetch origin pull/175/head:pr-175
-    git checkout e71e793c1a4c968c168758dac9b338ba8a424adc
+    git fetch origin pull/188/head:pr-188
+    git checkout 34840b1aeb47aa42482e8857142f7484e245589c
     cmake -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DCMAKE_INSTALL_LIBDIR=lib \
