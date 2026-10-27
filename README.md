@@ -194,8 +194,8 @@ Build and install these software dependencies in your target system:
 |-------------------|------------------------------------------|------------------------------------------|------------------------------------------|
 | IPU6EP            | d9421fef539f24fc80c27002d5da753e193b0670 | 5aa9a3bd3d5582667915d93b0128a02953adbbbc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 | IPU6EPMTL         | d9421fef539f24fc80c27002d5da753e193b0670 | e71e793c1a4c968c168758dac9b338ba8a424adc | 7517af78f49a18dde6de86042055aa14ebe6d184 |
-| IPU75XA           | adf55525ab9d370828723b1ff8bee76ed7a492e8 | a17d17718e8df9e74940fac32beda016836ef43b | 7517af78f49a18dde6de86042055aa14ebe6d184 |
-| IPU8              | adf55525ab9d370828723b1ff8bee76ed7a492e8 | a17d17718e8df9e74940fac32beda016836ef43b | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+| IPU75XA           | 0525cdfb501b56dcffbacd4e46a13c63ab0f2866 | a78ca0eee0adacc92914176099910966ec84561c | 7517af78f49a18dde6de86042055aa14ebe6d184 |
+| IPU8              | 0525cdfb501b56dcffbacd4e46a13c63ab0f2866 | a78ca0eee0adacc92914176099910966ec84561c | 7517af78f49a18dde6de86042055aa14ebe6d184 |
 
 > **Note:** \
 > The following instructions are for rebuilding ipu-camera-hal, which is a prerequisite to stream ASL-enabled sensors using GStreamer and icamerasrc.
@@ -223,8 +223,8 @@ For IPU75XA and IPU8, please build using the steps below. For more details, refe
     git clone https://github.com/intel/ipu7-camera-hal.git
     cd ipu7-camera-hal
     mkdir build && cd build
-    git fetch origin pull/64/head:pr-64
-    git checkout a17d17718e8df9e74940fac32beda016836ef43b
+    git fetch origin pull/83/head:pr-83
+    git checkout a78ca0eee0adacc92914176099910966ec84561c
     cmake -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DCMAKE_INSTALL_LIBDIR=lib \
@@ -233,6 +233,7 @@ For IPU75XA and IPU8, please build using the steps below. For more details, refe
     -DIPU_VERSIONS="ipu75xa;ipu8" \
     -DUSE_STATIC_GRAPH=ON \
     -DUSE_STATIC_GRAPH_AUTOGEN=ON \
+    -DDYNAMIC_PAC_BUFFERS=10 \
     ..
     make && sudo make install
     cd ..
