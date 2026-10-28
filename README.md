@@ -50,7 +50,7 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 | [IMX586](doc/imx586/kernelspace.md)         | [User Guide](doc/imx586/userspace-mipi.md)  | Leopard Imaging |❌ |✅B|❌ |❌ |
 | [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-mipi.md)  | D3 Embedded     |✅B|✅ |✅ |✅ |
 | [ISX031](doc/isx031/kernelspace.md)         | [User Guide](doc/isx031/userspace-mipi.md)  | Sensing         |✅B|✅B|✅B|❌ |
-| OV13B10                                     | [User Guide](doc/ov13b10/userspace-mipi.md) | Leopard Imaging |❌ |❌ |✅ |✅ |
+| OV13B10                                     | [User Guide](doc/ov13b10/userspace-mipi.md) | Leopard Imaging |❌ |✅ |✅ |✅ |
 
 > **Note:** \
 > Items marked with ✅ are enabled by BIOS and ASL method. \

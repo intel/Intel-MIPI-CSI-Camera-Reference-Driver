@@ -197,8 +197,8 @@ Upon setup completion, verify sensor with:
 
 | MIPI Port | Command Pipeline |
 |---|---|
-| CRD1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
-| CRD2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-uf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| CRD1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| CRD2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-uf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 **Note**: Refer to icamerasrc device-name property for more sensor details.
 
@@ -206,7 +206,7 @@ Upon setup completion, verify sensor with:
 
 | IO Mode | Command Pipeline |
 |---|---|
-| DMA MODE | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| DMA MODE | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 **Note**: Refer to icamerasrc io-mode property for more sensor details.
 
@@ -214,20 +214,20 @@ Upon setup completion, verify sensor with:
 
 | Resolution | Command Pipeline |
 |---|---|
-| 1280x960 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| 1280x960 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 #### Sensor Format Selection
 
 | Format | Command Pipeline |
 |---|---|
-| NV12 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| NV12 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 #### Number of Stream (Single Stream / Multi Stream) Selection
 
 | Number of Stream | Command Pipeline |
 |---|---|
-| x1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
-| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 scene-mode=normal device-name=ov13b10-uf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| x1 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
+| x2 | gst-launch-1.0 icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-wf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false icamerasrc num-buffers=-1 scene-mode=auto device-name=ov13b10-uf printfps=true io-mode=dma_mode ! 'video/x-raw(memory:DMABuf),drm-format=NV12,width=1280,height=960' ! glimagesink sync=false |
 
 ## Streaming Result
 
