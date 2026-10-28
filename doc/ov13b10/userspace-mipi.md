@@ -6,6 +6,87 @@ This document details the configuration settings for the OV13B10 MIPI CSI-2 sens
 
 > **Note:** On Leopard Imaging HW, it is hardwired to use 24MHz External Clock on the adapter, instead of getting external clock from SOC.
 
+### MIPI Camera Configuration for IPU6EPMTL
+
+Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
+
+|                            | Control Logic 1      | Control Logic 2      |
+|---                         |---                   |---                   |
+| Control Logic Type         | Discrete             | Discrete             |
+| CRD Version                | CRD-D                | CRD-D                |
+| Input Clock                | 19.2MHz              | 19.2MHz              |
+| PCH Clock                  | IMGCLKOUT_2          | IMGCLKOUT_0          |
+| Number of GPIOs            | 3                    | 3                    |
+| GPIO Pin 0                 |                      |                      |
+| Group Pad Number           | 23                   | 22                   |
+| Group Number               | D_E_F_V              | D_E_F_V              |
+| Com Number                 | COM0                 | COM0                 |
+| Function                   | RESET                | RESET                |
+| Active Value               | 1                    | 1                    |
+| Initial Value              | 0                    | 0                    |
+| GPIO Pin 1                 |                      |                      |
+| Group Pad Number           | 8                    | 9                    |
+| Group Number               | C                    | C                    |
+| Com Number                 | COM0                 | COM0                 |
+| Function                   | Power_En             | Power_En             |
+| Active Value               | 1                    | 1                    |
+| Initial Value              | 0                    | 0                    |
+| GPIO Pin 2                 |                      |                      |
+| Group Pad Number           | 20                   | 21                   |
+| Group Number               | D_E_F_V              | D_E_F_V              |
+| Com Number                 | COM3                 | COM3                 |
+| Function                   | pLED_En              | pLED_En              |
+| Active Value               | 1                    | 1                    |
+| Initial Value              | 0                    | 0                    |
+
+|                            | Camera1 Link options | Camera2 Link Options |
+|---                         |---                   | ---                  |
+| Sensor Model               | OVTI13B1             | OVTI13B1             |
+| Lanes Clock division       | 4 4 2 2              | 4 4 2 2              |
+| CRD Version                | CRD-D                | CRD-D                |
+| GPIO control               | Control Logic 1      | Control Logic 2      |
+| Camera position            | Back                 | Front                |
+| Flash Support              | Enabled              | Enabled              |
+| Privacy LED                | Driver default       | Driver default       |
+| Rotation                   | 0                    | 0                    |
+| Voltage Rail               |                      | 3 voltage rail       |
+| PPR Value                  | 10                   | 10                   |
+| PPR Unit                   | A                    | A                    |
+| Camera module name         | 09B13                | 09B13                |
+| MIPI port                  | 0                    | 4                    |
+| LaneUsed                   | x4                   | x4                   |
+| MCLK                       | 19200000             | 19200000             |
+| EEPROM Type                | ROM_EEPROM_BRCA016GWZ| ROM_EEPROM_BRCA016GWZ|
+| VCM Type                   | VCM_DW9714           | VCM_DW9714           |
+| Number of I2C Components   | 7                    | 7                    |
+| I2C Channel                | I2C1                 | I2C0                 |
+| Device 0                   |                      |                      |
+| I2C Address                | 10                   | 10                   |
+| Device Type                | Sensor               | Sensor               |
+| Device 1                   |                      |                      |
+| I2C Address                | C                    | C                    |
+| Device Type                | VCM                  | VCM                  |
+| Device 2                   |                      |                      |
+| I2C Address                | 50                   | 50                   |
+| Device Type                | EEPROM               | EEPROM               |
+| Device 3                   |                      |                      |
+| I2C Address                | 51                   | 51                   |
+| Device Type                | EEPROM_EXT1          | EEPROM_EXT1          |
+| Device 4                   |                      |                      |
+| I2C Address                | 52                   | 52                   |
+| Device Type                | EEPROM_EXT2          | EEPROM_EXT2          |
+| Device 5                   |                      |                      |
+| I2C Address                | 53                   | 53                   |
+| Device Type                | EEPROM_EXT3          | EEPROM_EXT3          |
+| Device 6                   |                      |                      |
+| I2C Address                | 54                   | 54                   |
+| Device Type                | EEPROM_EXT4          | EEPROM_EXT4          |
+| Customize Device ID List   |                      |                      |
+| Customize Device ID Number | 17                   | 17                   |
+| Customize Device ID Number | 18                   | 18                   |
+| Customize Device ID Number | 19                   | 19                   |
+| Flash Driver Selection     | Disabled             | Disabled             |
+
 ### MIPI Camera Configuration for IPU75XA
 
 Config path: `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration`
