@@ -4,7 +4,7 @@
  *
  * SSDT overlay: D457 (D4xx) GMSL camera configuration on PTL platform.
  *   Two MAX96724 deserializers (DES0, DES1) with CPHY connection to PTL platform,
- *   each carrying two D457 cameras over GMSL Links 0..1, fronted by MAX9295A serializers.
+ *   each carrying four D457 cameras over GMSL Links 0..3, fronted by MAX9295A serializers.
  *   Each D457 exposes four virtual channels (X/Y/Z/U) for its image streams.
  *
  * DES-level defines (set per DESx, undef'd at the end of each Device):
@@ -139,6 +139,84 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #undef EXTERNAL_FRAME_SYNC
 #endif
 
+            // Channel 2
+            #define DESCH_LINK_NUM 2
+            #define DESCH_CH CH02
+            #define DESCH_SER SER2
+            #define DESCH_CAM CAM2
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH02"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH02.SER2"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH02.SER2
+            #define DESCH_SER_GPIOREF ^^SER2
+            #define CAM_ALIAS 0x56
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
+#endif
+
+            // Channel 3
+            #define DESCH_LINK_NUM 3
+            #define DESCH_CH CH03
+            #define DESCH_SER SER3
+            #define DESCH_CAM CAM3
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES0.CH03"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES0.CH03.SER3"
+            #define DESCH_SER_REF \_SB.PC00.DES0.CH03.SER3
+            #define DESCH_SER_GPIOREF ^^SER3
+            #define CAM_ALIAS 0x57
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
+#endif
+
             // Clean up DES0-level defines
             #undef DES_PHY_TYPE
             #undef DES_I2C_ADDR
@@ -217,6 +295,84 @@ DefinitionBlock ("", "SSDT", 2, "", "IMG_IPU", 0x20260513)
             #define DESCH_SER_REF \_SB.PC00.DES1.CH01.SER1
             #define DESCH_SER_GPIOREF ^^SER1
             #define CAM_ALIAS 0x55
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
+#endif
+
+            // Channel 2
+            #define DESCH_LINK_NUM 2
+            #define DESCH_CH CH02
+            #define DESCH_SER SER2
+            #define DESCH_CAM CAM2
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH02"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH02.SER2"
+            #define DESCH_SER_REF \_SB.PC00.DES1.CH02.SER2
+            #define DESCH_SER_GPIOREF ^^SER2
+            #define CAM_ALIAS 0x56
+            #define CAM_LANES 2
+            #define DESCH_SER_X_VC Package () { 0 }
+            #define DESCH_SER_Y_VC Package () { 1 }
+            #define DESCH_SER_Z_VC Package () { 2 }
+            #define DESCH_SER_U_VC Package () { 3 }
+            #include "_des_ch_common_d457.asl"
+            #undef DESCH_CH
+            #undef DESCH_SER
+            #undef DESCH_CAM
+            #undef DESCH_CH_PATH
+            #undef DESCH_SER_PATH
+            #undef DESCH_SER_REF
+            #undef DESCH_LINK_NUM
+            #undef DESCH_SER_I2C
+            #undef DESCH_SER_GPIOREF
+            #undef CAM_ALIAS
+            #undef CAM_LANES
+            #undef DESCH_SER_X_VC
+            #undef DESCH_SER_Y_VC
+            #undef DESCH_SER_Z_VC
+            #undef DESCH_SER_U_VC
+#ifdef DESCH_SER_EXTRA_GPIO_PIN
+            #undef DESCH_SER_EXTRA_GPIO_PIN
+#endif
+#ifdef EXTERNAL_FRAME_SYNC
+            #undef EXTERNAL_FRAME_SYNC
+#endif
+
+            // Channel 3
+            #define DESCH_LINK_NUM 3
+            #define DESCH_CH CH03
+            #define DESCH_SER SER3
+            #define DESCH_CAM CAM3
+            #define DESCH_SER_I2C 0x40
+            #define DESCH_CH_PATH "\\_SB.PC00.DES1.CH03"
+            #define DESCH_SER_PATH "\\_SB.PC00.DES1.CH03.SER3"
+            #define DESCH_SER_REF \_SB.PC00.DES1.CH03.SER3
+            #define DESCH_SER_GPIOREF ^^SER3
+            #define CAM_ALIAS 0x57
             #define CAM_LANES 2
             #define DESCH_SER_X_VC Package () { 0 }
             #define DESCH_SER_Y_VC Package () { 1 }

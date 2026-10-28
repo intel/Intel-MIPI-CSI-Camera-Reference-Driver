@@ -43,14 +43,18 @@ For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspac
 ### ASL Configuration for IPU75XA
 
 <details>
-<summary> MAX96724 CPHY + 4x D457 GMSL sensor use case </summary>
+<summary> MAX96724 CPHY + 8x D457 GMSL sensor use case </summary>
 
 - DES0 (MAX96724)
     - Link 0: D457
     - Link 1: D457
+    - Link 2: D457
+    - Link 3: D457
 - DES1 (MAX96724)
     - Link 0: D457
     - Link 1: D457
+    - Link 2: D457
+    - Link 3: D457
 
 >**ASL:** [max96724_rs_d457.asl](../../acpi/ipu7/max96724_rs_d457.asl)\
 For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspace.md#compile-and-load).
@@ -63,14 +67,18 @@ For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspac
 ### ASL Configuration for IPU8
 
 <details>
-<summary> MAX96724 CPHY + 4x D457 GMSL sensor use case </summary>
+<summary> MAX96724 CPHY + 8x D457 GMSL sensor use case </summary>
 
 - DES0 (MAX96724)
     - Link 0: D457
     - Link 1: D457
+    - Link 2: D457
+    - Link 3: D457
 - DES1 (MAX96724)
     - Link 0: D457
     - Link 1: D457
+    - Link 2: D457
+    - Link 3: D457
 
 >**ASL:** [max96724_rs_d457.asl](../../acpi/ipu8/max96724_rs_d457.asl)\
 For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspace.md#compile-and-load).
