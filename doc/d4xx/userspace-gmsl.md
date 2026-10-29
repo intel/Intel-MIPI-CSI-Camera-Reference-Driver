@@ -59,6 +59,9 @@ For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspac
 >**ASL:** [max96724_rs_d457.asl](../../acpi/ipu7/max96724_rs_d457.asl)\
 For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspace.md#compile-and-load).
 
+>**WARNING:** Each deserializer supports a **maximum of 4 streams**. Running `mc-setup.sh` without arguments selects the default **Depth+RGB** streams for every D457, which requires 8 streams per deserializer in this setup. The script then exits with `DES<N>: too many streams routed through deserializer source pad`. \
+To use all 8 cameras, select **one stream per camera**. See [8 D457 with 1 stream each](#8-d457-with-1-stream-each).
+
 </details>
 
 <p align="right">(<a href="#advanced-pipeline-configuration---per-stream-configuration">Go to Advanced Pipeline Configuration</a>)</p>
@@ -82,6 +85,9 @@ For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspac
 
 >**ASL:** [max96724_rs_d457.asl](../../acpi/ipu8/max96724_rs_d457.asl)\
 For compilation and loading, please refer to [kernelspace.md](../acpi/kernelspace.md#compile-and-load).
+
+>**WARNING:** Each deserializer supports a **maximum of 4 streams**. Running `mc-setup.sh` without arguments selects the default **Depth+RGB** streams for every D457, which requires 8 streams per deserializer in this setup. The script then exits with `DES<N>: too many streams routed through deserializer source pad`. \
+To use all 8 cameras, select **one stream per camera**. See [8 D457 with 1 stream each](#8-d457-with-1-stream-each).
 
 </details>
 
@@ -377,6 +383,47 @@ The combinations are based on [IPU7 ASL](#asl-configuration-for-ipu75xa).
     DES0 LINK1      Sensor model    d4xx
                     Stream          [depth]  640x480    UYVY8_1X16    90.000 FPS -->  /dev/video1
                     Stream          [rgb]    424x240    YUYV8_1X16     5.000 FPS -->  /dev/video5
+
+<p align="right">(<a href="#stream-verification">Go to Sensor Stream Verification</a>)</p>
+
+</details>
+
+<a id="8-d457-with-1-stream-each"></a>
+<details>
+<summary> 8 D457 with 1 stream each (2x MAX96724, IPU75XA and IPU8) </summary>
+
+Each deserializer supports a maximum of 4 streams, so with 4 D457 per deserializer only **one stream per camera** can be enabled. Running `mc-setup.sh` without arguments enables the default Depth+RGB on every camera (8 streams per deserializer) and fails.
+
+#### Command (Depth on all 8 cameras)
+
+    ../../script/acpi/mc-setup.sh \
+    des=0,link=0,stream=depth des=0,link=1,stream=depth \
+    des=0,link=2,stream=depth des=0,link=3,stream=depth \
+    des=1,link=0,stream=depth des=1,link=1,stream=depth \
+    des=1,link=2,stream=depth des=1,link=3,stream=depth
+
+#### Output
+
+    Configuration summary:
+    DES0 LINK0      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video0
+    DES0 LINK1      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video1
+    DES0 LINK2      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video2
+    DES0 LINK3      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video3
+    DES1 LINK0      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video16
+    DES1 LINK1      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video17
+    DES1 LINK2      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video18
+    DES1 LINK3      Sensor model    d4xx
+                    Stream          [depth]  1280x720   UYVY8_1X16    30.000 FPS -->  /dev/video19
+
+> Replace `stream=depth` with `stream=rgb` to enable RGB on all 8 cameras instead. Per-stream settings can also be given, e.g. `des=0,link=0,stream=[depth,format=FIXED,res=848x480,fps=30]`. \
+> The video node numbers depend on the board and ASL configuration; always use the nodes reported by mc-setup.sh.
 
 <p align="right">(<a href="#stream-verification">Go to Sensor Stream Verification</a>)</p>
 
