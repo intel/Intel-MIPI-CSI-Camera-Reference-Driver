@@ -445,6 +445,17 @@ discover_one_des() {
 discover() {
     local des_dirs=()
     mapfile -t des_dirs < <(find_all_deserializers)
+
+    # Every deserializer ACPI path, ignoring DES_HID=/DES_BUSADDR=.
+    local all_hid all_dir all_path
+    for all_hid in "${!DES_PREFIX[@]}"; do
+        for all_dir in /sys/bus/acpi/devices/${all_hid}:*; do
+            [ -d "$all_dir" ] || continue
+            all_path=$(cat "$all_dir/path" 2>/dev/null) || continue
+            [ -n "$all_path" ] && ALL_DES_PATHS+=("$all_path")
+        done
+    done
+
     if [ "${#des_dirs[@]}" -gt 0 ]; then
         local d=0 dir des_path
         for dir in "${des_dirs[@]}"; do
@@ -472,36 +483,84 @@ discover() {
 
 # ---- Direct MIPI camera support ---------------------------------------------
 declare -a MIPI_BA=() MIPI_PREFIX=() MIPI_MODEL=() MIPI_CSI2=() MIPI_CAP=()
+declare -a MIPI_PATH=()
+declare -a ALL_DES_PATHS=()
 NUM_MIPI=0
+# The direct MIPI cameras form one more camera group after the deserializers.
+# -1 means there are none. mipi=N selects a camera in this group.
+MIPI_GROUP=-1
 
 discover_mipi_cameras() {
-    local hid model prefix d ba path idx=0
+    local hid model prefix d ba path leaf idx count=0
     for hid in "${!MIPI_SENSOR_HID[@]}"; do
-        model=${MIPI_SENSOR_HID[$hid]}
-        prefix=${SENSOR_PREFIX[$hid]}
         for d in /sys/bus/acpi/devices/${hid}:*; do
             [ -d "$d" ] || continue
-            # Skip sensors already discovered behind a deserializer.
+            # Skip sensors behind a deserializer, including one whose ACPI
+            # device exists but couldn't be discovered (driver not bound, no
+            # usable child): otherwise it would be misclassified as direct
+            # MIPI and its serializer/deserializer bypassed entirely.
             path=$(cat "$d/path" 2>/dev/null) || continue
             local skip=0 di
-            for di in "${!DES_PATH[@]}"; do
-                case "$path" in "${DES_PATH[$di]}."*) skip=1; break ;; esac
+            for di in "${!ALL_DES_PATHS[@]}"; do
+                case "$path" in "${ALL_DES_PATHS[$di]}."*) skip=1; break ;; esac
             done
             [ "$skip" -eq 1 ] && continue
+
+            # See doc/acpi/userspace-mipi.md for how mipi=N is numbered.
+            leaf=${path##*.}            # "\_SB_.PC00.CAM1" -> "CAM1"
+            if [[ $leaf =~ ^CAM([0-9]+)$ ]]; then
+                idx=$((10#${BASH_REMATCH[1]}))
+            else
+                echo "WARN: cannot parse camera index from '${path}';" \
+                     "expected a CAMn device; skipping" >&2
+                continue
+            fi
+            if [ -n "${MIPI_PATH[$idx]:-}" ]; then
+                echo "WARN: mipi=${idx} is already ${MIPI_PATH[$idx]};" \
+                     "skipping ${path}" >&2
+                continue
+            fi
+
+            model=${MIPI_SENSOR_HID[$hid]}
+            prefix=${SENSOR_PREFIX[$hid]}
             ba=$(acpi_busaddr "$d" "$prefix") || continue
+            MIPI_PATH[$idx]=$path
             MIPI_BA[$idx]=$ba; MIPI_PREFIX[$idx]=$prefix; MIPI_MODEL[$idx]=$model
-            idx=$((idx + 1))
+            count=$((count + 1))
         done
     done
-    NUM_MIPI=$idx
-    [ "$NUM_MIPI" -gt 0 ] && echo "Discovered $NUM_MIPI direct MIPI camera(s)"
+
+    NUM_MIPI=$count
+    [ "$NUM_MIPI" -eq 0 ] && return 0
+
+    # Register them in the per-camera tables the deserializer path uses, so
+    # everything downstream of discovery treats both kinds the same. The
+    # indices are the SSDT ones, so they can have gaps.
+    # DES indices can be sparse (ACPI DESn numbers), so pick an index above
+    # the highest one rather than NUM_DES, which could collide with a DES.
+    MIPI_GROUP=0
+    local di
+    for di in "${!DES_PATH[@]}"; do
+        [ "$di" -lt "$MIPI_GROUP" ] || MIPI_GROUP=$((di + 1))
+    done
+    local i key links=""
+    for i in "${!MIPI_PATH[@]}"; do
+        key="${MIPI_GROUP}_${i}"
+        CAM_PATH[$key]=${MIPI_PATH[$i]}
+        CAM_BA[$key]=${MIPI_BA[$i]}
+        CAM_PREFIX[$key]=${MIPI_PREFIX[$i]}
+        CAM_MODEL[$key]=${MIPI_MODEL[$i]}
+        links+="${links:+ }$i"
+    done
+    LINKS_OF[$MIPI_GROUP]=$links
+    echo "Discovered $NUM_MIPI direct MIPI camera(s)"
 }
 
 detect_mipi_csi2() {
     [ "$NUM_MIPI" -eq 0 ] && return 0
-    local topo i cam csi2 base
+    local topo i cam csi2
     topo=$(media-ctl -p 2>/dev/null) || return 1
-    for ((i = 0; i < NUM_MIPI; i++)); do
+    for i in "${!MIPI_PATH[@]}"; do
         cam="${MIPI_PREFIX[$i]} ${MIPI_BA[$i]}"
         csi2=$(awk -v c="$cam" '
             /- entity.*: / { f = index($0, ": " c " (") ? 1 : 0 }
@@ -521,35 +580,63 @@ detect_mipi_csi2() {
     done
 }
 
+# Program the direct MIPI cameras picked out of CFG_* by the argument parsing
+# above. There is nothing to route on this path, the sensor feeds the CSI2
+# receiver directly, so only the pad formats, the rate and the capture link are
+# set here. Everything else is shared with the deserializer path: the same
+# arguments, the same format, size and rate validation, and the same
+# capture-node format step further down.
 setup_mipi_cameras() {
-    [ "$NUM_MIPI" -eq 0 ] && return 0
-    echo -e "\nConfiguring direct MIPI cameras..."
-    local i model cam csi2 node fmt size s sid detected pixfmt w h ipu
-    for ((i = 0; i < NUM_MIPI; i++)); do
+    local k i model cam csi2 node fmt size s sid fps actual_fps ipu
+    for k in "${!CFG_LINKS[@]}"; do
+        [ "${CFG_DES[$k]}" = "$MIPI_GROUP" ] || continue
+        i=${CFG_LINKS[$k]}
         model=${MIPI_MODEL[$i]}
         cam=${MIPI_BA[$i]}
         csi2=${MIPI_CSI2[$i]}
         node=${MIPI_CAP[$i]}
-        s=$(fixed_stream_for_model "$model") \
-            || die "no stream configuration for MIPI${i} $model"
-        sid=${STREAM_NODE[$s]}
-        detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
-            die "cannot read active format from MIPI${i} ${model} sensor"
-        read -r fmt size <<<"$detected"
-        echo "  ${MIPI_PREFIX[$i]} $cam -> $csi2 -> /dev/video$node ($fmt/$size)"
-        mc_v "\"${MIPI_PREFIX[$i]} ${cam}\":0 [fmt:${fmt}/${size} field:none]"
-        mc_v "\"${csi2}\":0 [fmt:${fmt}/${size} field:none]"
-        mc_v "\"${csi2}\":1 [fmt:${fmt}/${size} field:none]"
         ipu=${csi2% CSI2 *}
-        mc_l "\"${csi2}\":1 -> \"${ipu} ISYS Capture ${node}\":0[1]"
-        pixfmt=$(mbus_to_pixfmt "$fmt")
-        w=${size%x*}
-        h=${size#*x}
-        [ -n "$pixfmt" ] &&
-            v4l2-ctl -d "/dev/video${node}" \
-                --set-fmt-video="width=${w},height=${h},pixelformat=${pixfmt}" \
-                >/dev/null
+        # The CSI2 -> capture link belongs to the camera, not any one
+        # stream, so enable it once here rather than once per stream below.
+        mc_l "\"${csi2}\":1 -> \"${ipu} ISYS Capture ${node}\":0[1]" || \
+            die "cannot enable capture link on MIPI${i}"
+        for s in ${CFG_STREAMS[$k]}; do
+            sid=${STREAM_NODE[$s]}
+            fmt=${CFG_STREAM_FMT["${k}_${s}"]}
+            size=${CFG_STREAM_SIZE["${k}_${s}"]}
+
+            # Address pad and stream explicitly, as the deserializer path
+            # does. The sensor emits on stream sid and the CSI2 sink takes it
+            # there; the CSI2 source pad carries stream 0, one pad per
+            # capture node.
+            mc_v "\"${MIPI_PREFIX[$i]} ${cam}\":0/${sid} [fmt:${fmt}/${size} field:none]" || \
+                die "cannot set sensor pad format on MIPI${i}, stream ${s}"
+            mc_v "\"${csi2}\":0/${sid} [fmt:${fmt}/${size} field:none]" || \
+                die "cannot set CSI2 sink format on MIPI${i}, stream ${s}"
+            mc_v "\"${csi2}\":1/0 [fmt:${fmt}/${size} field:none]" || \
+                die "cannot set CSI2 source format on MIPI${i}, stream ${s}"
+
+            # Set the rate after the format, not before. A sensor picks a
+            # new mode on S_FMT, so a rate applied first is still limited by
+            # the OLD mode: switching from 1280x720 (30fps max) and asking
+            # for 1920x1536@60 would clamp to 30 if the rate went first.
+            fps=${CFG_STREAM_FPS["${k}_${s}"]}
+            if [ -n "${CFG_STREAM_FPS_APPLY["${k}_${s}"]:-}" ] &&
+                [[ $fps =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+                actual_fps=$(sensor_set_fps "$model" "$cam" "$s" "$sid" \
+                    "$fps" "MIPI${i} stream ${s}") || \
+                    die "cannot configure FPS on MIPI${i}, stream ${s}"
+                CFG_STREAM_FPS["${k}_${s}"]=$actual_fps
+            fi
+        done
     done
+}
+
+# Name a camera for messages the way it is selected on the command line: a
+# GMSL camera by its deserializer and link, a direct MIPI camera by its own
+# number.
+cam_label() {
+    if [ "$1" = "$MIPI_GROUP" ]; then echo "MIPI$2"; else echo "DES$1 link $2"; fi
 }
 
 # For each DES, locate the "Intel IPUx CSI2 N" entity wired to its source
@@ -617,7 +704,9 @@ print_topology() {
                 "${CAM_MODEL[$key]}" "${CAM_HID[$key]}"
         done
     done
-    for ((i = 0; i < NUM_MIPI; i++)); do
+    [ "$NUM_MIPI" -eq 0 ] \
+        || echo "  Direct MIPI cameras (select with mipi=N):"
+    for i in "${!MIPI_PATH[@]}"; do
         printf "  MIPI%d  %s %s -> %s (capture /dev/video%s)\n" \
             "$i" "${MIPI_PREFIX[$i]}" "${MIPI_BA[$i]}" \
             "${MIPI_CSI2[$i]}" "${MIPI_CAP[$i]}"
@@ -646,6 +735,12 @@ print_topology() {
 # D4xx defaults to depth,rgb when no stream is specified.
 #
 # When des= is omitted, des=0 is assumed (matches the legacy single-DES CLI).
+#
+# Sample MIPI Camera Use Case
+#     mc-setup.sh mipi=N,res=WxH,format=MBUS_CODE,fps=FPS
+#
+# Sample MIPI x GMSL Use Case
+#     mc-setup.sh des=0,link=0 mipi=1,res=1920x1536,fps=60
 #
 # Capture-node layout (per DES):
 #     csi2_pad = STREAM_CAPTURE_BASE[s] +
@@ -857,17 +952,15 @@ sensor_validate_fps() {
     if (( format_size_changed )) && [ -z "$requested_fps" ] && [ -n "$max_fps" ]; then
         selected_fps=$max_fps
     elif (( ! supported )) && [ -n "$max_fps" ]; then
-        if (( format_size_changed )); then
-            printf "WARN: %s: FPS '%s' is unsupported with %s/%s; " \
-                "$context" "$selected_fps" "$fmt" "$size" >&2
-            printf "using largest supported FPS '%s'\n" "$max_fps" >&2
-            selected_fps=$max_fps
-        else
-            [ -z "$requested_fps" ] || printf \
-                "WARN: %s: FPS '%s' is unsupported; retaining active FPS '%s'\n" \
-                "$context" "$requested_fps" "$active_fps" >&2
-            selected_fps=$active_fps
-        fi
+        # An unsupported rate always falls back to the mode's fastest one,
+        # whether or not format/size changed; the active FPS is only a
+        # starting point, not a safe fallback for a new request.
+        [ -z "$requested_fps" ] || printf \
+            "WARN: %s: FPS '%s' is unsupported with %s/%s; " \
+            "$context" "$requested_fps" "$fmt" "$size" >&2
+        [ -z "$requested_fps" ] || printf "using largest supported FPS '%s'\n" \
+            "$max_fps" >&2
+        selected_fps=$max_fps
     fi
     echo "$selected_fps"
 }
@@ -958,14 +1051,10 @@ discover || exit 1
 [ "$NUM_MIPI" -gt 0 ] && { detect_mipi_csi2 || exit 1; }
 print_topology
 
-# ---- GMSL programming (DES-based cameras) -----------------------------------
-# Steps below (argument parsing, pad computation, route setup, format
-# propagation, capture-node format) apply only to GMSL deserializer cameras.
-# Direct MIPI cameras are handled separately by setup_mipi_cameras() at the end.
-
 # ---- argument parsing ------------------------------------------------------
+#
+# Parse arguments for both GMSL and MIPI setups.
 
-# Each CFG entry is identified by (des_idx, link_idx) and carries a streams list.
 declare -a CFG_DES=()
 declare -a CFG_LINKS=()
 declare -a CFG_STREAMS=()
@@ -976,12 +1065,17 @@ declare -A CFG_STREAM_RES=()
 declare -A CFG_STREAM_FORMAT=()
 declare -A CFG_STREAM_FPS_REQUEST=()
 
+# Camera groups: the usable deserializers (indices can be sparse) plus the
+# direct MIPI one.
+declare -a GROUP_IDS=("${!DES_PATH[@]}")
+[ "$MIPI_GROUP" -ge 0 ] && GROUP_IDS+=("$MIPI_GROUP")
+
 if [ "$#" -eq 0 ]; then
     # Default: program every discovered link with its default or fixed stream.
-    for d in "${!DES_PATH[@]}"; do
-        for l in ${LINKS_OF[$d]}; do
-            key="${d}_${l}"
-            CFG_DES+=("$d")
+    for g in "${GROUP_IDS[@]}"; do
+        for l in ${LINKS_OF[$g]}; do
+            key="${g}_${l}"
+            CFG_DES+=("$g")
             CFG_LINKS+=("$l")
             model=${CAM_MODEL[$key]}
             streams=${MODEL_DEFAULT_STREAMS[$model]:-}
@@ -995,7 +1089,7 @@ if [ "$#" -eq 0 ]; then
     done
 else
     for arg in "$@"; do
-        des=""; link=""; streams=""; res=""; format=""; fps=""
+        des=""; link=""; streams=""; res=""; format=""; fps=""; mipi_sel=""
         declare -A arg_stream_res=()
         declare -A arg_stream_format=()
         declare -A arg_stream_fps=()
@@ -1031,8 +1125,9 @@ else
                     case "$stream_kv" in
                         res=*)
                             arg_stream_res[$s]=${stream_kv#res=}
-                            [[ ${arg_stream_res[$s]} =~ ^[0-9]+x[0-9]+$ ]] \
-                                || die "res must be WIDTHxHEIGHT (got '${arg_stream_res[$s]}')"
+                            [[ ${arg_stream_res[$s]} =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] \
+                                || die "res must be a nonzero WIDTHxHEIGHT" \
+                                       "(got '${arg_stream_res[$s]}')"
                             ;;
                         format=*)
                             arg_stream_format[$s]=${stream_kv#format=}
@@ -1044,6 +1139,9 @@ else
                             arg_stream_fps[$s]=${stream_kv#fps=}
                             [[ ${arg_stream_fps[$s]} =~ ^[0-9]+([.][0-9]+)?$ ]] \
                                 || die "fps must be numeric (got '${arg_stream_fps[$s]}')"
+                            ! [[ ${arg_stream_fps[$s]} =~ ^0+([.]0*)?$ ]] \
+                                || die "fps must be greater than zero" \
+                                       "(got '${arg_stream_fps[$s]}')"
                             ;;
                         *) die "unrecognized stream option '$stream_kv' in '$stream_spec'" ;;
                     esac
@@ -1054,8 +1152,31 @@ else
         IFS=',' read -ra parts <<<"$arg"
         for kv in "${parts[@]}"; do
             case "$kv" in
-                des=*)    des=${kv#des=} ;;
-                link=*)   link=${kv#link=} ;;
+                des=*)
+                    [ -z "$mipi_sel" ] \
+                        || die "des= and mipi= cannot be combined in '$arg'"
+                    des=${kv#des=}
+                    ;;
+                link=*)
+                    [ -z "$mipi_sel" ] \
+                        || die "link= does not apply to mipi= in '$arg'"
+                    link=${kv#link=}
+                    ;;
+                mipi=*)
+                    [ -z "$des" ] \
+                        || die "des= and mipi= cannot be combined in '$arg'"
+                    [ -z "$link" ] \
+                        || die "link= does not apply to mipi= in '$arg'"
+                    mipi_sel=${kv#mipi=}
+                    [[ $mipi_sel =~ ^[0-9]+$ ]] \
+                        || die "mipi must be numeric (got '$mipi_sel')"
+                    mipi_sel=$((10#$mipi_sel))
+                    # Reuse the same des/link pair GMSL uses internally, so
+                    # every check and table below treats mipi=N as one more
+                    # camera group.
+                    des=$MIPI_GROUP
+                    link=$mipi_sel
+                    ;;
                 stream=*) streams+="${streams:+ }${kv#stream=}" ;;
                 res=*)    res=${kv#res=} ;;
                 format=*) format=${kv#format=} ;;
@@ -1069,40 +1190,62 @@ else
                     ;;
             esac
         done
-        [ -n "$link" ]    || die "missing link= in '$arg'"
+        [ -n "$link" ]    || die "missing link= or mipi= in '$arg'"
         [[ $link =~ ^[0-9]+$ ]] || die "link must be numeric (got '$link')"
-        [ -z "$res" ] || [[ $res =~ ^[0-9]+x[0-9]+$ ]] \
-            || die "res must be WIDTHxHEIGHT (got '$res')"
+        [ -z "$res" ] || [[ $res =~ ^[1-9][0-9]*x[1-9][0-9]*$ ]] \
+            || die "res must be a nonzero WIDTHxHEIGHT (got '$res')"
         [ -z "$format" ] || [[ $format =~ ^[[:alnum:]_]+$ ]] \
             || die "format must be a media-bus code (got '$format')"
-        [ -z "$fps" ] || [[ $fps =~ ^[0-9]+([.][0-9]+)?$ ]] \
-            || die "fps must be numeric (got '$fps')"
-        # Default to the sole usable DES when des= was omitted.
-        if [ -z "$des" ]; then
-            if [ "$NUM_DES" -gt 1 ]; then
-                die "des= required when multiple deserializers are present (in '$arg')"
-            fi
-            [ "$NUM_DES" -gt 0 ] || die "no usable deserializer discovered (in '$arg')"
-            des=${!DES_PATH[@]}
+        if [ -n "$fps" ]; then
+            [[ $fps =~ ^[0-9]+([.][0-9]+)?$ ]] \
+                || die "fps must be numeric (got '$fps')"
+            ! [[ $fps =~ ^0+([.]0*)?$ ]] \
+                || die "fps must be greater than zero (got '$fps')"
         fi
-        [[ $des =~ ^[0-9]+$ ]] || die "des must be numeric (got '$des')"
-        [ -n "${DES_PATH[$des]:-}" ] || die \
-            "des=$des not available (usable DES indices: ${!DES_PATH[*]})"
+        # mipi= already named the camera. Otherwise this is a deserializer
+        # camera: default to the sole usable DES when des= was omitted.
+        if [ -z "$mipi_sel" ]; then
+            if [ "$NUM_DES" -eq 0 ]; then
+                die "no deserializer on this board; use mipi=N to select a" \
+                    "direct MIPI camera (in '$arg')"
+            fi
+            if [ -z "$des" ]; then
+                [ "$NUM_DES" -le 1 ] || die "des= required when multiple" \
+                    "deserializers are present (in '$arg')"
+                des=${!DES_PATH[@]}
+            fi
+            [[ $des =~ ^[0-9]+$ ]] || die "des must be numeric (got '$des')"
+            [ -n "${DES_PATH[$des]:-}" ] || die \
+                "des=$des not available (usable DES indices: ${!DES_PATH[*]})"
+        fi
+        clabel=$(cam_label "$des" "$link")
         key="${des}_${link}"
-        [ -n "${CAM_MODEL[$key]:-}" ] || die "no camera discovered on DES${des} link ${link}"
+        [ -n "${CAM_MODEL[$key]:-}" ] \
+            || die "no camera discovered at ${clabel}"
         model=${CAM_MODEL[$key]}
         if [ -n "${MODEL_STREAMS[$model]:-}" ]; then
             [ -n "$streams" ] || streams=${MODEL_DEFAULT_STREAMS[$model]}
             for s in $streams; do
                 stream_valid_for_model "$s" "$model" \
-                    || die "stream '$s' invalid for $model on DES${des} link ${link}"
+                    || die "stream '$s' invalid for $model at ${clabel}"
             done
         else
             fixed_stream=$(fixed_stream_for_model "$model") \
                 || die "no stream configuration for $model"
             if [ -n "$streams" ] && [ "$streams" != "$fixed_stream" ]; then
-                echo "WARN: $model on DES${des} link ${link}: replacing requested" \
+                echo "WARN: $model at ${clabel}: replacing requested" \
                     "stream '$streams' with fixed stream '$fixed_stream'" >&2
+                # Move the bracketed values to the fixed name so a stream
+                # named something else does not drop the res, format and fps
+                # that came with it.
+                for s in $streams; do
+                    [ -z "${arg_stream_res[$s]+x}" ] \
+                        || arg_stream_res[$fixed_stream]=${arg_stream_res[$s]}
+                    [ -z "${arg_stream_format[$s]+x}" ] \
+                        || arg_stream_format[$fixed_stream]=${arg_stream_format[$s]}
+                    [ -z "${arg_stream_fps[$s]+x}" ] \
+                        || arg_stream_fps[$fixed_stream]=${arg_stream_fps[$s]}
+                done
             fi
             streams=$fixed_stream
         fi
@@ -1120,19 +1263,21 @@ else
         done
         unset arg_stream_res arg_stream_format arg_stream_fps
     done
-    # Reject duplicate (des,link) entries.
+    # Reject duplicate (group,link) entries.
     declare -A seen=()
     for k in "${!CFG_LINKS[@]}"; do
         sk="${CFG_DES[$k]}_${CFG_LINKS[$k]}"
-        [ -z "${seen[$sk]:-}" ] || die "DES${CFG_DES[$k]} link ${CFG_LINKS[$k]} specified more than once"
+        [ -z "${seen[$sk]:-}" ] \
+            || die "$(cam_label "${CFG_DES[$k]}" "${CFG_LINKS[$k]}")" \
+                   "specified more than once"
         seen[$sk]=1
     done
 fi
 
-# Resolve and validate each selected stream's format, size and FPS. Unsupported
-# FPS requests retain the active FPS when format/size stay unchanged. After an
-# effective format/size change, an unsupported or omitted FPS uses the largest
-# FPS advertised for the new mode.
+# Resolve and validate each selected stream's format, size and FPS. An
+# unsupported requested FPS always falls back to the largest FPS advertised
+# for the mode. An omitted FPS keeps the active rate unless format/size
+# changed, in which case it also uses the mode's largest FPS.
 declare -A CFG_STREAM_FMT=()
 declare -A CFG_STREAM_PIXFMT=()
 declare -A CFG_STREAM_SIZE=()
@@ -1142,23 +1287,28 @@ for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
+    clabel=$(cam_label "$d" "$l")
     model=${CAM_MODEL[$key]}
     cam=${CAM_BA[$key]}
     for s in ${CFG_STREAMS[$k]}; do
         sid=${STREAM_NODE[$s]}
         requested_fmt=${CFG_STREAM_FORMAT["${k}_${s}"]:-${CFG_FORMAT[$k]}}
         requested_size=${CFG_STREAM_RES["${k}_${s}"]:-${CFG_RES[$k]}}
+        # Pick a rate whenever the format or size was asked for, not only when
+        # fps= was given. The rate left over from the old mode is not always
+        # the best the new one can do, and sensor_validate_fps() answers a
+        # change with the mode's top rate.
         if [ -n "$requested_fmt" ] || [ -n "$requested_size" ] ||
             [ -n "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" ]; then
             CFG_STREAM_FPS_APPLY["${k}_${s}"]=1
         fi
         detected=$(sensor_active_format "$model" "$cam" "$s" "$sid") || \
             die "cannot read active format from ${model} sensor on" \
-                "DES${d} link ${l}, stream ${s}"
+                "${clabel}, stream ${s}"
         read -r detected_fmt detected_size <<<"$detected"
         validated=$(sensor_validate_format_size "$model" "$cam" "$s" "$sid" \
             "$requested_fmt" "$requested_size" "$detected_fmt" "$detected_size" \
-            "DES${d} link ${l} stream ${s}")
+            "${clabel} stream ${s}")
         read -r selected_fmt CFG_STREAM_SIZE["${k}_${s}"] <<<"$validated"
         CFG_STREAM_PIXFMT["${k}_${s}"]=$(mbus_to_pixfmt "$selected_fmt")
         format_key="${model}_${s}_${selected_fmt}"
@@ -1175,10 +1325,10 @@ for k in "${!CFG_LINKS[@]}"; do
                 "${CFG_STREAM_FMT["${k}_${s}"]}" \
                 "${CFG_STREAM_SIZE["${k}_${s}"]}" \
                 "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" "$active_fps" \
-                "DES${d} link ${l} stream ${s}" "$format_size_changed")
+                "${clabel} stream ${s}" "$format_size_changed")
         else
             [ -z "${CFG_STREAM_FPS_REQUEST["${k}_${s}"]}" ] || \
-                echo "WARN: DES${d} link ${l} stream ${s}: FPS control unavailable" >&2
+                echo "WARN: ${clabel} stream ${s}: FPS control unavailable" >&2
             CFG_STREAM_FPS["${k}_${s}"]="n/a"
             CFG_STREAM_FPS_REQUEST["${k}_${s}"]=""
         fi
@@ -1201,6 +1351,9 @@ declare -A CSI2_PAD_OWNER=()
 declare -A DES_STREAM=()
 declare -A DES_STREAM_NEXT=()
 for k in "${!CFG_LINKS[@]}"; do
+    # A direct MIPI camera owns its CSI2 receiver, so it has no pad to place
+    # and no source_stream to allocate. Its capture node comes from discovery.
+    [ "${CFG_DES[$k]}" != "$MIPI_GROUP" ] || continue
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
@@ -1231,18 +1384,41 @@ for k in "${!CFG_LINKS[@]}"; do
 done
 
 # Reset all media links and per-stream pad state so we don't inherit formats
-# or enabled-link flags from a prior run with a different layout.
+# or enabled-link flags from a prior run with a different layout. The sensor
+# to CSI2 link of a direct MIPI camera is IMMUTABLE and survives this; its
+# CSI2 to capture link does not, so restore it for every discovered camera
+# here, including ones not named on the command line. A selected camera's
+# own pass through setup_mipi_cameras() below just re-enables the same link.
 media-ctl -r 2>/dev/null || true
+
+for i in "${!MIPI_PATH[@]}"; do
+    ipu=${MIPI_CSI2[$i]% CSI2 *}
+    mc_l "\"${MIPI_CSI2[$i]}\":1 -> \"${ipu} ISYS Capture ${MIPI_CAP[$i]}\":0[1]" || \
+        die "cannot restore capture link on MIPI${i}"
+done
+
+# Direct MIPI cameras have no routes or deserializer pass to wait on, so
+# program them now: CFG_STREAM_FPS gets the sensor's actual accepted rate
+# before the summary below prints it, instead of the pre-programming
+# candidate from sensor_validate_fps.
+setup_mipi_cameras
 
 echo -e "\nConfiguration summary:"
 for k in "${!CFG_LINKS[@]}"; do
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
-    echo -e "  DES${d} LINK${l}\t Sensor model\t ${CAM_MODEL[$key]}"
+    if [ "$d" = "$MIPI_GROUP" ]; then
+        printf "  %-10s\t Sensor model\t %s\n" "MIPI${l}" "${CAM_MODEL[$key]}"
+    else
+        printf "  %-10s\t Sensor model\t %s\n" "DES${d} LINK${l}" "${CAM_MODEL[$key]}"
+    fi
     for s in ${CFG_STREAMS[$k]}; do
-        csi2_pad=${CSI2_PAD["${k}_${s}"]}
-        node=$(( CAPTURE_BASE[d] + csi2_pad ))
+        if [ "$d" = "$MIPI_GROUP" ]; then
+            node=${MIPI_CAP[$l]}
+        else
+            node=$(( CAPTURE_BASE[d] + CSI2_PAD["${k}_${s}"] ))
+        fi
         printf "                 Stream          %-8s %-10s %-12s %7s FPS -->  /dev/video%s\n" \
             "[${s}]" "${CFG_STREAM_SIZE["${k}_${s}"]}" \
             "${CFG_STREAM_FMT["${k}_${s}"]}" \
@@ -1258,8 +1434,11 @@ declare -A DES_ROUTES=()
 declare -A CSI2_ROUTES=()
 
 # --- pass 1: per-link source-side routes (mux/serializer), and accumulate
-#             per-DES deserializer/CSI2 routes.
+#             per-DES deserializer/CSI2 routes. Direct MIPI cameras have no
+#             serializer or deserializer to route and are skipped here;
+#             setup_mipi_cameras() programs them further down.
 for k in "${!CFG_LINKS[@]}"; do
+    [ "${CFG_DES[$k]}" != "$MIPI_GROUP" ] || continue
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
@@ -1335,6 +1514,7 @@ done
 
 # CSI2 source pad -> ISYS Capture entity link (must exist before formats flow).
 for k in "${!CFG_LINKS[@]}"; do
+    [ "${CFG_DES[$k]}" != "$MIPI_GROUP" ] || continue
     d=${CFG_DES[$k]}
     for s in ${CFG_STREAMS[$k]}; do
         csi2_pad=${CSI2_PAD["${k}_${s}"]}
@@ -1346,6 +1526,7 @@ done
 # --- pass 2: format propagation (all routes are now in place).
 
 for k in "${!CFG_LINKS[@]}"; do
+    [ "${CFG_DES[$k]}" != "$MIPI_GROUP" ] || continue
     d=${CFG_DES[$k]}
     l=${CFG_LINKS[$k]}
     key="${d}_${l}"
@@ -1397,9 +1578,12 @@ done
 # ---- v4l2-ctl: capture-node format -----------------------------------------
 
 for k in "${!CFG_LINKS[@]}"; do
-    d=${CFG_DES[$k]}
     for s in ${CFG_STREAMS[$k]}; do
-        node=$(( CAPTURE_BASE[d] + CSI2_PAD["${k}_${s}"] ))
+        if [ "${CFG_DES[$k]}" = "$MIPI_GROUP" ]; then
+            node=${MIPI_CAP[${CFG_LINKS[$k]}]}
+        else
+            node=$(( CAPTURE_BASE[${CFG_DES[$k]}] + CSI2_PAD["${k}_${s}"] ))
+        fi
         pixfmt=${CFG_STREAM_PIXFMT["${k}_${s}"]}
         [ -z "$pixfmt" ] && continue
         size=${CFG_STREAM_SIZE["${k}_${s}"]}
@@ -1410,6 +1594,3 @@ for k in "${!CFG_LINKS[@]}"; do
             >/dev/null || die "cannot set /dev/video${node} to ${pixfmt} ${size}"
     done
 done
-
-# ---- direct MIPI cameras (non-GMSL) -----------------------------------------
-setup_mipi_cameras
