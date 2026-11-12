@@ -61,24 +61,22 @@ jobs:
             build-essential ca-certificates curl dkms git kmod patch wget xz-utils
 
       - name: Download header files
-        env:
-          OS_VERSION: ${{ matrix.os_version }}
         run: |
           set -euo pipefail
           if [[ "${KERNEL_FAMILY}" == *-intel ]]; then
-            apt-get install -y "linux-headers-${KERNEL_FAMILY}"
-          fi
-          # 24.04 LTS needs HWE-edge / OEM meta-packages for newer kernels.
-          # 26.04+ ship newer kernels natively via linux-headers-generic.
-          if [[ "${OS_VERSION}" == "24.04" ]]; then
+            # Overlay headers don't declare objtool's runtime libs.
             apt-get install -y \
-              linux-headers-generic \
-              linux-headers-generic-hwe-24.04-edge \
-              linux-headers-oem-24.04a \
-              linux-headers-oem-24.04b
-          else
-            apt-get install -y linux-headers-generic
+              "linux-headers-${KERNEL_FAMILY}" \
+              libelf1t64 libssl3t64
+            exit 0
           fi
+          # Pin to the family; HWE/OEM meta-packages roll forward over time.
+          pkg_regex="^linux-headers-${KERNEL_FAMILY//./\\.}\.[0-9]+-[0-9]+-generic$"
+          pkg="$(apt-cache pkgnames linux-headers- | grep -E "${pkg_regex}" | sort -V | tail -n1 || true)"
+          [[ -n "${pkg}" ]] \
+            || { echo "No linux-headers package found for kernel family ${KERNEL_FAMILY}" >&2; exit 1; }
+          echo "Installing ${pkg}"
+          apt-get install -y "${pkg}"
 
       - name: Compile driver
         run: |
