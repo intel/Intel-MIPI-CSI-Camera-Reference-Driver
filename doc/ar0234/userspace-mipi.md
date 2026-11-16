@@ -9,7 +9,10 @@ This document details the configuration settings for the AR0234 MIPI CSI-2 senso
   - [BIOS Settings for IPU6EPMTL](#bios-settings-for-ipu6epmtl)
   - [BIOS Settings for IPU75XA](#bios-settings-for-ipu75xa)
   - [BIOS Settings for IPU8](#bios-settings-for-ipu8)
-- [Libcamhal Configuration File Setup (BIOS Configured Systems)](#libcamhal-configuration-file-setup-bios-configured-systems)
+- [ACPI Setup - ASL Configuration](#acpi-setup---asl-configuration)
+  - [ASL Configuration for IPU75XA](#asl-configuration-for-ipu75xa)
+  - [ASL Configuration for IPU8](#asl-configuration-for-ipu8)
+- [Libcamhal Configuration File Setup](#libcamhal-configuration-file-setup)
   - [Libcamhal Config for IPU6EPMTL](#libcamhal-config-for-ipu6epmtl)
   - [Libcamhal Config for IPU75XA](#libcamhal-config-for-ipu75xa)
   - [Libcamhal Config for IPU8](#libcamhal-config-for-ipu8)
@@ -241,9 +244,42 @@ Use the sensor ACPI HID in the **Custom HID** field.
 </details>
 
 ---
-## Libcamhal Configuration File Setup (BIOS Configured Systems)
+## ACPI Setup - ASL Configuration
 
-#### Libcamhal Config for IPU6EPMTL
+<h3>IMPORTANT: Turn off the BIOS setting to use the ASL method.</h3>
+
+>**BIOS Camera Option 1 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 1` -> **Disabled**
+
+>**BIOS Camera Option 2 Path:**\
+ `Intel Advanced Menu`->`System Agent (SA) Configuration`->`MIPI Camera Configuration` -> `Camera Option 2` -> **Disabled**
+
+To compile the ASL and load an SSDT overlay image, refer to [Compile ASL source file and load SSDT initramfs](../acpi/kernelspace.md#compile-asl-source-file-and-load-ssdt-initramfs).
+
+To unload an SSDT overlay image, refer to [Unload SSDT initramfs](../acpi/kernelspace.md#unload-ssdt-initramfs).
+
+### ASL Configuration for IPU75XA
+
+<details>
+<summary> 2x MIPI sensors use case </summary>
+
+>**ASL:** [mipi_ar0234.asl](../../acpi/ipu7/mipi_ar0234.asl)
+
+</details>
+
+### ASL Configuration for IPU8
+
+<details>
+<summary> 2x MIPI sensors use case </summary>
+
+>**ASL:** [mipi_ar0234.asl](../../acpi/ipu8/mipi_ar0234.asl)
+
+</details>
+
+---
+## Libcamhal Configuration File Setup
+
+### Libcamhal Config for IPU6EPMTL
 
 <details>
 <summary>2x MIPI sensors use case </summary>
@@ -255,7 +291,7 @@ Please use recommended config from [ipu6epmtl](../../config/ar0234/ipu6epmtl).
 
 </details>
 
-#### Libcamhal Config for IPU75XA
+### Libcamhal Config for IPU75XA
 
 <details>
 <summary>2x MIPI sensors use case </summary>
@@ -266,7 +302,7 @@ Please use recommended config from [ipu75xa](../../config/ar0234/ipu75xa).
 
 </details>
 
-#### Libcamhal Config for IPU8
+### Libcamhal Config for IPU8
 
 <details>
 <summary>2x MIPI sensors use case </summary>
@@ -285,7 +321,7 @@ RAW sensor required respective tuning configuration files below for streaming:
 1. Arithmetic Image Quality Binary (AIQB)
 2. Graph Setting Configuration (GCSS)
 
-#### Libcamhal Tuning for IPU6EPMTL
+### Libcamhal Tuning for IPU6EPMTL
 
 1. Download [AR0234_TGL_10bits.aiqb](https://github.com/intel/ipu6-camera-hal/blob/iotg_ipu6/config/linux/ipu6epmtl/AR0234_TGL_10bits.aiqb)
 2. Download [graph_settings_ar0234.xml](https://github.com/intel/ipu6-camera-hal/blob/iotg_ipu6/config/linux/ipu6epmtl/gcss/graph_settings_ar0234.xml)
@@ -296,11 +332,11 @@ RAW sensor required respective tuning configuration files below for streaming:
     sudo cp graph_settings_ar0234.xml /etc/camera/ipu6epmtl/gcss
     ```
 
-#### Libcamhal Tuning for IPU75XA
+### Libcamhal Tuning for IPU75XA
 
 The tuning files are available in [ipu75xa](../../config/ar0234/ipu75xa). In the future, this will be hosted at [here](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu75xa).
 
-#### Libcamhal Tuning for IPU8
+### Libcamhal Tuning for IPU8
 
 The tuning files are available in [ipu8](../../config/ar0234/ipu8). In the future, this will be hosted at [here](https://github.com/intel/ipu7-camera-hal/tree/main/config/linux/ipu8).
 
