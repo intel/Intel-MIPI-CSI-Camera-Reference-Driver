@@ -196,6 +196,8 @@ Name (PRT4, Package()
         Package () { "mipi-img-clock-lane", 0 },
         #if DES_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #elif DES_LANES == 3
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3 } },
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
@@ -211,6 +213,8 @@ Name (PRT5, Package()
         Package () { "mipi-img-clock-lane", 0 },
         #if DES_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #elif DES_LANES == 3
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3 } },
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
@@ -226,6 +230,8 @@ Name (PRT6, Package()
         Package () { "mipi-img-clock-lane", 0 },
         #if DES_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #elif DES_LANES == 3
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3 } },
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
@@ -241,6 +247,8 @@ Name (PRT7, Package()
         Package () { "mipi-img-clock-lane", 0 },
         #if DES_LANES == 4
         Package () { "mipi-img-data-lanes", Package() { 1, 2, 3, 4 } },       // 4 lanes for DPHY on Intel MIPI CRD
+        #elif DES_LANES == 3
+        Package () { "mipi-img-data-lanes", Package() { 1, 2, 3 } },
         #else
         Package () { "mipi-img-data-lanes", Package() { 1, 2 } },             // 2 lanes for CPHY/DPHY on Intel MIPI CRD
         #endif
