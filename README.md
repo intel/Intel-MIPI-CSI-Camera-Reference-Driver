@@ -44,7 +44,7 @@ This repository contains reference drivers and configurations for Intel MIPI CSI
 
 | MIPI Sensor                                 | User Guide                                  | Vendor          | IPU6EP | IPU6EPMTL | IPU75XA | IPU8 |
 |---------------------------------------------|---------------------------------------------|-----------------|:------:|:---------:|:-------:|:----:|
-| [AR0234](doc/ar0234/kernelspace.md)         | [User Guide](doc/ar0234/userspace-mipi.md)  | D3 Embedded     |❌ |✅B|✅B|✅B|
+| [AR0234](doc/ar0234/kernelspace.md)         | [User Guide](doc/ar0234/userspace-mipi.md)  | D3 Embedded     |❌ |✅B|✅ |✅ |
 | [AR0830+AP1302](doc/ar0830/kernelspace.md)  | [User Guide](doc/ar0830/userspace-mipi.md)  | Leopard Imaging |❌ |✅B|✅B|❌ |
 | IMX415                                      | [User Guide](doc/imx415/userspace-mipi.md)  | Leopard Imaging |❌ |✅B|❌ |❌ |
 | [IMX586](doc/imx586/kernelspace.md)         | [User Guide](doc/imx586/userspace-mipi.md)  | Leopard Imaging |❌ |✅B|❌ |❌ |
