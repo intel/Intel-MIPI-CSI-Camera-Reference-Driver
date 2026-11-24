@@ -219,6 +219,19 @@ for arg in "$@"; do
        "${members[@]}"
 done
 
+# Kernels sharing another release's patch series get a symlink to that tree path.
+case "$major.$minor" in
+    7.3) base_tree="7.0.0" ;;
+    *)   base_tree="" ;;
+esac
+if [[ -n "$base_tree" ]]; then
+    if [[ -e "$base_tree" && ! -L "$base_tree" ]]; then
+        echo "dkms-kernel-source.sh: ${base_tree} already exists;" >&2
+        exit 1
+    fi
+    ln -sfn "$major.$minor.0" "$base_tree"
+fi
+
 # Provide a stable patch path for extracted V4L2 core sources.
 if [[ -d "$major.$minor.0/drivers/media/v4l2-core" ]]; then
     mkdir -p drivers/media

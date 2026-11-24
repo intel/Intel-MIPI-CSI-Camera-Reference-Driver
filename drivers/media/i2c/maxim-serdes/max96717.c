@@ -1679,13 +1679,30 @@ static unsigned int max96717_clk_find_best_index(struct max96717_priv *priv,
 	return idx;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
+static int max96717_clk_determine_rate(struct clk_hw *hw,
+				       struct clk_rate_request *req)
+#else
 static long max96717_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 				    unsigned long *parent_rate)
+#endif
 {
 	struct max96717_priv *priv = clk_hw_to_priv(hw);
 	struct device *dev = &priv->client->dev;
 	unsigned int idx;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
+	idx = max96717_clk_find_best_index(priv, req->rate);
+
+	if (req->rate != max96717_predef_freqs[idx].freq) {
+		dev_dbg(dev, "Request CLK freq:%lu, found CLK freq:%lu\n",
+			req->rate, max96717_predef_freqs[idx].freq);
+	}
+
+	req->rate = max96717_predef_freqs[idx].freq;
+
+	return 0;
+#else
 	idx = max96717_clk_find_best_index(priv, rate);
 
 	if (rate != max96717_predef_freqs[idx].freq) {
@@ -1694,6 +1711,7 @@ static long max96717_clk_round_rate(struct clk_hw *hw, unsigned long rate,
 	}
 
 	return max96717_predef_freqs[idx].freq;
+#endif
 }
 
 static int max96717_clk_set_rate(struct clk_hw *hw, unsigned long rate,
@@ -1757,7 +1775,11 @@ static const struct clk_ops max96717_clk_ops = {
 	.unprepare   = max96717_clk_unprepare,
 	.set_rate    = max96717_clk_set_rate,
 	.recalc_rate = max96717_clk_recalc_rate,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
+	.determine_rate = max96717_clk_determine_rate,
+#else
 	.round_rate  = max96717_clk_round_rate,
+#endif
 };
 
 static int max96717_register_clkout(struct max96717_priv *priv)
