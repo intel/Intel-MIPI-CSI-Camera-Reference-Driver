@@ -28,7 +28,10 @@
 #include <linux/sysfs.h>
 #include <linux/slab.h>
 #include <linux/pm.h>
+#include <linux/version.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 3, 0)
 #include <linux/of_gpio.h>
+#endif
 
 #include "serdes.h"
 #include "regmap-retry.h"
