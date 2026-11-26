@@ -237,7 +237,7 @@ acpi_find_by_path() {
     local target=$1
     local d p
     for d in /sys/bus/acpi/devices/*; do
-        p=$(cat "$d/path" 2>/dev/null) || continue
+        IFS= read -r p 2>/dev/null < "$d/path" || continue
         if [ "$p" = "$target" ]; then
             echo "$(basename "$d") $d"
             return 0
@@ -252,7 +252,7 @@ acpi_children_of() {
     local parent=$1
     local d p
     for d in /sys/bus/acpi/devices/*; do
-        p=$(cat "$d/path" 2>/dev/null) || continue
+        IFS= read -r p 2>/dev/null < "$d/path" || continue
         case "$p" in
             "$parent".*) ;;
             *) continue ;;
